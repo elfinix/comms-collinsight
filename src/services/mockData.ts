@@ -454,11 +454,11 @@ export function formatDateTime(dateStr: string): string {
 }
 
 export const statusColors: Record<EventStatus, string> = {
-  Created: "bg-slate-100 text-slate-700",
-  "For Review": "bg-amber-100 text-amber-700",
-  "For Approval": "bg-blue-100 text-blue-700",
-  "Pending Revision": "bg-orange-100 text-orange-700",
-  Approved: "bg-teal-100 text-teal-700",
-  Completed: "bg-green-100 text-green-700",
-  Closed: "bg-gray-100 text-gray-600",
+  Created: "bg-slate-50 text-slate-600 border border-slate-200 font-medium",
+  "For Review": "bg-amber-50 text-amber-700 border border-amber-200 font-medium",
+  "For Approval": "bg-blue-50 text-blue-700 border border-blue-200 font-medium",
+  "Pending Revision": "bg-orange-50 text-orange-700 border border-orange-200 font-medium",
+  Approved: "bg-teal-50 text-teal-700 border border-teal-200 font-medium",
+  Completed: "bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium",
+  Closed: "bg-gray-50 text-gray-600 border border-gray-200 font-medium",
 };

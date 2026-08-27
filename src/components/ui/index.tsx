@@ -350,23 +350,76 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
 
 // --- Signatory Progress ---
 export function SignatoryProgress({ status }: { status: string }) {
-  const steps = ["Student", "Adviser", "Dean", "SDS"];
+  const steps = [
+    { label: "Student", sub: "APF Submission" },
+    { label: "Adviser", sub: "Endorsement" },
+    { label: "Dean", sub: "Approval" },
+    { label: "SDS", sub: "Final Clearance" },
+  ];
   const stepIndex = {
-    Created: 0, "For Review": 1, "Pending Revision": 1, "For Approval": 2, Approved: 3, Completed: 3, Closed: 3,
+    Created: 0,
+    "For Review": 1,
+    "Pending Revision": 1,
+    "For Approval": 2,
+    Approved: 3,
+    Completed: 3,
+    Closed: 3,
   }[status] ?? 0;
+
   return (
-    <div className="flex items-center gap-0">
-      {steps.map((step, i) => (
-        <div key={step} className="flex items-center">
-          <div className={`flex flex-col items-center gap-1`}>
-            <div className={`w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold ${i < stepIndex ? "bg-[var(--primary)] text-white" : i === stepIndex ? "bg-[var(--primary)] text-white ring-2 ring-offset-1 ring-[var(--primary)]" : "bg-[var(--muted)] text-[var(--muted-foreground)]"}`}>
-              {i < stepIndex ? "✓" : i + 1}
+    <div className="w-full pt-2 pb-1">
+      <div className="flex items-start justify-between w-full relative">
+        {steps.map((step, i) => {
+          const isPassed = i < stepIndex;
+          const isCurrent = i === stepIndex;
+
+          return (
+            <div key={step.label} className="flex items-start flex-1 last:flex-none">
+              <div className="flex flex-col items-center text-center min-w-[76px] sm:min-w-[90px]">
+                {/* Circle node with dedicated bounds for ring glow */}
+                <div className="h-11 flex items-center justify-center">
+                  <div
+                    className={`w-9 h-9 rounded-full text-xs flex items-center justify-center font-bold transition-all shadow-xs ${
+                      isPassed
+                        ? "bg-[var(--primary)] text-white"
+                        : isCurrent
+                        ? "bg-[var(--primary)] text-white ring-4 ring-[var(--primary)]/20 ring-offset-2"
+                        : "bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]"
+                    }`}
+                  >
+                    {isPassed ? "✓" : i + 1}
+                  </div>
+                </div>
+
+                {/* Text labels lowered with ample clearance */}
+                <div className="flex flex-col items-center gap-0.5 mt-2.5">
+                  <span
+                    className={`text-xs font-bold tracking-tight transition-colors ${
+                      isPassed || isCurrent ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--muted-foreground)] hidden sm:block">
+                    {step.sub}
+                  </span>
+                </div>
+              </div>
+
+              {/* Connecting progress bar centered to the circle's vertical midpoint */}
+              {i < steps.length - 1 && (
+                <div className="flex-1 mx-2 sm:mx-4 h-11 flex items-center">
+                  <div
+                    className={`h-1 w-full rounded-full transition-all ${
+                      i < stepIndex ? "bg-[var(--primary)]" : "bg-[var(--border)]"
+                    }`}
+                  />
+                </div>
+              )}
             </div>
-            <span className="text-[10px] text-[var(--muted-foreground)] font-mono">{step}</span>
-          </div>
-          {i < steps.length - 1 && <div className={`h-0.5 w-8 mx-1 mb-4 ${i < stepIndex ? "bg-[var(--primary)]" : "bg-[var(--border)]"}`} />}
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }

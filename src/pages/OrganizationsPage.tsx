@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { Dialog, SignatoryProgress } from "../components/ui";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
-  Calendar, ArrowUpRight, Clock, MapPin, Building2, Users,
-  ChevronLeft, ChevronRight, ArrowLeft,
+  Calendar as CalendarIcon, ArrowUpRight, Clock, MapPin, Building2, Users,
+  ChevronLeft, ChevronRight, ArrowLeft, Search, LayoutGrid, ListFilter,
+  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt
 } from "lucide-react";
 import {
-  departments, organizations, users, getEventTypeById,
-  formatDate, statusColors,
+  departments, organizations, users, expenditureCategories, getEventTypeById,
+  formatDate, formatCurrency, statusColors, Event
 } from "../services/mockData";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -24,21 +25,61 @@ function FadeSection({ children, className = "", delay = 0 }: { children: React.
     return () => obs.disconnect();
   }, []);
   return (
-    <div ref={ref} className={className}
-      style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(22px)", transition: `opacity 0.55s ease ${delay}ms, transform 0.55s ease ${delay}ms` }}>
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(18px)",
+        transition: `opacity 0.5s ease ${delay}ms, transform 0.5s ease ${delay}ms`
+      }}
+    >
       {children}
     </div>
   );
 }
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-const STATUS_FILTER_OPTIONS = ["All", "For Approval", "Approved", "Completed", "Closed"] as const;
+const MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December"
+];
+const STATUS_FILTER_OPTIONS = ["All", "Approved", "For Approval", "For Review", "Completed", "Closed"] as const;
 type StatusFilter = (typeof STATUS_FILTER_OPTIONS)[number];
 
-function CalendarGrid({ events, onSelectEvent }: {
-  events: ReturnType<typeof useApp>["events"];
-  onSelectEvent: (e: ReturnType<typeof useApp>["events"][0]) => void;
+function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mode?: string; size?: number; className?: string }) {
+  if (mode?.toLowerCase().includes("online") || mode?.toLowerCase().includes("virtual")) {
+    return <Globe size={size} className={className} />;
+  }
+  if (mode?.toLowerCase().includes("hybrid")) {
+    return <Radio size={size} className={className} />;
+  }
+  return <Building2 size={size} className={className} />;
+}
+
+function formatTimeRange(startStr: string, endStr: string): string {
+  try {
+    const s = new Date(startStr);
+    const e = new Date(endStr);
+    const startFormatted = s.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+    const startTime = s.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
+    const endTime = e.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
+    return `${startFormatted} · ${startTime} – ${endTime}`;
+  } catch {
+    return `${startStr} – ${endStr}`;
+  }
+}
+
+function CalendarGrid({
+  events,
+  onSelectEvent,
+  selectedDay,
+  onSelectDay,
+}: {
+  events: Event[];
+  onSelectEvent: (e: Event) => void;
+  selectedDay: { year: number; month: number; day: number } | null;
+  onSelectDay: (dayObj: { year: number; month: number; day: number } | null) => void;
 }) {
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
@@ -46,7 +87,7 @@ function CalendarGrid({ events, onSelectEvent }: {
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
-  const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) => i < firstDay ? null : i - firstDay + 1);
+  const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) => (i < firstDay ? null : i - firstDay + 1));
   while (cells.length % 7 !== 0) cells.push(null);
 
   function eventsOnDay(day: number) {
@@ -55,45 +96,167 @@ function CalendarGrid({ events, onSelectEvent }: {
       return d.getFullYear() === viewYear && d.getMonth() === viewMonth && d.getDate() === day;
     });
   }
-  function prevMonth() { if (viewMonth === 0) { setViewMonth(11); setViewYear((y) => y - 1); } else setViewMonth((m) => m - 1); }
-  function nextMonth() { if (viewMonth === 11) { setViewMonth(0); setViewYear((y) => y + 1); } else setViewMonth((m) => m + 1); }
-  const isToday = (day: number) => day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+
+  function prevMonth() {
+    if (viewMonth === 0) {
+      setViewMonth(11);
+      setViewYear((y) => y - 1);
+    } else {
+      setViewMonth((m) => m - 1);
+    }
+  }
+
+  function nextMonth() {
+    if (viewMonth === 11) {
+      setViewMonth(0);
+      setViewYear((y) => y + 1);
+    } else {
+      setViewMonth((m) => m + 1);
+    }
+  }
+
+  function goToToday() {
+    setViewYear(today.getFullYear());
+    setViewMonth(today.getMonth());
+    onSelectDay({ year: today.getFullYear(), month: today.getMonth(), day: today.getDate() });
+  }
+
+  const isToday = (day: number) =>
+    day === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+
+  const isDaySelected = (day: number) =>
+    selectedDay !== null &&
+    selectedDay.day === day &&
+    selectedDay.month === viewMonth &&
+    selectedDay.year === viewYear;
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
-        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition text-[var(--muted-foreground)]"><ChevronLeft size={18} /></button>
-        <h3 className="font-bold text-[var(--foreground)]">{MONTH_NAMES[viewMonth]} {viewYear}</h3>
-        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-[var(--muted)] transition text-[var(--muted-foreground)]"><ChevronRight size={18} /></button>
+    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xs">
+      {/* Month Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-[var(--border)] bg-[var(--muted)]/30">
+        <div className="flex items-center gap-3">
+          <h3 className="font-bold text-lg text-[var(--foreground)] tracking-tight">
+            {MONTH_NAMES[viewMonth]} <span className="text-[var(--primary)]">{viewYear}</span>
+          </h3>
+          {selectedDay && (
+            <button
+              onClick={() => onSelectDay(null)}
+              className="inline-flex items-center gap-1 text-xs font-mono bg-[var(--primary)]/10 text-[var(--primary)] px-2.5 py-1 rounded-full hover:bg-[var(--primary)]/20 transition cursor-pointer font-bold"
+            >
+              Filtering: {MONTH_NAMES[selectedDay.month].slice(0, 3)} {selectedDay.day}
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={goToToday}
+            className="px-3 py-1.5 text-xs font-semibold text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-lg hover:bg-[var(--muted)] hover:border-[var(--primary)]/50 transition cursor-pointer shadow-2xs"
+          >
+            Today
+          </button>
+          <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] rounded-lg p-0.5">
+            <button
+              onClick={prevMonth}
+              aria-label="Previous month"
+              className="p-1.5 rounded-md hover:bg-[var(--muted)] transition text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={nextMonth}
+              aria-label="Next month"
+              className="p-1.5 rounded-md hover:bg-[var(--muted)] transition text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
       </div>
-      <div className="grid grid-cols-7 border-b border-[var(--border)]">
+
+      {/* Day of Week Headers */}
+      <div className="grid grid-cols-7 border-b border-[var(--border)] bg-[var(--muted)]/50">
         {DAY_NAMES.map((d) => (
-          <div key={d} className="py-2 text-center text-[10px] font-mono font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">{d}</div>
+          <div
+            key={d}
+            className="py-2.5 text-center text-[11px] font-mono font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
+          >
+            {d}
+          </div>
         ))}
       </div>
+
+      {/* Days Grid */}
       <div className="grid grid-cols-7">
         {cells.map((day, idx) => {
           const dayEvents = day ? eventsOnDay(day) : [];
           const isCurrentDay = day ? isToday(day) : false;
+          const isSelected = day ? isDaySelected(day) : false;
+
           return (
-            <div key={idx} className={`min-h-[90px] p-1.5 border-r border-b border-[var(--border)] ${day ? "" : "bg-[var(--muted)]/30"} ${idx % 7 === 6 ? "border-r-0" : ""}`}>
+            <div
+              key={idx}
+              onClick={() => {
+                if (day) {
+                  if (isSelected) {
+                    onSelectDay(null);
+                  } else {
+                    onSelectDay({ year: viewYear, month: viewMonth, day });
+                  }
+                }
+              }}
+              className={`min-h-[100px] p-2 border-r border-b border-[var(--border)] transition-all ${
+                day ? "cursor-pointer hover:bg-[var(--primary)]/5" : "bg-[var(--muted)]/20"
+              } ${idx % 7 === 6 ? "border-r-0" : ""} ${isSelected ? "bg-[var(--primary)]/10 ring-2 ring-[var(--primary)] ring-inset" : ""}`}
+            >
               {day && (
-                <>
-                  <span className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-xs font-semibold mb-1 ${isCurrentDay ? "bg-[var(--primary)] text-white" : "text-[var(--muted-foreground)]"}`}>{day}</span>
-                  <div className="flex flex-col gap-0.5">
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span
+                      className={`inline-flex w-6 h-6 items-center justify-center rounded-full text-xs font-semibold ${
+                        isCurrentDay
+                          ? "bg-[var(--primary)] text-white shadow-xs"
+                          : isSelected
+                          ? "bg-[var(--primary)]/20 text-[var(--primary)] font-bold"
+                          : "text-[var(--muted-foreground)]"
+                      }`}
+                    >
+                      {day}
+                    </span>
+                    {dayEvents.length > 0 && (
+                      <span className="text-[10px] font-mono font-bold text-[var(--primary)]">
+                        {dayEvents.length} {dayEvents.length === 1 ? "evt" : "evts"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-1 flex-1">
                     {dayEvents.slice(0, 2).map((e) => {
                       const org = organizations.find((o) => o.id === e.organizationId);
                       return (
-                        <button key={e.id} onClick={() => onSelectEvent(e)}
-                          className="w-full text-left text-[11px] font-medium px-1.5 py-0.5 rounded truncate text-white leading-tight hover:opacity-80 transition"
-                          style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }} title={e.name}>
+                        <button
+                          key={e.id}
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            onSelectEvent(e);
+                          }}
+                          className="w-full text-left text-[10px] font-medium px-2 py-1 rounded-md truncate text-white leading-tight hover:brightness-110 hover:shadow-xs transition cursor-pointer"
+                          style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                          title={`${e.name} (${org?.code ?? ""})`}
+                        >
+                          <span className="font-bold opacity-90 mr-1">{org?.code}:</span>
                           {e.name}
                         </button>
                       );
                     })}
-                    {dayEvents.length > 2 && <span className="text-[10px] font-mono text-[var(--muted-foreground)] px-1">+{dayEvents.length - 2} more</span>}
+                    {dayEvents.length > 2 && (
+                      <span className="text-[9px] font-mono font-bold text-[var(--primary)] px-1 mt-auto">
+                        +{dayEvents.length - 2} more
+                      </span>
+                    )}
                   </div>
-                </>
+                </div>
               )}
             </div>
           );
@@ -106,182 +269,506 @@ function CalendarGrid({ events, onSelectEvent }: {
 type Tab = "roster" | "calendar";
 
 export default function OrganizationsPage() {
-  const { events: liveEvents } = useApp();
-  const [searchParams] = useSearchParams();
-  const [tab, setTab] = useState<Tab>(searchParams.get("tab") === "calendar" ? "calendar" : "roster");
+  const { events: liveEvents, transactions: liveTxns } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => {
-    const t = searchParams.get("tab");
-    setTab(t === "calendar" ? "calendar" : "roster");
-    window.scrollTo(0, 0);
-  }, [searchParams]);
-  const [activeDept, setActiveDept] = useState(departments[0].id);
-  const [selectedEvent, setSelectedEvent] = useState<(typeof liveEvents)[0] | null>(null);
+  // URL-driven tab state
+  const tabParam = searchParams.get("tab");
+  const tab: Tab = tabParam === "calendar" ? "calendar" : "roster";
+
+  function handleTabChange(nextTab: Tab) {
+    const newParams = new URLSearchParams(searchParams);
+    if (nextTab === "calendar") {
+      newParams.set("tab", "calendar");
+    } else {
+      newParams.delete("tab");
+    }
+    setSearchParams(newParams);
+  }
+
+  // Roster Tab Filters
+  const [activeDept, setActiveDept] = useState<string>("all");
+  const [rosterSearch, setRosterSearch] = useState("");
+
+  // Calendar Tab Filters
+  const [calendarSearch, setCalendarSearch] = useState("");
+  const [selectedOrgFilter, setSelectedOrgFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
+  const [selectedDay, setSelectedDay] = useState<{ year: number; month: number; day: number } | null>(null);
+  const [calendarLayout, setCalendarLayout] = useState<"grid" | "list">("grid");
 
-  const publicEvents = liveEvents.filter((e) => ["For Approval", "Approved", "Completed", "Closed"].includes(e.status));
-  const deptOrgs = organizations.filter((o) => o.departmentId === activeDept);
-  const filtered = statusFilter === "All" ? publicEvents : publicEvents.filter((e) => e.status === statusFilter);
+  // Modal
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  // Public events (includes ongoing proposals and approved/closed events)
+  const publicEvents = useMemo(() => {
+    return liveEvents.filter((e) =>
+      ["Created", "For Review", "For Approval", "Approved", "Completed", "Closed"].includes(e.status)
+    );
+  }, [liveEvents]);
+
+  // Filtered Roster Organizations
+  const filteredOrganizations = useMemo(() => {
+    return organizations.filter((org) => {
+      // Dept match
+      if (activeDept !== "all" && org.departmentId !== activeDept) return false;
+      // Search match
+      if (rosterSearch.trim()) {
+        const q = rosterSearch.toLowerCase();
+        const dept = departments.find((d) => d.id === org.departmentId);
+        const adviser = users.find((u) => u.id === org.adviserId);
+        const orgStudents = users.filter((u) => u.organizationId === org.id);
+
+        const nameMatch = org.name.toLowerCase().includes(q);
+        const codeMatch = org.code.toLowerCase().includes(q);
+        const deptMatch = dept?.name.toLowerCase().includes(q) || dept?.code.toLowerCase().includes(q);
+        const adviserMatch = adviser && `${adviser.firstName} ${adviser.lastName}`.toLowerCase().includes(q);
+        const studentMatch = orgStudents.some((u) => `${u.firstName} ${u.lastName} ${u.position}`.toLowerCase().includes(q));
+
+        if (!nameMatch && !codeMatch && !deptMatch && !adviserMatch && !studentMatch) return false;
+      }
+      return true;
+    });
+  }, [activeDept, rosterSearch]);
+
+  // Filtered Calendar Events
+  const filteredCalendarEvents = useMemo(() => {
+    return publicEvents.filter((e) => {
+      // Status filter
+      if (statusFilter !== "All" && e.status !== statusFilter) return false;
+      // Org filter
+      if (selectedOrgFilter !== "all" && e.organizationId !== selectedOrgFilter) return false;
+      // Day filter
+      if (selectedDay) {
+        const d = new Date(e.dateStart);
+        if (
+          d.getFullYear() !== selectedDay.year ||
+          d.getMonth() !== selectedDay.month ||
+          d.getDate() !== selectedDay.day
+        ) {
+          return false;
+        }
+      }
+      // Search filter
+      if (calendarSearch.trim()) {
+        const q = calendarSearch.toLowerCase();
+        const org = organizations.find((o) => o.id === e.organizationId);
+        const type = getEventTypeById(e.typeId);
+        const nameMatch = e.name.toLowerCase().includes(q);
+        const descMatch = e.description?.toLowerCase().includes(q);
+        const locMatch = e.location?.toLowerCase().includes(q);
+        const orgMatch = org?.name.toLowerCase().includes(q) || org?.code.toLowerCase().includes(q);
+        const typeMatch = type?.name.toLowerCase().includes(q);
+        if (!nameMatch && !descMatch && !locMatch && !orgMatch && !typeMatch) return false;
+      }
+      return true;
+    });
+  }, [publicEvents, statusFilter, selectedOrgFilter, selectedDay, calendarSearch]);
+
+  // Quick statistics
+  const totalOfficersCount = users.filter((u) => u.role === "student" && u.organizationId).length;
+  const approvedEventsCount = publicEvents.filter((e) => e.status === "Approved").length;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col">
       <PublicNav hideOrgCta />
 
-      {/* Page hero */}
-      <div className="pt-24 bg-[var(--card)] border-b border-[var(--border)]">
+      {/* Hero Section */}
+      <div className="pt-24 bg-gradient-to-b from-[var(--card)] to-[var(--background)] border-b border-[var(--border)]">
         <div className="max-w-7xl mx-auto px-6">
           <FadeSection>
-            {/* Breadcrumb trail */}
-            <div className="flex items-center gap-2 text-xs font-mono text-[var(--muted-foreground)] mb-5">
-              <Link to="/" onClick={() => window.scrollTo(0, 0)}
-                className="flex items-center gap-1 hover:text-[var(--primary)] transition">
-                <ArrowLeft size={11} /> Home
+            {/* Breadcrumbs */}
+            <div className="flex items-center gap-2 text-xs font-mono text-[var(--muted-foreground)] mb-4">
+              <Link
+                to="/"
+                onClick={() => window.scrollTo(0, 0)}
+                className="flex items-center gap-1 hover:text-[var(--primary)] transition"
+              >
+                <ArrowLeft size={12} /> Home
               </Link>
               <span className="opacity-40">/</span>
-              <span className="text-[var(--foreground)]">
-                {tab === "roster" ? "Organization Roster" : "Event Calendar"}
+              <span className="text-[var(--foreground)] font-medium">
+                {tab === "roster" ? "Student Organizations" : "Campus Event Calendar"}
               </span>
             </div>
 
-            <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest">CITE · LCUP</span>
-            <h1 className="text-3xl lg:text-4xl font-extrabold mt-2 text-[var(--foreground)]">
-              {tab === "roster" ? "Organization Roster" : "Event Calendar"}
-            </h1>
-            <p className="mt-3 text-[var(--muted-foreground)] max-w-xl leading-relaxed">
-              {tab === "roster"
-                ? "Browse student organizations by department, explore their upcoming events, and see the officers leading each group."
-                : "Track approved, upcoming, and completed events across all CITE student organizations."}
-            </p>
+            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold">
+                    CITE · LCUP
+                  </span>
+                </div>
+                <h1 className="text-3xl lg:text-4xl font-extrabold mt-2 text-[var(--foreground)] tracking-tight">
+                  {tab === "roster" ? "Student Organizations Roster" : "Institutional Event Calendar"}
+                </h1>
+                <p className="mt-2 text-sm lg:text-base text-[var(--muted-foreground)] max-w-2xl leading-relaxed">
+                  {tab === "roster"
+                    ? "Explore official CITE student organizations, view designated leadership officers, and monitor organization-specific initiatives."
+                    : "Track proposals, approved gatherings, workshops, and milestones scheduled across college departments in real time."}
+                </p>
+              </div>
+
+              {/* Quick Metrics Badges */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
+                  <Building2 size={16} className="text-[var(--primary)]" />
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-[var(--foreground)]">{organizations.length} Organizations</p>
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)]">{departments.length} Departments</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
+                  <CalendarDays size={16} className="text-[var(--primary)]" />
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-[var(--foreground)]">{publicEvents.length} Events Total</p>
+                    <p className="text-[10px] font-mono text-[var(--primary)] font-semibold">{approvedEventsCount} Approved</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
+                  <Users size={16} className="text-sky-600" />
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-[var(--foreground)]">{totalOfficersCount} Officers</p>
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)]">Active Leadership</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </FadeSection>
 
-          {/* Tab switcher */}
-          <div className="flex gap-1 mt-8">
-            {(["roster", "calendar"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex items-center gap-1.5 px-5 py-2.5 text-sm font-semibold rounded-t-xl border border-b-0 transition-all ${
-                  tab === t
-                    ? "bg-[var(--background)] border-[var(--border)] text-[var(--foreground)]"
-                    : "bg-transparent border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+          {/* Primary View Switcher Tabs */}
+          <div className="flex gap-2 mt-4 border-b border-[var(--border)]">
+            <button
+              onClick={() => handleTabChange("roster")}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-t-xl border transition-all cursor-pointer ${
+                tab === "roster"
+                  ? "bg-[var(--background)] border-[var(--border)] border-b-[var(--background)] text-[var(--primary)] -mb-px shadow-2xs"
+                  : "bg-transparent border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/50"
+              }`}
+            >
+              <Users size={16} />
+              Organization Roster
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold ${
+                  tab === "roster" ? "bg-[var(--primary)] text-white" : "bg-[var(--muted)] text-[var(--foreground)]"
                 }`}
               >
-                {t === "roster" ? <Users size={14} /> : <Calendar size={14} />}
-                {t === "roster" ? "Organization Roster" : "Calendar"}
-              </button>
-            ))}
+                {organizations.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange("calendar")}
+              className={`flex items-center gap-2 px-6 py-3 text-sm font-bold rounded-t-xl border transition-all cursor-pointer ${
+                tab === "calendar"
+                  ? "bg-[var(--background)] border-[var(--border)] border-b-[var(--background)] text-[var(--primary)] -mb-px shadow-2xs"
+                  : "bg-transparent border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/50"
+              }`}
+            >
+              <CalendarIcon size={16} />
+              Event Calendar
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full font-mono font-bold ${
+                  tab === "calendar" ? "bg-[var(--primary)] text-white" : "bg-[var(--muted)] text-[var(--foreground)]"
+                }`}
+              >
+                {publicEvents.length}
+              </span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Tab content */}
-      <div className="max-w-7xl mx-auto px-6 py-14">
-
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-6 py-10 flex-1 w-full">
+        {/* ======================= ROSTER TAB ======================= */}
         {tab === "roster" && (
-          <>
-            {/* Dept pills */}
-            <FadeSection className="mb-8">
-              <div className="flex gap-2 flex-wrap">
-                {departments.map((d) => (
-                  <button key={d.id} onClick={() => setActiveDept(d.id)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      activeDept === d.id
-                        ? "bg-[var(--primary)] text-white shadow-sm"
-                        : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--border)] hover:text-[var(--foreground)]"
-                    }`}>
-                    {d.code}
-                    <span className={`ml-1.5 text-[10px] font-mono ${activeDept === d.id ? "text-teal-200" : "text-[var(--muted-foreground)]"}`}>
-                      {organizations.filter((o) => o.departmentId === d.id).length} org
-                    </span>
+          <div className="flex flex-col gap-8">
+            {/* Search & Department Filters */}
+            <FadeSection>
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                {/* Department Pills */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-mono font-bold text-[var(--muted-foreground)] uppercase tracking-wider mr-1">
+                    Department:
+                  </span>
+                  <button
+                    onClick={() => setActiveDept("all")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                      activeDept === "all"
+                        ? "bg-[var(--primary)] text-white shadow-xs"
+                        : "bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--border)]"
+                    }`}
+                  >
+                    All Departments ({organizations.length})
                   </button>
-                ))}
+
+                  {departments.map((d) => {
+                    const count = organizations.filter((o) => o.departmentId === d.id).length;
+                    const isSelected = activeDept === d.id;
+                    return (
+                      <button
+                        key={d.id}
+                        onClick={() => setActiveDept(d.id)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                          isSelected
+                            ? "bg-[var(--primary)] text-white shadow-xs"
+                            : "bg-[var(--muted)] text-[var(--foreground)] hover:bg-[var(--border)]"
+                        }`}
+                        title={d.name}
+                      >
+                        {d.code}
+                        <span className={`ml-1.5 font-mono ${isSelected ? "text-teal-100" : "text-[var(--muted-foreground)]"}`}>
+                          ({count})
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative min-w-[260px] md:w-80">
+                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                  <input
+                    type="text"
+                    value={rosterSearch}
+                    onChange={(e) => setRosterSearch(e.target.value)}
+                    placeholder="Search org, code, officer..."
+                    className="w-full pl-9 pr-8 py-2 text-sm bg-[var(--background)] border border-[var(--border)] rounded-xl text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] transition"
+                  />
+                  {rosterSearch && (
+                    <button
+                      onClick={() => setRosterSearch("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-0.5 cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               </div>
             </FadeSection>
 
-            {departments.filter((d) => d.id === activeDept).map((dept) => (
-              <FadeSection key={dept.id} className="mb-8">
-                <div className="flex items-center gap-2">
-                  <Building2 size={15} className="text-[var(--primary)]" />
-                  <span className="text-sm font-mono text-[var(--muted-foreground)]">{dept.name}</span>
+            {/* Organizations Catalog */}
+            {filteredOrganizations.length === 0 ? (
+              <FadeSection>
+                <div className="py-20 flex flex-col items-center justify-center text-center bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8">
+                  <Building2 size={48} className="text-[var(--muted-foreground)] opacity-40 mb-3" />
+                  <h3 className="text-lg font-bold text-[var(--foreground)]">No organizations found</h3>
+                  <p className="text-sm text-[var(--muted-foreground)] max-w-md mt-1">
+                    No student organization matched your current filter criteria.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setActiveDept("all");
+                      setRosterSearch("");
+                    }}
+                    className="mt-4 px-4 py-2 bg-[var(--primary)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--primary)]/90 transition cursor-pointer"
+                  >
+                    Clear Filters
+                  </button>
                 </div>
               </FadeSection>
-            ))}
-
-            {deptOrgs.length === 0 ? (
-              <div className="py-20 text-center text-[var(--muted-foreground)]">No organizations in this department.</div>
             ) : (
-              deptOrgs.map((org, orgIdx) => {
-                const orgUsers = users.filter((u) => u.organizationId === org.id && u.role === "student");
+              filteredOrganizations.map((org, orgIdx) => {
+                const dept = departments.find((d) => d.id === org.departmentId);
+                const orgStudents = users.filter((u) => u.organizationId === org.id && u.role === "student");
                 const adviser = users.find((u) => u.id === org.adviserId);
-                const orgEvents = publicEvents.filter((e) => e.organizationId === org.id).slice(0, 3);
+                const orgEvents = publicEvents.filter((e) => e.organizationId === org.id);
+
                 return (
-                  <FadeSection key={org.id} delay={orgIdx * 60} className="mb-12">
-                    <div className="flex items-center gap-4 mb-6">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow flex-shrink-0"
-                        style={{ backgroundColor: org.logoColor }}>
-                        {org.code.slice(0, 2)}
-                      </div>
-                      <div>
-                        <h2 className="font-bold text-[var(--foreground)] text-xl">{org.name}</h2>
-                        <p className="text-xs font-mono text-[var(--muted-foreground)] mt-0.5">{org.code}</p>
-                      </div>
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-5">
-                      {/* Events */}
-                      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
-                        <p className="text-[10px] font-mono font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4">Upcoming Events</p>
-                        {orgEvents.length === 0 ? (
-                          <div className="flex flex-col items-center gap-2 py-8 text-[var(--muted-foreground)]">
-                            <Calendar size={24} className="opacity-40" />
-                            <p className="text-sm">No public events yet.</p>
+                  <FadeSection key={org.id} delay={orgIdx * 50} className="flex flex-col gap-4">
+                    {/* Organization Banner Card */}
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow">
+                      {/* Top Org Header Bar */}
+                      <div className="p-6 border-b border-[var(--border)] flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--muted)]/30">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-xs flex-shrink-0"
+                            style={{ backgroundColor: org.logoColor }}
+                          >
+                            {org.code}
                           </div>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            {orgEvents.map((e) => (
-                              <button key={e.id} onClick={() => setSelectedEvent(e)}
-                                className="flex items-start gap-3 text-left p-3 rounded-xl hover:bg-[var(--muted)] transition group border border-transparent hover:border-[var(--border)]">
-                                <div className="w-9 h-9 bg-[var(--primary)] rounded-xl flex items-center justify-center text-white flex-shrink-0 mt-0.5 group-hover:scale-105 transition-transform">
-                                  <Calendar size={14} />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition truncate">{e.name}</p>
-                                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                    <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--muted-foreground)]"><Clock size={9} /> {formatDate(e.dateStart)}</span>
-                                    <span className="flex items-center gap-1 text-[10px] font-mono text-[var(--muted-foreground)]"><MapPin size={9} /> {e.mode}</span>
-                                  </div>
-                                </div>
-                                <ArrowUpRight size={14} className="text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition flex-shrink-0 mt-1" />
-                              </button>
-                            ))}
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2 className="font-bold text-xl text-[var(--foreground)]">{org.name}</h2>
+                              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-[var(--card)] border border-[var(--border)] text-[var(--primary)]">
+                                {dept?.code}
+                              </span>
+                            </div>
+                            <p className="text-xs text-[var(--muted-foreground)] font-mono mt-1">
+                              {dept?.name}
+                            </p>
                           </div>
-                        )}
+                        </div>
+
+                        {/* Org Meta Badges */}
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
+                            <Users size={13} className="text-[var(--primary)]" />
+                            <span className="font-bold">{orgStudents.length}</span> Officers
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
+                            <CalendarIcon size={13} className="text-[var(--primary)]" />
+                            <span className="font-bold">{orgEvents.length}</span> Events
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
+                            <Wallet size={13} className="text-[var(--primary)]" />
+                            <span>Current Budget: <strong className="text-[var(--primary)] font-bold">{formatCurrency(org.allocatedBudget)}</strong></span>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Officers */}
-                      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5">
-                        <p className="text-[10px] font-mono font-bold text-[var(--muted-foreground)] uppercase tracking-widest mb-4">Organization Officers</p>
-                        <div className="flex flex-col gap-2">
-                          {adviser && (
-                            <div className="flex items-center gap-3 p-2.5 bg-[var(--muted)] rounded-xl">
-                              <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{adviser.firstName[0]}</div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium text-[var(--foreground)] truncate">{adviser.firstName} {adviser.lastName}</p>
-                                <p className="text-[10px] font-mono text-amber-600/80">Faculty Adviser</p>
-                              </div>
+                      {/* Content Grid: Events & Officers */}
+                      <div className="p-6 grid lg:grid-cols-12 gap-6">
+                        {/* Events Column */}
+                        <div className="lg:col-span-7 flex flex-col gap-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-mono font-bold text-[var(--foreground)] uppercase tracking-wider flex items-center gap-1.5">
+                              <CalendarIcon size={14} className="text-[var(--primary)]" />
+                              Scheduled Events ({orgEvents.length})
+                            </p>
+                            {orgEvents.length > 0 && (
+                              <button
+                                onClick={() => {
+                                  setSelectedOrgFilter(org.id);
+                                  handleTabChange("calendar");
+                                }}
+                                className="text-xs font-bold text-[var(--primary)] hover:underline flex items-center gap-1 cursor-pointer"
+                              >
+                                View in Calendar <ArrowUpRight size={12} />
+                              </button>
+                            )}
+                          </div>
+
+                          {orgEvents.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center p-8 bg-[var(--muted)]/20 rounded-xl border border-dashed border-[var(--border)] text-center h-full min-h-[160px]">
+                              <CalendarIcon size={28} className="text-[var(--muted-foreground)] opacity-40 mb-2" />
+                              <p className="text-sm font-semibold text-[var(--foreground)]">No scheduled events yet</p>
+                              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                                Activity proposals will appear here once submitted.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-2.5">
+                              {orgEvents.map((e) => {
+                                const type = getEventTypeById(e.typeId);
+                                return (
+                                  <button
+                                    key={e.id}
+                                    onClick={() => setSelectedEvent(e)}
+                                    className="flex items-start gap-3.5 text-left p-3.5 rounded-xl bg-[var(--card)] hover:bg-[var(--muted)]/40 transition-all group border border-[var(--border)] hover:border-[var(--primary)] shadow-2xs hover:shadow-xs cursor-pointer"
+                                  >
+                                    <div
+                                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0 mt-0.5 shadow-2xs group-hover:scale-105 transition-transform"
+                                      style={{ backgroundColor: org.logoColor }}
+                                    >
+                                      <CalendarIcon size={16} />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-sm font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition truncate">
+                                          {e.name}
+                                        </p>
+                                        <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>
+                                          {e.status}
+                                        </span>
+                                      </div>
+                                      <div className="flex items-center gap-3 mt-2 flex-wrap text-xs">
+                                        <span className="flex items-center gap-1 font-mono font-bold text-[var(--foreground)]">
+                                          <Clock size={12} className="text-[var(--primary)]" />
+                                          {formatDate(e.dateStart)}
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[var(--muted-foreground)] font-medium">
+                                          <ModeIcon mode={e.mode} size={12} />
+                                          {e.mode}
+                                        </span>
+                                        {type && (
+                                          <span className="bg-[var(--primary)] text-white px-2.5 py-0.5 rounded-md text-[11px] font-semibold shadow-2xs">
+                                            {type.name}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <ArrowUpRight size={16} className="text-[var(--muted-foreground)] group-hover:text-[var(--primary)] group-hover:translate-x-0.5 transition flex-shrink-0 mt-1" />
+                                  </button>
+                                );
+                              })}
                             </div>
                           )}
-                          {orgUsers.slice(0, 5).map((u) => {
-                            const avatarBg = u.gender === "male" ? "bg-blue-100 text-blue-600" : u.gender === "female" ? "bg-pink-100 text-pink-600" : "bg-purple-100 text-purple-600";
-                            return (
-                              <div key={u.id} className="flex items-center gap-3 p-2.5 bg-[var(--muted)] rounded-xl">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarBg}`}>{u.firstName[0]}</div>
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-[var(--foreground)] truncate">{u.firstName} {u.lastName}</p>
-                                  <p className="text-[10px] font-mono text-[var(--muted-foreground)]">{u.position} · {u.yearLevel}</p>
+                        </div>
+
+                        {/* Officers Column */}
+                        <div className="lg:col-span-5 flex flex-col gap-3">
+                          <p className="text-xs font-mono font-bold text-[var(--foreground)] uppercase tracking-wider flex items-center gap-1.5">
+                            <Users size={14} className="text-[var(--primary)]" />
+                            Leadership & Officers
+                          </p>
+
+                          <div className="flex flex-col gap-2">
+                            {/* Faculty Adviser */}
+                            {adviser && (
+                              <div className="flex items-center gap-3 p-3 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-2xs hover:border-[var(--primary)] transition">
+                                <div className="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-2xs">
+                                  {adviser.firstName[0]}
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-bold text-[var(--foreground)] truncate">
+                                      {adviser.firstName} {adviser.lastName} {adviser.suffix}
+                                    </p>
+                                    <span className="inline-flex items-center gap-1 text-[10px] bg-[var(--primary)]/10 text-[var(--primary)] font-mono font-bold px-2 py-0.5 rounded-md">
+                                      <ShieldCheck size={11} />
+                                      Adviser
+                                    </span>
+                                  </div>
+                                  <p className="text-[11px] text-[var(--muted-foreground)] font-mono truncate mt-0.5">
+                                    {adviser.email}
+                                  </p>
                                 </div>
                               </div>
-                            );
-                          })}
+                            )}
+
+                            {/* Student Officers */}
+                            {orgStudents.length === 0 ? (
+                              <p className="text-xs text-[var(--muted-foreground)] italic py-2">
+                                No student officers registered for this organization yet.
+                              </p>
+                            ) : (
+                              orgStudents.map((u) => {
+                                const avatarBg =
+                                  u.gender === "male"
+                                    ? "bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-200 border-sky-200 dark:border-sky-800"
+                                    : u.gender === "female"
+                                    ? "bg-pink-50 text-pink-800 dark:bg-pink-950 dark:text-pink-200 border-pink-200 dark:border-pink-800"
+                                    : "bg-purple-50 text-purple-800 dark:bg-purple-950 dark:text-purple-200 border-purple-200 dark:border-purple-800";
+
+                                return (
+                                  <div
+                                    key={u.id}
+                                    className="flex items-center gap-3 p-2.5 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-2xs hover:border-[var(--primary)]/40 transition"
+                                  >
+                                    <div
+                                      className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarBg}`}
+                                    >
+                                      {u.firstName[0]}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <p className="text-xs font-bold text-[var(--foreground)] truncate">
+                                        {u.firstName} {u.lastName} {u.suffix}
+                                      </p>
+                                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] truncate">
+                                        {u.position} {u.yearLevel ? `· ${u.yearLevel}` : ""}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -289,73 +776,308 @@ export default function OrganizationsPage() {
                 );
               })
             )}
-          </>
+          </div>
         )}
 
+        {/* ======================= CALENDAR TAB ======================= */}
         {tab === "calendar" && (
-          <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-8">
+            {/* Interactive Calendar Component */}
             <FadeSection>
-              <CalendarGrid events={publicEvents} onSelectEvent={setSelectedEvent} />
+              <CalendarGrid
+                events={publicEvents}
+                onSelectEvent={setSelectedEvent}
+                selectedDay={selectedDay}
+                onSelectDay={setSelectedDay}
+              />
             </FadeSection>
 
-            {/* Filter row */}
-            <FadeSection className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex gap-2 flex-wrap">
-                {STATUS_FILTER_OPTIONS.map((s) => (
-                  <button key={s} onClick={() => setStatusFilter(s)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                      statusFilter === s
-                        ? "bg-[var(--primary)] text-white shadow-sm"
-                        : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:bg-[var(--border)] hover:text-[var(--foreground)]"
-                    }`}>
-                    {s}
-                  </button>
-                ))}
+            {/* Filter and View Controls Toolbar */}
+            <FadeSection className="flex flex-col gap-3">
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
+                {/* Top Row: Search, Org Dropdown, View Toggle */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 flex-1 max-w-xl">
+                    {/* Search Bar */}
+                    <div className="relative flex-1">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                      <input
+                        type="text"
+                        value={calendarSearch}
+                        onChange={(e) => setCalendarSearch(e.target.value)}
+                        placeholder="Search by event title, venue, or keyword..."
+                        className="w-full pl-9 pr-8 py-2 text-xs bg-[var(--background)] border border-[var(--border)] rounded-xl text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] font-medium"
+                      />
+                      {calendarSearch && (
+                        <button
+                          onClick={() => setCalendarSearch("")}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Org Filter Dropdown */}
+                    <select
+                      value={selectedOrgFilter}
+                      onChange={(e) => setSelectedOrgFilter(e.target.value)}
+                      className="px-3 py-2 text-xs font-semibold bg-[var(--background)] border border-[var(--border)] rounded-xl text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] cursor-pointer max-w-[200px] truncate"
+                    >
+                      <option value="all">All Organizations</option>
+                      {organizations.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.code} — {o.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Right: Layout Toggle */}
+                  <div className="flex items-center gap-2 self-end sm:self-auto flex-shrink-0">
+                    <div className="flex items-center gap-1 bg-[var(--muted)] p-1 rounded-xl border border-[var(--border)]">
+                      <button
+                        onClick={() => setCalendarLayout("grid")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                          calendarLayout === "grid"
+                            ? "bg-[var(--card)] text-[var(--primary)] shadow-2xs font-bold"
+                            : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium"
+                        }`}
+                        title="Grid View"
+                      >
+                        <LayoutGrid size={14} />
+                        <span>Grid</span>
+                      </button>
+                      <button
+                        onClick={() => setCalendarLayout("list")}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs transition cursor-pointer ${
+                          calendarLayout === "list"
+                            ? "bg-[var(--card)] text-[var(--primary)] shadow-2xs font-bold"
+                            : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] font-medium"
+                        }`}
+                        title="List View"
+                      >
+                        <ListFilter size={14} />
+                        <span>List</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subtle Divider */}
+                <div className="h-px bg-[var(--border)]/60 w-full" />
+
+                {/* Bottom Row: Status Filter Pills */}
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-xs font-mono font-bold text-[var(--muted-foreground)] uppercase tracking-wider mr-1">
+                      Status:
+                    </span>
+                    {STATUS_FILTER_OPTIONS.map((s) => {
+                      const count =
+                        s === "All" ? publicEvents.length : publicEvents.filter((e) => e.status === s).length;
+                      const isSelected = statusFilter === s;
+                      return (
+                        <button
+                          key={s}
+                          onClick={() => setStatusFilter(s)}
+                          className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                              : "bg-[var(--muted)]/70 text-[var(--foreground)] hover:bg-[var(--border)] border border-[var(--border)]/50"
+                          }`}
+                        >
+                          {s}
+                          <span className={`ml-1 font-mono font-bold ${isSelected ? "text-teal-100" : "text-[var(--muted-foreground)]"}`}>
+                            ({count})
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {(statusFilter !== "All" || selectedOrgFilter !== "all" || selectedDay !== null || calendarSearch) && (
+                    <button
+                      onClick={() => {
+                        setStatusFilter("All");
+                        setSelectedOrgFilter("all");
+                        setSelectedDay(null);
+                        setCalendarSearch("");
+                      }}
+                      className="text-xs text-[var(--primary)] hover:underline font-bold cursor-pointer ml-auto"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-[var(--muted-foreground)] font-mono">
-                <span className="font-semibold text-[var(--foreground)]">{filtered.length}</span> event{filtered.length !== 1 ? "s" : ""}
-                {statusFilter !== "All" && <span> · {statusFilter}</span>}
-              </p>
+
+              {/* Active Filter Indicators Bar */}
+              <div className="flex items-center justify-between text-xs font-mono text-[var(--foreground)] px-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span>
+                    Showing <strong className="text-[var(--primary)] font-bold">{filteredCalendarEvents.length}</strong> of {publicEvents.length} events
+                  </span>
+                  {selectedDay && (
+                    <span className="bg-[var(--primary)]/10 text-[var(--primary)] px-2 py-0.5 rounded-md font-bold">
+                      Date: {MONTH_NAMES[selectedDay.month]} {selectedDay.day}, {selectedDay.year}
+                    </span>
+                  )}
+                  {selectedOrgFilter !== "all" && (
+                    <span className="bg-[var(--card)] border border-[var(--border)] text-[var(--foreground)] px-2 py-0.5 rounded-md font-medium">
+                      Org: {organizations.find((o) => o.id === selectedOrgFilter)?.code}
+                    </span>
+                  )}
+                </div>
+              </div>
             </FadeSection>
 
-            {/* Event cards */}
-            {filtered.length === 0 ? (
+            {/* Events Catalog View */}
+            {filteredCalendarEvents.length === 0 ? (
               <FadeSection>
-                <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[var(--card)] rounded-2xl border border-[var(--border)]">
-                  <Calendar size={40} className="text-[var(--muted-foreground)] opacity-40" />
-                  <p className="text-[var(--muted-foreground)]">No events match this filter</p>
-                  <button onClick={() => setStatusFilter("All")} className="text-sm font-medium text-[var(--primary)] hover:underline">Clear filter</button>
+                <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--card)] rounded-2xl border border-[var(--border)] text-center p-6">
+                  <CalendarIcon size={44} className="text-[var(--muted-foreground)] opacity-30 mb-1" />
+                  <h3 className="text-base font-bold text-[var(--foreground)]">No events match your criteria</h3>
+                  <p className="text-xs text-[var(--muted-foreground)] max-w-sm">
+                    Try adjusting your status filter, organization selection, or chosen calendar date.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setStatusFilter("All");
+                      setSelectedOrgFilter("all");
+                      setSelectedDay(null);
+                      setCalendarSearch("");
+                    }}
+                    className="mt-2 px-4 py-2 text-xs font-semibold bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary)]/90 transition cursor-pointer"
+                  >
+                    Show All Events
+                  </button>
                 </div>
               </FadeSection>
-            ) : (
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filtered.map((e, i) => {
+            ) : calendarLayout === "grid" ? (
+              /* Grid Layout */
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {filteredCalendarEvents.map((e, i) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
                   const type = getEventTypeById(e.typeId);
                   return (
-                    <FadeSection key={e.id} delay={i * 40}>
-                      <button onClick={() => setSelectedEvent(e)}
-                        className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left hover:shadow-lg hover:border-[var(--primary)]/50 transition-all group flex flex-col gap-3 h-full">
-                        <div className="flex items-center justify-between">
-                          <span className={`text-[10px] font-mono px-2.5 py-1 rounded-full border ${statusColors[e.status]}`}>{e.status}</span>
-                          <span className="text-[10px] font-mono text-[var(--muted-foreground)]">{e.mode}</span>
+                    <FadeSection key={e.id} delay={i * 30}>
+                      <button
+                        onClick={() => setSelectedEvent(e)}
+                        className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left hover:shadow-md hover:border-[var(--primary)] transition-all group flex flex-col gap-4 h-full cursor-pointer shadow-2xs"
+                      >
+                        {/* Card Header: Status & Mode */}
+                        <div className="flex items-center justify-between gap-2 w-full">
+                          <span className={`text-[11px] font-mono px-2.5 py-1 rounded-full ${statusColors[e.status]}`}>
+                            {e.status}
+                          </span>
+                          <span className="text-[11px] font-mono text-[var(--foreground)] bg-[var(--muted)] px-2 py-0.5 rounded-md border border-[var(--border)] font-medium">
+                            {e.mode}
+                          </span>
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-[var(--foreground)] group-hover:text-[var(--primary)] transition leading-snug">{e.name}</h3>
-                          <div className="flex items-center gap-3 mt-2 flex-wrap text-[10px] font-mono text-[var(--muted-foreground)]">
-                            <span className="flex items-center gap-1"><Clock size={9} /> {formatDate(e.dateStart)}</span>
-                            {e.location && <span className="flex items-center gap-1"><MapPin size={9} /> {e.location.split(",")[0]}</span>}
+
+                        {/* Title & Time */}
+                        <div className="flex-1">
+                          <h3 className="font-bold text-base text-[var(--foreground)] group-hover:text-[var(--primary)] transition leading-snug line-clamp-2">
+                            {e.name}
+                          </h3>
+                          <div className="flex flex-col gap-1.5 mt-2.5 text-xs font-mono text-[var(--foreground)]">
+                            <span className="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
+                              <Clock size={13} className="text-[var(--primary)]" />
+                              {formatTimeRange(e.dateStart, e.dateEnd)}
+                            </span>
+                            {e.location && (
+                              <span className="flex items-center gap-1.5 truncate text-[var(--muted-foreground)] font-medium">
+                                <MapPin size={13} className="text-[var(--primary)]" />
+                                {e.location}
+                              </span>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center justify-between mt-auto pt-3 border-t border-[var(--border)]">
-                          <div className="flex items-center gap-2">
-                            <div className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold"
-                              style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}>
+
+                        {/* Card Footer: Organization pill & Event Type */}
+                        <div className="flex items-center justify-between gap-2 pt-3 border-t border-[var(--border)] mt-auto w-full">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
+                              style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                            >
                               {org?.code?.slice(0, 2) ?? "?"}
                             </div>
-                            <span className="text-xs text-[var(--muted-foreground)]">{org?.name}</span>
+                            <span className="text-xs font-semibold text-[var(--foreground)] truncate">
+                              {org?.name}
+                            </span>
                           </div>
-                          {type && <span className="text-[10px] bg-[var(--muted)] text-[var(--muted-foreground)] px-2 py-0.5 rounded-full font-mono">{type.name}</span>}
+                          {type && (
+                            <span className="text-[10px] bg-[var(--primary)] text-white px-2 py-0.5 rounded-md font-semibold flex-shrink-0 shadow-2xs">
+                              {type.name}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    </FadeSection>
+                  );
+                })}
+              </div>
+            ) : (
+              /* List / Agenda Layout */
+              <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xs divide-y divide-[var(--border)]">
+                {filteredCalendarEvents.map((e, i) => {
+                  const org = organizations.find((o) => o.id === e.organizationId);
+                  const type = getEventTypeById(e.typeId);
+                  return (
+                    <FadeSection key={e.id} delay={i * 20}>
+                      <button
+                        onClick={() => setSelectedEvent(e)}
+                        className="w-full p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left hover:bg-[var(--muted)]/40 transition group cursor-pointer"
+                      >
+                        <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
+                          <div
+                            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-2xs"
+                            style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                          >
+                            {org?.code}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <h3 className="font-bold text-sm sm:text-base text-[var(--foreground)] group-hover:text-[var(--primary)] transition truncate">
+                                {e.name}
+                              </h3>
+                              <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>
+                                {e.status}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--foreground)] font-mono">
+                              <span className="flex items-center gap-1 font-bold">
+                                <Clock size={12} className="text-[var(--primary)]" />
+                                {formatTimeRange(e.dateStart, e.dateEnd)}
+                              </span>
+                              <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
+                                <ModeIcon mode={e.mode} size={12} />
+                                {e.mode}
+                              </span>
+                              {e.location && (
+                                <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
+                                  <MapPin size={12} className="text-[var(--primary)]" />
+                                  {e.location}
+                                </span>
+                              )}
+                              {type && (
+                                <span className="bg-[var(--primary)] text-white px-2 py-0.5 rounded text-[10px] font-semibold shadow-2xs">
+                                  {type.name}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 justify-between md:justify-end flex-shrink-0">
+                          <span className="text-xs font-semibold text-[var(--foreground)] font-mono">
+                            {org?.name}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] group-hover:translate-x-0.5 transition">
+                            Details <ArrowUpRight size={14} />
+                          </span>
                         </div>
                       </button>
                     </FadeSection>
@@ -369,36 +1091,212 @@ export default function OrganizationsPage() {
 
       <PublicFooter />
 
-      {/* Event detail dialog */}
+      {/* Rich Event Detail Dialog */}
       {selectedEvent && (
-        <Dialog open={!!selectedEvent} onClose={() => setSelectedEvent(null)} title={selectedEvent.name} size="lg">
-          <div className="p-6 flex flex-col gap-5">
-            <div className="flex flex-wrap gap-2">
-              <span className={`text-xs font-mono px-2.5 py-1 rounded-full border ${statusColors[selectedEvent.status]}`}>{selectedEvent.status}</span>
-              <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">{selectedEvent.mode}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              {[
-                { label: "Date", value: formatDate(selectedEvent.dateStart) },
-                { label: "Location", value: selectedEvent.location },
-                { label: "Type", value: getEventTypeById(selectedEvent.typeId)?.name ?? "—" },
-                { label: "Organization", value: organizations.find((o) => o.id === selectedEvent.organizationId)?.name ?? "—" },
-              ].map((item) => (
-                <div key={item.label} className="bg-[var(--muted)] rounded-xl p-3">
-                  <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1">{item.label}</p>
-                  <p className="font-medium text-[var(--foreground)] leading-snug">{item.value}</p>
+        <Dialog
+          open={!!selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          title="Event Clearance Details"
+          size="lg"
+        >
+          {(() => {
+            const org = organizations.find((o) => o.id === selectedEvent.organizationId);
+            const dept = departments.find((d) => d.id === org?.departmentId);
+            const type = getEventTypeById(selectedEvent.typeId);
+            const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
+            const totalSpent = eventTxns.reduce((sum, t) => sum + (t.status === "Paid" ? t.amount : 0), 0);
+            const remainingBalance = selectedEvent.proposedBudget - totalSpent;
+
+            return (
+              <div className="p-6 flex flex-col gap-6">
+                {/* Organization Header Banner */}
+                <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-2xs flex-shrink-0"
+                      style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                    >
+                      {org?.code}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-[var(--foreground)] truncate">{org?.name}</p>
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] truncate">{dept?.name}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`text-xs font-mono px-3 py-1 rounded-full ${statusColors[selectedEvent.status]}`}>
+                      {selectedEvent.status}
+                    </span>
+                    <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
+                      {selectedEvent.mode}
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            <div>
-              <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-2">Description</p>
-              <p className="text-sm text-[var(--foreground)] leading-relaxed">{selectedEvent.description}</p>
-            </div>
-            <div className="bg-[var(--muted)] rounded-xl p-4">
-              <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-4">Signatory Progress</p>
-              <SignatoryProgress status={selectedEvent.status} />
-            </div>
-          </div>
+
+                {/* Event Title */}
+                <div>
+                  <h2 className="text-xl font-extrabold text-[var(--foreground)] leading-tight">
+                    {selectedEvent.name}
+                  </h2>
+                  <p className="text-xs font-mono text-[var(--primary)] mt-1 font-bold">
+                    {type?.name ?? "General Event"}
+                  </p>
+                </div>
+
+                {/* Metadata Info Grid */}
+                <div className="grid sm:grid-cols-2 gap-3.5 text-sm">
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                      <Clock size={12} className="text-[var(--primary)]" /> Date & Schedule
+                    </p>
+                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                      {formatTimeRange(selectedEvent.dateStart, selectedEvent.dateEnd)}
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                      <MapPin size={12} className="text-[var(--primary)]" /> Venue / Platform
+                    </p>
+                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                      {selectedEvent.location || "Online Platform"}
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                      <Wallet size={12} className="text-[var(--primary)]" /> Proposed Budget
+                    </p>
+                    <p className="font-bold text-xs font-mono text-[var(--primary)] leading-snug">
+                      {formatCurrency(selectedEvent.proposedBudget)}
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                      <Award size={12} className="text-[var(--primary)]" /> Compliance Documents
+                    </p>
+                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                      {selectedEvent.apfUrl ? "APF Attached" : "Activity Proposal Form"} · {selectedEvent.appendices?.length ?? 0} Appendices
+                    </p>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <p className="text-[10px] font-mono text-[var(--foreground)] uppercase tracking-wider mb-1.5 font-bold">
+                    Event Overview & Objectives
+                  </p>
+                  <div className="bg-[var(--muted)]/30 border border-[var(--border)] rounded-xl p-4 text-xs sm:text-sm text-[var(--foreground)] leading-relaxed font-medium">
+                    {selectedEvent.description || "No description provided."}
+                  </div>
+                </div>
+
+                {/* Financial Summary & Ledger Section */}
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-4 shadow-2xs flex flex-col gap-3.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-mono text-[var(--foreground)] uppercase tracking-wider font-bold flex items-center gap-1.5">
+                        <Receipt size={13} className="text-[var(--primary)]" />
+                        Financial Summary & Disbursement Ledger
+                      </p>
+                    </div>
+                    <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${
+                      eventTxns.length > 0
+                        ? "bg-teal-50 text-teal-800 border-teal-200"
+                        : "bg-slate-50 text-slate-700 border-slate-200"
+                    }`}>
+                      {eventTxns.length > 0 ? "Active Ledger" : "Proposal Stage"}
+                    </span>
+                  </div>
+
+                  {/* Financial Metrics Strip */}
+                  <div className="grid grid-cols-3 gap-2.5">
+                    <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
+                      <p className="text-[9px] font-mono text-[var(--muted-foreground)] uppercase">Proposed Allocation</p>
+                      <p className="text-xs sm:text-sm font-bold font-mono text-[var(--foreground)] mt-0.5 truncate">
+                        {formatCurrency(selectedEvent.proposedBudget)}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
+                      <p className="text-[9px] font-mono text-[var(--muted-foreground)] uppercase">Total Disbursed</p>
+                      <p className="text-xs sm:text-sm font-bold font-mono text-teal-700 dark:text-teal-400 mt-0.5 truncate">
+                        {formatCurrency(totalSpent)}
+                      </p>
+                    </div>
+                    <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
+                      <p className="text-[9px] font-mono text-[var(--muted-foreground)] uppercase">Remaining Balance</p>
+                      <p className={`text-xs sm:text-sm font-bold font-mono mt-0.5 truncate ${remainingBalance < 0 ? "text-rose-600 font-bold" : "text-[var(--foreground)]"}`}>
+                        {formatCurrency(remainingBalance)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Itemized Transactions Table */}
+                  {eventTxns.length > 0 ? (
+                    <div className="flex flex-col gap-1.5 mt-1">
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider font-bold">
+                        Itemized Disbursements ({eventTxns.length})
+                      </p>
+                      <div className="border border-[var(--border)] rounded-lg overflow-hidden divide-y divide-[var(--border)] text-xs">
+                        {eventTxns.map((txn) => {
+                          const cat = expenditureCategories.find((c) => c.id === txn.categoryId);
+                          return (
+                            <div key={txn.id} className="p-2.5 flex items-center justify-between gap-3 bg-[var(--card)] hover:bg-[var(--muted)]/20 transition">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-[var(--foreground)] truncate">{txn.description}</p>
+                                <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[var(--muted-foreground)] font-mono">
+                                  <span>{cat?.name ?? "General Expense"}</span>
+                                  <span>·</span>
+                                  <span>{formatDate(txn.createdAt)}</span>
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <p className="font-bold font-mono text-[var(--foreground)]">{formatCurrency(txn.amount)}</p>
+                                <span className="text-[9px] font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                  {txn.status}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-[var(--muted)]/20 rounded-lg border border-dashed border-[var(--border)] text-center text-xs text-[var(--muted-foreground)]">
+                      No disbursements recorded yet. Ledger activates upon Dean clearance and SDS dispatch.
+                    </div>
+                  )}
+                </div>
+
+                {/* Logistical Requisites if available */}
+                {selectedEvent.requisites && (
+                  <div>
+                    <p className="text-[10px] font-mono text-[var(--foreground)] uppercase tracking-wider mb-1.5 font-bold">
+                      Logistics & Requisites
+                    </p>
+                    <p className="bg-[var(--muted)]/30 border border-[var(--border)] rounded-xl p-3 text-xs text-[var(--foreground)] leading-relaxed font-medium">
+                      {selectedEvent.requisites}
+                    </p>
+                  </div>
+                )}
+
+                {/* Signatory Progress */}
+                <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 shadow-2xs">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] font-mono text-[var(--foreground)] uppercase tracking-wider font-bold">
+                      Signatory Approval Progression
+                    </p>
+                    <span className="text-[10px] font-mono text-[var(--primary)] font-bold">
+                      Student → Adviser → Dean → SDS
+                    </span>
+                  </div>
+                  <SignatoryProgress status={selectedEvent.status} />
+                </div>
+              </div>
+            );
+          })()}
         </Dialog>
       )}
     </div>
