@@ -1,6 +1,6 @@
 import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody } from "../../components/ui";
-import { Calendar, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Calendar, CheckCircle, Clock, Wallet, Landmark, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { formatCurrency, statusColors, organizations, formatDate } from "../../services/mockData";
 
@@ -19,74 +19,136 @@ export default function DeanDashboard() {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Dean's Dashboard</h1>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">Cross-organizational overview for CITE organizations.</p>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-[var(--card)] via-[var(--card)] to-[var(--primary)]/10 border border-[var(--border)] rounded-2xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+              <Landmark size={13} /> College Dean Executive Portal
+            </span>
+            <span className="text-xs text-[var(--muted-foreground)] font-mono">
+              College of Information Technology & Engineering
+            </span>
+          </div>
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)] mt-1.5 tracking-tight">
+            CITE Executive Overview
+          </h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+            Cross-organizational governance, APF clearances, and budgetary oversight.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-right shadow-2xs">
+            <p className="text-[10px] font-mono uppercase text-[var(--muted-foreground)] font-bold">Active Guilds</p>
+            <p className="text-sm font-extrabold font-mono text-[var(--primary)]">{organizations.length} Organizations</p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Pending Approval" value={pending.length} icon={<Clock size={18} />} />
-        <StatCard label="Total Events" value={allEvents.length} icon={<Calendar size={18} />} />
-        <StatCard label="Approved Events" value={approved.length} icon={<CheckCircle size={18} />} />
-        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<DollarSign size={18} />} />
+      {/* Metrics Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Pending Dean Approval"
+          value={pending.length}
+          sub="Requires endorsement & dispatch"
+          icon={<Clock size={18} />}
+          color="bg-amber-500 text-white"
+          badge={pending.length > 0 ? "Action required" : undefined}
+        />
+        <StatCard
+          label="College Initiatives"
+          value={allEvents.length}
+          sub="Total registered events"
+          icon={<Calendar size={18} />}
+          color="bg-[var(--primary)] text-white"
+        />
+        <StatCard
+          label="Approved & Cleared"
+          value={approved.length}
+          sub="Dispatched to SDS Office"
+          icon={<CheckCircle size={18} />}
+          color="bg-emerald-600 text-white"
+        />
+        <StatCard
+          label="Total College Spent"
+          value={formatCurrency(totalSpent)}
+          sub="Aggregated ledger expenses"
+          icon={<Wallet size={18} />}
+          color="bg-sky-600 text-white"
+        />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
+      {/* Analytics Charts */}
+      <div className="grid md:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><h2 className="font-semibold">Events per Organization</h2></CardHeader>
+          <CardHeader title="Events per Student Organization" subtitle="Initiatives distribution across academic bodies" />
           <CardBody>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={orgData} margin={{ left: -20 }}>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="events" fill="#0d9488" radius={[4,4,0,0]} />
+                <Bar dataKey="events" fill="#0a6b64" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardBody>
         </Card>
+
         <Card>
-          <CardHeader><h2 className="font-semibold">Budget vs. Spending by Org</h2></CardHeader>
+          <CardHeader title="Allocated Budget vs. Disbursed Spending" subtitle="Fund compliance comparison by guild" />
           <CardBody>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={orgData} margin={{ left: -20 }}>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(v: any) => formatCurrency(v)} />
-                <Bar dataKey="budget" fill="#ccfbf1" radius={[4,4,0,0]} name="Budget" />
-                <Bar dataKey="spent" fill="#0d9488" radius={[4,4,0,0]} name="Spent" />
+                <Bar dataKey="budget" fill="#bfe3dd" radius={[6, 6, 0, 0]} name="Budget" />
+                <Bar dataKey="spent" fill="#0a6b64" radius={[6, 6, 0, 0]} name="Spent" />
               </BarChart>
             </ResponsiveContainer>
           </CardBody>
         </Card>
       </div>
 
-      {/* Pending Approval list */}
+      {/* Pending Approval List */}
       <Card>
-        <CardHeader>
-          <h2 className="font-semibold">Pending Approval</h2>
-        </CardHeader>
+        <CardHeader
+          title="Proposals Awaiting Dean Approval"
+          subtitle="Final college clearance before dispatching to Student Development Services (SDS)"
+          action={
+            <span className="text-xs font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1 rounded-full">
+              {pending.length} pending
+            </span>
+          }
+        />
         {pending.length === 0 ? (
-          <CardBody className="text-center text-[var(--muted-foreground)] text-sm py-8">No events pending approval.</CardBody>
+          <CardBody className="text-center text-[var(--muted-foreground)] text-xs font-mono py-10">
+            No events pending dean approval at this time.
+          </CardBody>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[var(--muted)] border-b border-[var(--border)]">
-                  {["Event", "Organization", "Date", "Budget", "Status"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">{h}</th>
-                  ))}
+                <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Event Title</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Organization</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Date</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Proposed Budget</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Status</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-[var(--border)]">
                 {pending.map((e) => (
-                  <tr key={e.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
-                    <td className="px-4 py-3 font-medium">{e.name}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--muted-foreground)]">{organizations.find(o => o.id === e.organizationId)?.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{formatDate(e.dateStart)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{formatCurrency(e.proposedBudget)}</td>
-                    <td className="px-4 py-3"><span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span></td>
+                  <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
+                    <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
+                    <td className="px-5 py-4 text-xs font-semibold text-[var(--primary)]">{organizations.find((o) => o.id === e.organizationId)?.name}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
+                    <td className="px-5 py-4">
+                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
