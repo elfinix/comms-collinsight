@@ -7,11 +7,11 @@ import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, ArrowUpRight, Clock, MapPin, Building2, Users,
   ChevronLeft, ChevronRight, ArrowLeft, Search, LayoutGrid, ListFilter,
-  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt
+  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt, Video, ExternalLink
 } from "lucide-react";
 import {
   departments, organizations, users, expenditureCategories, getEventTypeById,
-  formatDate, formatCurrency, statusColors, Event
+  formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl
 } from "../services/mockData";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -49,7 +49,7 @@ type StatusFilter = (typeof STATUS_FILTER_OPTIONS)[number];
 
 function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mode?: string; size?: number; className?: string }) {
   if (mode?.toLowerCase().includes("online") || mode?.toLowerCase().includes("virtual")) {
-    return <Globe size={size} className={className} />;
+    return <Video size={size} className={className} />;
   }
   if (mode?.toLowerCase().includes("hybrid")) {
     return <Radio size={size} className={className} />;
@@ -987,9 +987,13 @@ export default function OrganizationsPage() {
                               {formatTimeRange(e.dateStart, e.dateEnd)}
                             </span>
                             {e.location && (
-                              <span className="flex items-center gap-1.5 truncate text-[var(--muted-foreground)] font-medium">
-                                <MapPin size={13} className="text-[var(--primary)]" />
-                                {e.location}
+                              <span className="flex items-center gap-1.5 min-w-0 text-[var(--muted-foreground)] font-medium" title={e.location}>
+                                {e.mode === "Online/Virtual" ? (
+                                  <Video size={13} className="text-[var(--primary)] flex-shrink-0" />
+                                ) : (
+                                  <MapPin size={13} className="text-[var(--primary)] flex-shrink-0" />
+                                )}
+                                <span className="truncate">{e.location}</span>
                               </span>
                             )}
                           </div>
@@ -1054,12 +1058,16 @@ export default function OrganizationsPage() {
                               </span>
                               <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
                                 <ModeIcon mode={e.mode} size={12} />
-                                {e.mode}
+                                {e.mode === "Online/Virtual" ? "Online" : e.mode}
                               </span>
                               {e.location && (
-                                <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
-                                  <MapPin size={12} className="text-[var(--primary)]" />
-                                  {e.location}
+                                <span className="flex items-center gap-1 min-w-0 text-[var(--muted-foreground)]" title={e.location}>
+                                  {e.mode === "Online/Virtual" ? (
+                                    <Video size={12} className="text-[var(--primary)] flex-shrink-0" />
+                                  ) : (
+                                    <MapPin size={12} className="text-[var(--primary)] flex-shrink-0" />
+                                  )}
+                                  <span className="truncate max-w-[180px] sm:max-w-[240px]">{e.location}</span>
                                 </span>
                               )}
                               {type && (
@@ -1129,7 +1137,7 @@ export default function OrganizationsPage() {
                       {selectedEvent.status}
                     </span>
                     <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
-                      {selectedEvent.mode}
+                      {selectedEvent.mode === "Online/Virtual" ? "Online" : selectedEvent.mode}
                     </span>
                   </div>
                 </div>
@@ -1157,11 +1165,28 @@ export default function OrganizationsPage() {
 
                   <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
                     <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
-                      <MapPin size={12} className="text-[var(--primary)]" /> Venue / Platform
+                      {selectedEvent.mode === "Online/Virtual" ? (
+                        <Video size={12} className="text-[var(--primary)]" />
+                      ) : (
+                        <MapPin size={12} className="text-[var(--primary)]" />
+                      )}{" "}
+                      {selectedEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
-                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
-                      {selectedEvent.location || "Online Platform"}
-                    </p>
+                    {isWebUrl(selectedEvent.location) ? (
+                      <a
+                        href={toWebUrl(selectedEvent.location!)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-xs text-[var(--primary)] hover:underline underline-offset-2 flex items-center gap-1.5 leading-snug break-all transition-colors"
+                      >
+                        <span className="truncate">{selectedEvent.location}</span>
+                        <ExternalLink size={12} className="flex-shrink-0 text-[var(--primary)]" />
+                      </a>
+                    ) : (
+                      <p className="font-bold text-xs text-[var(--foreground)] leading-snug truncate">
+                        {selectedEvent.location || (selectedEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}
+                      </p>
+                    )}
                   </div>
 
                   <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
@@ -1221,7 +1246,7 @@ export default function OrganizationsPage() {
                     </div>
                     <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
                       <p className="text-[9px] font-mono text-[var(--muted-foreground)] uppercase">Total Disbursed</p>
-                      <p className="text-xs sm:text-sm font-bold font-mono text-teal-700 dark:text-teal-400 mt-0.5 truncate">
+                      <p className="text-xs sm:text-sm font-bold font-mono text-teal-400 dark:text-teal-600 mt-0.5 truncate">
                         {formatCurrency(totalSpent)}
                       </p>
                     </div>
