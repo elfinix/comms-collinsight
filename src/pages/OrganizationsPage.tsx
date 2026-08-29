@@ -7,11 +7,11 @@ import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, ArrowUpRight, Clock, MapPin, Building2, Users,
   ChevronLeft, ChevronRight, ArrowLeft, Search, LayoutGrid, ListFilter,
-  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt, Video, ExternalLink
+  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt, Video, ExternalLink, FileText, Printer, BadgeCheck, FileSpreadsheet
 } from "lucide-react";
 import {
   departments, organizations, users, expenditureCategories, getEventTypeById,
-  formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl
+  formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl, printClearanceDocument, printLiquidationDocument
 } from "../services/mockData";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -1304,6 +1304,67 @@ export default function OrganizationsPage() {
                     <p className="bg-[var(--muted)]/30 border border-[var(--border)] rounded-xl p-3 text-xs text-[var(--foreground)] leading-relaxed font-medium">
                       {selectedEvent.requisites}
                     </p>
+                  </div>
+                )}
+
+                {/* Official Clearance Banner if Approved */}
+                {["Approved", "Completed", "Closed"].includes(selectedEvent.status) && (
+                  <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-emerald-700/80 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-emerald-300 flex-shrink-0">
+                        <BadgeCheck size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-white">Official Event Clearance Granted</p>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 uppercase font-bold">
+                            SDS Dispatched
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-teal-100/80 font-mono">
+                          Event_Clearance_{selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => printClearanceDocument(selectedEvent, org?.name, type?.name)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs"
+                    >
+                      <Printer size={13} /> Print / Preview Clearance
+                    </button>
+                  </div>
+                )}
+
+                {/* Official Liquidation Banner if Closed */}
+                {selectedEvent.status === "Closed" && (
+                  <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-teal-700/80 flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-teal-200 flex-shrink-0">
+                        <FileSpreadsheet size={20} />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-white">Digital Liquidation Report Reconciled</p>
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-200 border border-teal-400/30 uppercase font-bold">
+                            Audited & Archived
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-teal-100/80 font-mono">
+                          Liquidation_Report_{selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
+                        printLiquidationDocument(selectedEvent, eventTxns, org?.name);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs"
+                    >
+                      <Printer size={13} /> Print / Preview Liquidation
+                    </button>
                   </div>
                 )}
 

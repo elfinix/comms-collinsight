@@ -15,7 +15,13 @@ export default function DeanDashboard() {
   const orgData = organizations.map((org) => {
     const orgEvents = events.filter((e) => e.organizationId === org.id);
     const spent = transactions.filter((t) => orgEvents.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
-    return { name: org.code, events: orgEvents.length, spent, budget: org.allocatedBudget };
+    return {
+      name: org.code,
+      fullName: org.name,
+      events: orgEvents.length,
+      spent,
+      budget: org.allocatedBudget,
+    };
   });
 
   return (
@@ -26,9 +32,6 @@ export default function DeanDashboard() {
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
               <Landmark size={13} /> College Dean Executive Portal
-            </span>
-            <span className="text-xs text-[var(--muted-foreground)] font-mono">
-              College of Information Technology & Engineering
             </span>
           </div>
           <h1 className="text-2xl font-extrabold text-[var(--foreground)] mt-1.5 tracking-tight">
@@ -50,12 +53,11 @@ export default function DeanDashboard() {
       {/* Metrics Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          label="Pending Dean Approval"
+          label="Pending Approval"
           value={pending.length}
           sub="Requires endorsement & dispatch"
           icon={<Clock size={18} />}
           color="bg-amber-500 text-white"
-          badge={pending.length > 0 ? "Action required" : undefined}
         />
         <StatCard
           label="College Initiatives"
@@ -80,39 +82,7 @@ export default function DeanDashboard() {
         />
       </div>
 
-      {/* Analytics Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader title="Events per Student Organization" subtitle="Initiatives distribution across academic bodies" />
-          <CardBody>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="events" fill="#0a6b64" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader title="Allocated Budget vs. Disbursed Spending" subtitle="Fund compliance comparison by guild" />
-          <CardBody>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: any) => formatCurrency(v)} />
-                <Bar dataKey="budget" fill="#bfe3dd" radius={[6, 6, 0, 0]} name="Budget" />
-                <Bar dataKey="spent" fill="#0a6b64" radius={[6, 6, 0, 0]} name="Spent" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Pending Approval List */}
+      {/* Pending Approval List (Placed First before Charts) */}
       <Card>
         <CardHeader
           title="Proposals Awaiting Dean Approval"
@@ -156,6 +126,86 @@ export default function DeanDashboard() {
           </div>
         )}
       </Card>
+
+      {/* Analytics Charts */}
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader title="Events per Student Organization" subtitle="Initiatives distribution across academic bodies" />
+          <CardBody>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip
+                  wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const item = payload[0].payload;
+                      return (
+                        <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-1.5 min-w-[160px] z-50">
+                          <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1">
+                            {item.fullName || item.name}
+                          </p>
+                          <div className="flex items-center justify-between gap-3 font-mono text-slate-700">
+                            <span className="font-sans font-medium text-xs">Events:</span>
+                            <span className="font-bold text-teal-900">{item.events}</span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="events" fill="#0a6b64" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader title="Allocated Budget vs. Disbursed Spending" subtitle="Fund compliance comparison by guild" />
+          <CardBody>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
+                <Tooltip
+                  wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const item = payload[0].payload;
+                      return (
+                        <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-2 min-w-[200px] z-50">
+                          <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1.5">
+                            {item.fullName || item.name}
+                          </p>
+                          <div className="space-y-1.5 font-mono">
+                            <div className="flex items-center justify-between gap-3 text-slate-700">
+                              <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
+                              </span>
+                              <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 text-slate-700">
+                              <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
+                              </span>
+                              <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Bar dataKey="budget" fill="#bfe3dd" radius={[6, 6, 0, 0]} name="Budget" />
+                <Bar dataKey="spent" fill="#0a6b64" radius={[6, 6, 0, 0]} name="Spent" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardBody>
+        </Card>
+      </div>
     </div>
   );
 }

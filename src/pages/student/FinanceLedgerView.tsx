@@ -5,7 +5,7 @@ import { StatCard, Card, CardHeader, CardBody, Button, Dialog, Input, Select } f
 import {
   Wallet, CreditCard, Coins, Scale, FileSpreadsheet, Plus, Edit2, Trash2, FileText, CheckCircle, UploadCloud,
   ArrowLeft, ChevronRight, Download, Printer, Eye, X, AlertTriangle,
-  Paperclip, FileCheck, ShieldCheck, ExternalLink, Calendar, MapPin
+  Paperclip, FileCheck, ExternalLink, Calendar, MapPin
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors,
@@ -15,9 +15,10 @@ import {
 interface FinanceLedgerViewProps {
   selectedEventId: string;
   onBack: () => void;
+  readOnly?: boolean;
 }
 
-export default function FinanceLedgerView({ selectedEventId, onBack }: FinanceLedgerViewProps) {
+export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = false }: FinanceLedgerViewProps) {
   const { currentUser } = useAuth();
   const { events, transactions, organizations, users, updateEvent, addTransaction, updateTransaction, deleteTransaction } = useApp();
 
@@ -646,30 +647,32 @@ export default function FinanceLedgerView({ selectedEventId, onBack }: FinanceLe
       </div>
 
       {/* Action Bar */}
-      <div className="flex items-center justify-end gap-3 flex-wrap mb-6">
-        {activeEvent.status === "Completed" && (
-          <Button variant="success" onClick={() => setShowLiquidationConfirm(true)}>
-            <CheckCircle size={14} /> Complete Liquidation
-          </Button>
-        )}
-        {activeEvent.status !== "Closed" && (
-          <Button onClick={handleOpenAddRecord}>
-            <Plus size={16} /> Add Record
-          </Button>
-        )}
-        {activeEvent.status === "Closed" && (
-          <Button variant="outline" onClick={() => setShowAddAmendment(true)}>
-            <Plus size={14} /> Add Amendment
-          </Button>
-        )}
-      </div>
+      {!readOnly && (
+        <div className="flex items-center justify-end gap-3 flex-wrap mb-6">
+          {activeEvent.status === "Completed" && (
+            <Button variant="success" onClick={() => setShowLiquidationConfirm(true)}>
+              <CheckCircle size={14} /> Complete Liquidation
+            </Button>
+          )}
+          {activeEvent.status !== "Closed" && (
+            <Button onClick={handleOpenAddRecord}>
+              <Plus size={16} /> Add Record
+            </Button>
+          )}
+          {activeEvent.status === "Closed" && (
+            <Button variant="outline" onClick={() => setShowAddAmendment(true)}>
+              <Plus size={14} /> Add Amendment
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Generated Liquidation PDF Banner for Closed / Reconciled Events */}
       {activeEvent.status === "Closed" && (
         <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-teal-900 text-white rounded-2xl p-5 mb-6 shadow-md border border-teal-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
             <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-teal-200 flex-shrink-0">
-              <ShieldCheck size={22} />
+              <FileSpreadsheet size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -714,7 +717,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack }: FinanceLe
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[var(--muted)]/50 border-b border-[var(--border)]">
-                {["Date", "Description", "Category", "Amount", "Status", "Receipt", "Actions"].map((h) => (
+                {["Date", "Description", "Category", "Amount", "Status", "Receipt", ...(!readOnly ? ["Actions"] : [])].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">{h}</th>
                 ))}
               </tr>
@@ -722,10 +725,10 @@ export default function FinanceLedgerView({ selectedEventId, onBack }: FinanceLe
             <tbody>
               {eventTxns.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-[var(--muted-foreground)]">
+                  <td colSpan={readOnly ? 6 : 7} className="px-4 py-10 text-center text-[var(--muted-foreground)]">
                     <FileText size={28} className="mx-auto mb-2 opacity-40" />
                     <p className="text-xs font-medium">No financial transactions recorded yet.</p>
-                    {activeEvent.status !== "Closed" && (
+                    {!readOnly && activeEvent.status !== "Closed" && (
                       <Button size="sm" variant="outline" onClick={handleOpenAddRecord} className="mt-3">
                         <Plus size={13} /> Add First Record
                       </Button>
@@ -768,28 +771,30 @@ export default function FinanceLedgerView({ selectedEventId, onBack }: FinanceLe
                         <span className="text-[11px] font-mono text-[var(--muted-foreground)]">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(t)}
-                          className="w-7 h-7 rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] flex items-center justify-center transition cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Edit transaction"
-                          disabled={activeEvent.status === "Closed"}
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteConfirmTxn(t)}
-                          className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          title="Delete transaction"
-                          disabled={activeEvent.status === "Closed"}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+                    {!readOnly && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(t)}
+                            className="w-7 h-7 rounded-lg border border-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] flex items-center justify-center transition cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Edit transaction"
+                            disabled={activeEvent.status === "Closed"}
+                          >
+                            <Edit2 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmTxn(t)}
+                            className="w-7 h-7 rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 flex items-center justify-center transition cursor-pointer shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed"
+                            title="Delete transaction"
+                            disabled={activeEvent.status === "Closed"}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

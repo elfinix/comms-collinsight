@@ -5,6 +5,8 @@ import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } f
 import { CheckCircle, MessageSquare, RotateCcw, Eye, FileText, UploadCloud, Calendar, MapPin, Video, ExternalLink } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
+import EventClearanceTab from "../../components/events/EventClearanceTab";
+import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function AdviserPendingReview() {
   const { currentUser } = useAuth();
@@ -40,6 +42,7 @@ export default function AdviserPendingReview() {
     { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance" },
     { id: "history", label: "History" },
+    { id: "finance", label: "Finance" },
   ];
 
   return (
@@ -204,38 +207,20 @@ export default function AdviserPendingReview() {
                 </div>
               )}
               {viewTab === "clearance" && (
-                <div className="flex flex-col gap-4">
-                  <div className="bg-[var(--muted)] rounded-xl p-4 text-sm">
-                    <p className="font-semibold mb-3">Clearance Details</p>
-                    <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                      <div><p className="font-mono text-[var(--muted-foreground)]">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
-                      <div><p className="font-mono text-[var(--muted-foreground)]">Type</p><p>{getEventTypeById(viewEvent.typeId)?.name}</p></div>
-                      <div><p className="font-mono text-[var(--muted-foreground)]">Date</p><p>{formatDate(viewEvent.dateStart)}</p></div>
-                      <div>
-                        <p className="font-mono text-[var(--muted-foreground)]">
-                          {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Location"}
-                        </p>
-                        {isWebUrl(viewEvent.location) ? (
-                          <a
-                            href={toWebUrl(viewEvent.location!)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[var(--primary)] hover:underline underline-offset-2 font-medium break-all"
-                          >
-                            {viewEvent.location}
-                            <ExternalLink size={12} className="flex-shrink-0 text-[var(--primary)]" />
-                          </a>
-                        ) : (
-                          <p className="font-medium">{viewEvent.location || "—"}</p>
-                        )}
-                      </div>
-                    </div>
-                    {viewEvent.clearanceDetails && <p className="mt-3 text-xs">{viewEvent.clearanceDetails}</p>}
-                  </div>
-                </div>
+                <EventClearanceTab
+                  event={viewEvent}
+                  eventTypeName={getEventTypeById(viewEvent.typeId)?.name}
+                />
               )}
               {viewTab === "history" && (
                 <EventHistoryTimeline eventId={viewEvent.id} event={viewEvent} />
+              )}
+              {viewTab === "finance" && (
+                <EventFinanceTab
+                  event={viewEvent}
+                  onOpenFinance={() => setViewEvent(null)}
+                  showOpenFinance={true}
+                />
               )}
             </div>
 

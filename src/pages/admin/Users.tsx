@@ -91,7 +91,7 @@ export default function AdminUsers() {
                   <tr key={u.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)]">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <UserAvatar gender={u.gender} name={`${u.firstName} ${u.lastName}`} size="sm" />
+                        <UserAvatar gender={u.gender} firstName={u.firstName} lastName={u.lastName} name={`${u.firstName} ${u.lastName}`} size="sm" />
                         <span className="font-medium">{u.firstName} {u.lastName}</span>
                       </div>
                     </td>
@@ -141,9 +141,27 @@ export default function AdminUsers() {
                     options={[{ value: "", label: "— Select Organization —" }, ...organizations.map((o) => ({ value: o.id, label: o.name }))]} />
                 </div>
               )}
-              {ctx.user.role === "student" && (
-                <Input label="Year/Level" value={ctx.user.yearLevel ?? ""} onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, yearLevel: e.target.value }))} placeholder="e.g., 2nd Year" />
-              )}
+              <div className="sm:col-span-2">
+                <Select
+                  label="Year / Academic Level"
+                  value={ctx.user.yearLevel ?? (ctx.user.role === "student" ? "1st Year" : "Faculty/Staff")}
+                  onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, yearLevel: e.target.value }))}
+                  options={
+                    ctx.user.role === "student"
+                      ? [
+                          { value: "1st Year", label: "1st Year" },
+                          { value: "2nd Year", label: "2nd Year" },
+                          { value: "3rd Year", label: "3rd Year" },
+                          { value: "4th Year", label: "4th Year" },
+                          { value: "5th Year", label: "5th Year" },
+                        ]
+                      : [
+                          { value: "Faculty/Staff", label: "Faculty/Staff" },
+                          { value: "Not Applicable", label: "Not Applicable" },
+                        ]
+                  }
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
               <Button variant="outline" onClick={ctx.onClose}>Cancel</Button>

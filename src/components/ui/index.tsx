@@ -570,6 +570,7 @@ interface StatCardProps {
   label: string;
   value: string | number;
   sub?: string;
+  chip?: ReactNode;
   icon?: ReactNode;
   color?: string;
   trend?: "up" | "down" | "neutral";
@@ -582,6 +583,7 @@ export function StatCard({
   label,
   value,
   sub,
+  chip,
   icon,
   color = "bg-[var(--primary)] text-white",
   trend,
@@ -631,10 +633,17 @@ export function StatCard({
         </div>
       </div>
 
-      {/* Metric Value & Subtitle */}
-      <div>
-        <div className="text-xl sm:text-2xl font-extrabold text-[var(--foreground)] tracking-tight font-mono leading-none">
-          {value}
+      {/* Metric Value & Subtitle / Bottom-Right Chip */}
+      <div className="mt-auto">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-xl sm:text-2xl font-extrabold text-[var(--foreground)] tracking-tight font-mono leading-none">
+            {value}
+          </div>
+          {chip && (
+            <div className="flex-shrink-0">
+              {chip}
+            </div>
+          )}
         </div>
         {sub && (
           <p className="text-xs text-[var(--muted-foreground)] font-mono mt-2 flex items-center gap-1 truncate">
@@ -696,35 +705,45 @@ export function UserAvatar({
   gender = "male",
   size = "md",
   name,
+  firstName,
+  lastName,
   avatar,
   className = "",
 }: {
   gender?: "male" | "female" | "non-binary";
   size?: "sm" | "md" | "lg" | "xl";
   name?: string;
+  firstName?: string;
+  lastName?: string;
   avatar?: string;
   className?: string;
 }) {
   const colors = {
-    male: "bg-blue-100 text-blue-700 border-blue-200",
+    male: "bg-sky-100 text-sky-800 border-sky-300",
     female: "bg-pink-100 text-pink-700 border-pink-200",
-    "non-binary": "bg-purple-100 text-purple-700 border-purple-200",
+    "non-binary": "bg-slate-100 text-slate-700 border-slate-300",
   };
   const sizes = {
-    sm: "w-7 h-7 text-xs",
-    md: "w-9 h-9 text-sm",
-    lg: "w-12 h-12 text-base",
+    sm: "w-7 h-7 text-xs font-bold",
+    md: "w-9 h-9 text-sm font-bold",
+    lg: "w-12 h-12 text-base font-bold",
     xl: "w-20 h-20 text-2xl font-extrabold",
   };
-  const initials = name
-    ? name
-        .split(" ")
-        .filter(Boolean)
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : "?";
+
+  let initials = "?";
+  if (firstName && lastName) {
+    initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
+  } else if (name && name.trim()) {
+    const cleanName = name.replace(/,\s*(jr|sr|ii|iii|iv|m\.?sc|ph\.?d|m\.?eng).*$/i, "").trim();
+    const parts = cleanName.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+      initials = parts[0].slice(0, 2).toUpperCase();
+    } else if (parts.length >= 2) {
+      const first = parts[0][0];
+      const last = parts[parts.length - 1][0];
+      initials = `${first}${last}`.toUpperCase();
+    }
+  }
 
   if (avatar) {
     return (
@@ -735,7 +754,7 @@ export function UserAvatar({
   }
 
   return (
-    <div className={`rounded-full flex items-center justify-center font-bold flex-shrink-0 border shadow-2xs ${colors[gender] || colors.male} ${sizes[size]} ${className}`}>
+    <div className={`rounded-full flex items-center justify-center flex-shrink-0 border shadow-2xs ${colors[gender] || colors.male} ${sizes[size]} ${className}`}>
       {initials}
     </div>
   );

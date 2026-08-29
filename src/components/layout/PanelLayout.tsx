@@ -95,7 +95,14 @@ export default function PanelLayout({ children, navItems, panelLabel, orgName }:
               <div
                 className={`flex items-center gap-3 flex-1 min-w-0 px-1 py-1 ${collapsed ? "justify-center" : ""}`}
               >
-                <UserAvatar gender={currentUser.gender} name={fullName} avatar={currentUser.avatar} size="sm" />
+                <UserAvatar
+                  gender={currentUser.gender}
+                  firstName={currentUser.firstName}
+                  lastName={currentUser.lastName}
+                  name={fullName}
+                  avatar={currentUser.avatar}
+                  size="sm"
+                />
                 {!collapsed && (
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[var(--foreground)] truncate">{fullName}</p>

@@ -13,6 +13,8 @@ import {
   Event, EventStatus, resolvePdfUrl,
 } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
+import EventClearanceTab from "../../components/events/EventClearanceTab";
+import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 const MODES = [
   { value: "FTF", label: "FTF (Face-to-Face)" },
@@ -1201,34 +1203,11 @@ export default function StudentEvents() {
               )}
               {viewTab === "clearance" && (
                 <div className="flex flex-col gap-4">
-                  <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-5 text-sm space-y-3">
-                    <p className="font-semibold text-[var(--foreground)] text-sm">Clearance Template Summary</p>
-                    <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p><p className="font-medium mt-0.5">{viewEvent.name}</p></div>
-                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p><p className="font-medium mt-0.5">{getEventType(viewEvent.typeId)?.name || "—"}</p></div>
-                      <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{viewEvent.description || "—"}</p></div>
-                      <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Date & Time</p><p className="font-medium mt-0.5">{formatDateTime(viewEvent.dateStart)} – {formatDateTime(viewEvent.dateEnd)}</p></div>
-                      <div className="sm:col-span-2">
-                        <p className="font-mono text-[var(--muted-foreground)] font-bold">
-                          {viewEvent.mode === "Online/Virtual" ? "Meeting Link" : "Location"}
-                        </p>
-                        {isWebUrl(viewEvent.location) ? (
-                          <a
-                            href={toWebUrl(viewEvent.location)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-[var(--primary)] hover:underline font-medium break-all mt-0.5"
-                          >
-                            {viewEvent.location}
-                            <ExternalLink size={12} className="flex-shrink-0" />
-                          </a>
-                        ) : (
-                          <p className="font-medium mt-0.5">{viewEvent.location || "—"}</p>
-                        )}
-                      </div>
-                    </div>
-                    {viewEvent.clearanceDetails && <p className="mt-2 text-xs text-[var(--muted-foreground)] border-t border-[var(--border)] pt-2">{viewEvent.clearanceDetails}</p>}
-                  </div>
+                  <EventClearanceTab
+                    event={viewEvent}
+                    organizationName={org?.name}
+                    eventTypeName={getEventType(viewEvent.typeId)?.name}
+                  />
 
                   {/* Faculty Adviser Feedback */}
                   {viewEvent.adviserFeedback && (
@@ -1275,103 +1254,15 @@ export default function StudentEvents() {
                 <EventHistoryTimeline eventId={viewEvent.id} event={viewEvent} />
               )}
               {viewTab === "finance" && (
-                <div>
-                  {["Approved", "Completed", "Closed"].includes(viewEvent.status) ? (
-                    <div className="flex flex-col gap-4">
-                      {(() => {
-                        const eventTxns = transactions.filter((t) => t.eventId === viewEvent.id && !t.deleted);
-                        const eventSpent = eventTxns.reduce((s, t) => s + t.amount, 0);
-                        const budget = viewEvent.proposedBudget;
-                        const remaining = budget - eventSpent;
-
-                        return (
-                          <>
-                            <div className="grid grid-cols-3 gap-3">
-                              <div className="p-3.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
-                                <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase font-bold flex items-center gap-1">
-                                  <Wallet size={12} className="text-[var(--primary)]" /> Approved Budget
-                                </p>
-                                <p className="text-sm font-mono font-bold text-[var(--foreground)] mt-1">{formatCurrency(budget)}</p>
-                              </div>
-                              <div className="p-3.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
-                                <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase font-bold flex items-center gap-1">
-                                  <CreditCard size={12} className="text-[var(--primary)]" /> Total Spent
-                                </p>
-                                <p className="text-sm font-mono font-bold text-teal-700 mt-1">{formatCurrency(eventSpent)}</p>
-                              </div>
-                              <div className="p-3.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
-                                <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase font-bold flex items-center gap-1">
-                                  <Coins size={12} className="text-[var(--primary)]" /> Remaining
-                                </p>
-                                <p className={`text-sm font-mono font-bold mt-1 ${remaining >= 0 ? "text-emerald-700" : "text-rose-600"}`}>
-                                  {formatCurrency(remaining)}
-                                </p>
-                              </div>
-                            </div>
-
-                            {viewEvent.revenue !== undefined && viewEvent.revenue > 0 && (
-                              <div className="p-3.5 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl border border-teal-200 flex items-center justify-between shadow-2xs">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center flex-shrink-0">
-                                    <Coins size={16} />
-                                  </div>
-                                  <div>
-                                    <p className="text-[11px] font-bold text-teal-900 uppercase">Gross Event Revenue Generated</p>
-                                    <p className="text-[11px] text-teal-700">Official proceeds reconciled into guild treasury</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-base font-mono font-extrabold text-teal-900">{formatCurrency(viewEvent.revenue)}</p>
-                                  <p className="text-[10px] text-emerald-700 font-bold">Surplus: {formatCurrency(remaining + viewEvent.revenue)}</p>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl overflow-hidden">
-                              <div className="p-3 bg-[var(--muted)]/30 border-b border-[var(--border)] flex items-center justify-between">
-                                <p className="text-xs font-mono font-bold text-[var(--foreground)]">Itemized Disbursements ({eventTxns.length})</p>
-                                <Button
-                                  size="sm"
-                                  onClick={() => {
-                                    setViewEvent(null);
-                                    navigate("/student/finance");
-                                  }}
-                                  className="h-7 text-xs font-bold gap-1"
-                                >
-                                  Open Finance Page <ArrowRight size={12} />
-                                </Button>
-                              </div>
-
-                              {eventTxns.length === 0 ? (
-                                <p className="p-6 text-center text-xs text-[var(--muted-foreground)]">No transactions recorded yet in ledger.</p>
-                              ) : (
-                                <div className="divide-y divide-[var(--border)] text-xs">
-                                  {eventTxns.map((t) => (
-                                    <div key={t.id} className="p-3 flex items-center justify-between">
-                                      <div>
-                                        <p className="font-medium text-[var(--foreground)]">{t.description}</p>
-                                        <p className="text-[10px] text-[var(--muted-foreground)] font-mono">{formatDate(t.createdAt)} · {getCategoryById(t.categoryId)?.name}</p>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="font-mono font-bold text-[var(--foreground)]">{formatCurrency(t.amount)}</p>
-                                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">{t.status}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </>
-                        );
-                      })()}
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-[var(--muted-foreground)] bg-[var(--muted)]/20 rounded-2xl border border-dashed border-[var(--border)]">
-                      <p className="text-sm font-semibold text-[var(--foreground)]">Finance Ledger Inactive</p>
-                      <p className="text-xs mt-1">Financial records and disbursement ledger will become available once the proposal is fully approved.</p>
-                    </div>
-                  )}
-                </div>
+                <EventFinanceTab
+                  event={viewEvent}
+                  organizationName={organizations.find((o) => o.id === viewEvent.organizationId)?.name}
+                  onOpenFinance={() => {
+                    setViewEvent(null);
+                    navigate("/student/finance");
+                  }}
+                  showOpenFinance={true}
+                />
               )}
             </div>
           </div>

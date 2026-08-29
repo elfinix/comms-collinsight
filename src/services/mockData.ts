@@ -149,6 +149,7 @@ export const users: User[] = [
     role: "admin",
     position: "System Administrator",
     gender: "male",
+    yearLevel: "Faculty/Staff",
     memberSince: "2022-06-01",
   },
   {
@@ -162,6 +163,7 @@ export const users: User[] = [
     role: "dean",
     position: "College Dean",
     gender: "female",
+    yearLevel: "Faculty/Staff",
     memberSince: "2020-08-01",
   },
   {
@@ -175,6 +177,7 @@ export const users: User[] = [
     role: "adviser",
     position: "Faculty Adviser",
     gender: "male",
+    yearLevel: "Faculty/Staff",
     organizationId: "org-1",
     memberSince: "2021-06-01",
   },
@@ -189,6 +192,7 @@ export const users: User[] = [
     role: "adviser",
     position: "Faculty Adviser",
     gender: "female",
+    yearLevel: "Faculty/Staff",
     organizationId: "org-2",
     memberSince: "2021-06-01",
   },
@@ -203,6 +207,7 @@ export const users: User[] = [
     role: "adviser",
     position: "Faculty Adviser",
     gender: "male",
+    yearLevel: "Faculty/Staff",
     organizationId: "org-3",
     memberSince: "2022-01-01",
   },
@@ -699,12 +704,13 @@ export function toWebUrl(str: string): string {
 
 export const SAMPLE_FIXTURES = {
   apf: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
+  clearance: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
   appendix: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
   venue: "/fixtures/Venue_Clearance_and_Laboratories.pdf",
   receipt: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
 };
 
-export function resolvePdfUrl(url?: string, fallbackType: "apf" | "appendix" | "venue" | "receipt" = "apf"): string {
+export function resolvePdfUrl(url?: string, fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType];
   if (isWebUrl(url)) return toWebUrl(url);
   const fname = url.replace(/^.*[\\/]/, "");
@@ -744,4 +750,624 @@ export function getActionBadgeClass(action: string): string {
     return "bg-slate-100 text-slate-700 border-slate-200";
   }
   return "bg-slate-100 text-slate-700 border-slate-200";
+}
+
+export function printClearanceDocument(event: Event, organizationName?: string, eventTypeName?: string) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    window.print();
+    return;
+  }
+
+  const org = organizations.find((o) => o.id === event.organizationId);
+  const orgName = organizationName || org?.name || "Student Organization";
+  const orgCode = org?.code || "CITE";
+  const type = getEventTypeById(event.typeId);
+  const typeName = eventTypeName || type?.name || "Institutional Event";
+  const docRef = `CLR-${event.id.toUpperCase()}-2026`;
+  const formattedDate = event.dateStart && event.dateEnd
+    ? `${formatDateTime(event.dateStart)} – ${formatDateTime(event.dateEnd)}`
+    : event.dateStart
+    ? formatDateTime(event.dateStart)
+    : "—";
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, '_')}</title>
+      <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          color: #0f172a;
+          margin: 0;
+          padding: 24px;
+          font-size: 12px;
+          line-height: 1.5;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 2px solid #0d9488;
+          padding-bottom: 14px;
+          margin-bottom: 18px;
+        }
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .logo {
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          background-color: #115e59;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 15px;
+        }
+        .title {
+          font-size: 16px;
+          font-weight: 800;
+          color: #0f172a;
+          margin: 0;
+        }
+        .subtitle {
+          font-size: 11px;
+          color: #475569;
+          margin: 2px 0 0 0;
+        }
+        .ref-box {
+          text-align: right;
+          font-family: monospace;
+          font-size: 10px;
+          color: #64748b;
+        }
+        .badge-dispatched {
+          display: inline-block;
+          background: #dcfce7;
+          color: #166534;
+          border: 1px solid #86efac;
+          padding: 3px 8px;
+          border-radius: 6px;
+          font-weight: bold;
+          font-size: 10px;
+          margin-top: 4px;
+          text-transform: uppercase;
+        }
+        .section-title {
+          font-size: 11px;
+          font-weight: bold;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #0d9488;
+          margin: 16px 0 8px 0;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 4px;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 14px;
+          border-radius: 8px;
+          margin-bottom: 14px;
+          font-size: 11px;
+        }
+        .grid-full {
+          grid-column: span 2;
+        }
+        .label {
+          font-size: 9px;
+          text-transform: uppercase;
+          font-weight: bold;
+          color: #64748b;
+          margin-bottom: 2px;
+        }
+        .value {
+          font-weight: 600;
+          color: #0f172a;
+        }
+        .desc-box {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 12px;
+          border-radius: 8px;
+          font-size: 11px;
+          color: #1e293b;
+          margin-bottom: 14px;
+        }
+        .signatories {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-top: 24px;
+          page-break-inside: avoid;
+        }
+        .sig-card {
+          border: 1px solid #cbd5e1;
+          background: #fcfcfd;
+          border-radius: 8px;
+          padding: 14px;
+          text-align: center;
+        }
+        .sig-role {
+          font-size: 10px;
+          text-transform: uppercase;
+          color: #64748b;
+          font-weight: bold;
+          margin-bottom: 8px;
+        }
+        .sig-stamp {
+          background: #f0fdf4;
+          border: 1px dashed #22c55e;
+          color: #15803d;
+          padding: 6px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: bold;
+          margin-bottom: 8px;
+          font-family: monospace;
+        }
+        .sig-name {
+          font-size: 12px;
+          font-weight: bold;
+          color: #0f172a;
+        }
+        .sig-title {
+          font-size: 10px;
+          color: #64748b;
+        }
+        .footer {
+          margin-top: 28px;
+          border-top: 1px solid #e2e8f0;
+          padding-top: 10px;
+          text-align: center;
+          font-size: 9px;
+          color: #94a3b8;
+          font-family: monospace;
+        }
+        @media print {
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="brand">
+          <div class="logo">LCUP</div>
+          <div>
+            <h1 class="title">OFFICIAL EVENT CLEARANCE CERTIFICATE</h1>
+            <p class="subtitle">La Consolacion University Philippines · College of Information Technology & Engineering</p>
+          </div>
+        </div>
+        <div class="ref-box">
+          <div>Ref: <strong>${docRef}</strong></div>
+          <div>Date: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</div>
+          <div class="badge-dispatched">✓ Cleared & Dispatched to SDS</div>
+        </div>
+      </div>
+
+      <div class="section-title">Event Information & Authorization</div>
+      <div class="grid">
+        <div>
+          <div class="label">Event Name</div>
+          <div class="value">${event.name}</div>
+        </div>
+        <div>
+          <div class="label">Event Type</div>
+          <div class="value">${typeName}</div>
+        </div>
+        <div>
+          <div class="label">Hosting Organization</div>
+          <div class="value">${orgName}</div>
+        </div>
+        <div>
+          <div class="label">Authorized Budget Allocation</div>
+          <div class="value" style="color: #0d9488; font-family: monospace; font-size: 12px;">${formatCurrency(event.proposedBudget)}</div>
+        </div>
+        <div class="grid-full">
+          <div class="label">Schedule & Duration</div>
+          <div class="value">${formattedDate}</div>
+        </div>
+        <div class="grid-full">
+          <div class="label">Mode & Venue / Link</div>
+          <div class="value">${event.location || (event.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} (${event.mode})</div>
+        </div>
+        <div class="grid-full">
+          <div class="label">Attached Activity Proposal Form (APF)</div>
+          <div class="value" style="font-family: monospace; color: #047857;">✓ ${event.apfUrl ? event.apfUrl.replace(/^.*[\\/]/, '') : "APF_Vetted.pdf"}</div>
+        </div>
+      </div>
+
+      <div class="section-title">Event Overview & Objectives</div>
+      <div class="desc-box">
+        ${event.description || "Official organization event vetted and cleared for execution under college guidelines."}
+      </div>
+
+      ${event.clearanceDetails ? `
+        <div class="section-title">Additional Clearance Details & Logistics</div>
+        <div class="desc-box" style="font-family: monospace; font-size: 10px;">
+          ${event.clearanceDetails}
+        </div>
+      ` : ""}
+
+      <div class="section-title">Institutional Signatory Seals & Verification</div>
+      <div class="signatories">
+        <!-- 1. Faculty Adviser on Left -->
+        <div class="sig-card">
+          <div class="sig-role">Faculty Adviser Endorsement</div>
+          <div class="sig-stamp">✓ ENDORSED TO DEAN</div>
+          <div class="sig-name">Engr. Eduardo S. Reyes, M.Sc.</div>
+          <div class="sig-title">Designated Faculty Adviser, ${orgCode}</div>
+        </div>
+
+        <!-- 2. Dean on Right -->
+        <div class="sig-card">
+          <div class="sig-role">Executive Approval & Clearance</div>
+          <div class="sig-stamp" style="border-color: #0d9488; background: #f0fdfa; color: #0f766e;">✓ EXECUTIVE CLEARANCE GRANTED</div>
+          <div class="sig-name">Dr. Marilou C. Villanueva, Ph.D.</div>
+          <div class="sig-title">College Dean, CITE</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        CollsInsight Institutional Management System · Official Digital Clearance Document · System Generated on ${new Date().toLocaleString()}
+      </div>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 400);
+}
+
+export function printLiquidationDocument(
+  event: Event,
+  eventTransactions: Transaction[],
+  organizationName?: string,
+  liquidatorName?: string,
+  adviserName?: string,
+  deanName?: string
+) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    window.print();
+    return;
+  }
+
+  const org = organizations.find((o) => o.id === event.organizationId);
+  const orgName = organizationName || org?.name || "Student Organization";
+  const orgCode = org?.code || "CITE";
+  const docRef = `LQ-${event.id.toUpperCase()}-2026`;
+  const totalSpent = eventTransactions.reduce((s, t) => s + t.amount, 0);
+  const remaining = event.proposedBudget - totalSpent;
+  const netSurplus = remaining + (event.revenue || 0);
+
+  const txnRowsHtml = eventTransactions.map((t, idx) => {
+    const cat = getCategoryById(t.categoryId)?.name || "General Expense";
+    return `
+      <tr>
+        <td style="padding: 7px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">${idx + 1}</td>
+        <td style="padding: 7px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${t.description}</td>
+        <td style="padding: 7px 8px; border-bottom: 1px solid #e2e8f0; color: #64748b;">${cat}</td>
+        <td style="padding: 7px 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatCurrency(t.amount)}</td>
+        <td style="padding: 7px 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
+          <span style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold;">${t.status}</span>
+        </td>
+      </tr>
+    `;
+  }).join("");
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Liquidation_Report_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}</title>
+      <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+          color: #0f172a;
+          margin: 0;
+          padding: 24px;
+          font-size: 11px;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 2px solid #0f766e;
+          padding-bottom: 14px;
+          margin-bottom: 16px;
+        }
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .logo {
+          width: 44px;
+          height: 44px;
+          border-radius: 8px;
+          background-color: #134e4a;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 16px;
+          letter-spacing: 0.5px;
+        }
+        .title {
+          font-size: 15px;
+          font-weight: 800;
+          color: #134e4a;
+          margin: 0;
+          text-transform: uppercase;
+        }
+        .subtitle {
+          font-size: 11px;
+          color: #475569;
+          margin: 2px 0 0 0;
+        }
+        .ref-box {
+          text-align: right;
+          font-family: monospace;
+          font-size: 10px;
+          color: #475569;
+        }
+        .badge-reconciled {
+          background: #ccfbf1;
+          color: #115e59;
+          font-weight: bold;
+          padding: 3px 8px;
+          border-radius: 4px;
+          border: 1px solid #99f6e4;
+          display: inline-block;
+          margin-top: 4px;
+          font-size: 9.5px;
+          text-transform: uppercase;
+        }
+        .section-title {
+          font-family: monospace;
+          font-size: 10px;
+          font-weight: bold;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          color: #334155;
+          margin: 14px 0 6px 0;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 4px;
+        }
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 10px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          padding: 10px 12px;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          font-family: monospace;
+        }
+        .label {
+          font-size: 8.5px;
+          color: #64748b;
+          text-transform: uppercase;
+          font-weight: bold;
+        }
+        .value {
+          font-size: 11px;
+          font-weight: bold;
+          color: #0f172a;
+          margin-top: 2px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          font-family: monospace;
+          font-size: 10.5px;
+          margin-bottom: 14px;
+          border: 1px solid #e2e8f0;
+        }
+        th {
+          background: #f1f5f9;
+          text-align: left;
+          padding: 7px 8px;
+          border-bottom: 1px solid #cbd5e1;
+          font-weight: bold;
+          color: #334155;
+        }
+        .total-row {
+          background: #f0fdfa;
+          font-weight: bold;
+          border-top: 2px solid #0f766e;
+        }
+        .signatories {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 14px;
+          margin-top: 20px;
+        }
+        .sig-card {
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 10px 12px;
+          background: #f8fafc;
+          text-align: center;
+        }
+        .sig-role {
+          font-size: 9px;
+          font-family: monospace;
+          color: #64748b;
+          text-transform: uppercase;
+          font-weight: bold;
+          margin-bottom: 6px;
+        }
+        .sig-stamp {
+          display: inline-block;
+          font-size: 9px;
+          font-family: monospace;
+          font-weight: bold;
+          padding: 2px 6px;
+          border-radius: 4px;
+          border: 1px dashed #0f766e;
+          background: #f0fdfa;
+          color: #0f766e;
+          margin-bottom: 6px;
+        }
+        .sig-name {
+          font-weight: bold;
+          font-size: 11px;
+          color: #0f172a;
+          border-top: 1px solid #cbd5e1;
+          padding-top: 6px;
+          margin-top: 4px;
+        }
+        .sig-title {
+          font-size: 9.5px;
+          color: #64748b;
+          margin-top: 2px;
+        }
+        .footer {
+          margin-top: 24px;
+          border-top: 1px solid #e2e8f0;
+          padding-top: 8px;
+          text-align: center;
+          font-size: 8.5px;
+          color: #94a3b8;
+          font-family: monospace;
+        }
+        @media print {
+          body { padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="brand">
+          <div class="logo">LCUP</div>
+          <div>
+            <h1 class="title">OFFICIAL FINANCIAL LIQUIDATION REPORT</h1>
+            <p class="subtitle">La Consolacion University Philippines · College of Information Technology & Engineering</p>
+            <p style="margin: 2px 0 0 0; font-size: 10px; font-weight: bold; color: #0f766e;">${orgName} (${orgCode})</p>
+          </div>
+        </div>
+        <div class="ref-box">
+          <div>Ref: <strong>${docRef}</strong></div>
+          <div>Date: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}</div>
+          <div class="badge-reconciled">✓ Audited & Liquidated</div>
+        </div>
+      </div>
+
+      <div class="section-title">Event Financial Profile</div>
+      <div class="grid">
+        <div>
+          <div class="label">Event Name</div>
+          <div class="value">${event.name}</div>
+        </div>
+        <div>
+          <div class="label">Date Conducted</div>
+          <div class="value">${formatDate(event.dateStart)}</div>
+        </div>
+        <div>
+          <div class="label">Approved Allocation</div>
+          <div class="value" style="color: #0f766e;">${formatCurrency(event.proposedBudget)}</div>
+        </div>
+        <div>
+          <div class="label">Total Disbursed</div>
+          <div class="value" style="color: #047857;">${formatCurrency(totalSpent)}</div>
+        </div>
+      </div>
+
+      <div class="section-title">Itemized Statement of Expenditures (${eventTransactions.length} Items)</div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25px; text-align: center;">#</th>
+            <th>Disbursement Description</th>
+            <th style="width: 140px;">Category</th>
+            <th style="width: 100px; text-align: right;">Amount</th>
+            <th style="width: 80px; text-align: center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${txnRowsHtml}
+          <tr class="total-row">
+            <td colspan="3" style="padding: 8px; text-align: right; color: #134e4a;">TOTAL DISBURSED EXPENDITURES:</td>
+            <td style="padding: 8px; text-align: right; color: #134e4a;">${formatCurrency(totalSpent)}</td>
+            <td style="padding: 8px; text-align: center; color: #047857; font-size: 9px;">100% RECONCILED</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="section-title">Treasury Settlement & Balance Reversion</div>
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-family: monospace; font-size: 11px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+          <span style="color: #475569;">Unexpended Budget Allocation (Reverted to Treasury):</span>
+          <strong style="color: #0f766e;">${formatCurrency(remaining)}</strong>
+        </div>
+        ${event.revenue !== undefined && event.revenue > 0 ? `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <span style="color: #475569;">Total Gross Event Revenue Deposited:</span>
+            <strong style="color: #0d9488;">${formatCurrency(event.revenue)}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
+            <span style="color: #065f46; font-weight: bold;">Net Surplus Reconciled into Organization Treasury:</span>
+            <strong style="color: #047857; font-size: 12px;">${formatCurrency(netSurplus)}</strong>
+          </div>
+        ` : ""}
+      </div>
+
+      <div class="section-title">Institutional Signatories & Financial Clearance Verification</div>
+      <div class="signatories">
+        <!-- 1. Student Finance Officer -->
+        <div class="sig-card">
+          <div class="sig-role">Prepared & Liquidated by</div>
+          <div class="sig-stamp">✓ DIGITALLY CERTIFIED</div>
+          <div class="sig-name">${liquidatorName || "Student Finance Officer"}</div>
+          <div class="sig-title">Finance Officer, ${orgCode}</div>
+        </div>
+
+        <!-- 2. Faculty Adviser -->
+        <div class="sig-card">
+          <div class="sig-role">Audited & Verified by</div>
+          <div class="sig-stamp">✓ AUDIT VERIFIED</div>
+          <div class="sig-name">${adviserName || "Engr. Eduardo S. Reyes, M.Sc."}</div>
+          <div class="sig-title">Designated Faculty Adviser, ${orgCode}</div>
+        </div>
+
+        <!-- 3. Dean -->
+        <div class="sig-card">
+          <div class="sig-role">Executive Acceptance</div>
+          <div class="sig-stamp">✓ ARCHIVED & CLEARED</div>
+          <div class="sig-name">${deanName || "Dr. Marilou C. Villanueva, Ph.D."}</div>
+          <div class="sig-title">College Dean, CITE</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        CollsInsight Financial Management · Official Digital Liquidation Statement · System Generated on ${new Date().toLocaleString()}
+      </div>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 400);
 }

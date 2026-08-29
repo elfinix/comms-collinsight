@@ -547,9 +547,12 @@ export default function StudentReports() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-[var(--muted)] border-b border-[var(--border)]">
-                {["Event", "Type", "Date", "Budget", "Spent", "Status"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">{h}</th>
-                ))}
+                <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)] min-w-[200px]">Event</th>
+                <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)] whitespace-nowrap w-[100px]">Type</th>
+                <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)] whitespace-nowrap min-w-[105px]">Date</th>
+                <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)] whitespace-nowrap">Budget</th>
+                <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)] whitespace-nowrap">Spent</th>
+                <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)] whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -559,12 +562,16 @@ export default function StudentReports() {
                 const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
                 return (
                   <tr key={e.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)] transition">
-                    <td className="px-4 py-3 font-medium max-w-[180px] truncate">{e.name}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--muted-foreground)]">{getEventTypeById(e.typeId)?.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{formatDate(e.dateStart)}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{formatCurrency(e.proposedBudget)}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--primary)]">{formatCurrency(spent)}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 font-medium min-w-[200px]">
+                      <span className="font-semibold text-[var(--foreground)] block leading-snug">{e.name}</span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-[var(--muted-foreground)] whitespace-nowrap max-w-[105px] truncate" title={getEventTypeById(e.typeId)?.name}>
+                      {getEventTypeById(e.typeId)?.name}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap min-w-[105px]">{formatDate(e.dateStart)}</td>
+                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{formatCurrency(e.proposedBudget)}</td>
+                    <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-[var(--primary)] font-semibold">{formatCurrency(spent)}</td>
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold shadow-2xs ${statusColors[e.status]}`}>{e.status}</span>
                     </td>
                   </tr>

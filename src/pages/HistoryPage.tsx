@@ -13,6 +13,8 @@ import {
   Event, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass
 } from "../services/mockData";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
+import EventClearanceTab from "../components/events/EventClearanceTab";
+import EventFinanceTab from "../components/events/EventFinanceTab";
 
 type DateRangeType = "today" | "7days" | "month" | "all";
 type ActionFilterType = "ALL" | "CREATE" | "SUBMIT" | "APPROVE" | "REVISION" | "MODIFIED" | "FINANCE" | "CLOSURE";
@@ -722,30 +724,10 @@ export default function HistoryPage() {
 
               {/* Clearance Tab */}
               {dialogTab === "clearance" && (
-                <div className="bg-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-5 text-sm space-y-3">
-                  <p className="font-semibold text-[var(--foreground)] text-sm">Clearance Summary</p>
-                  <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p>
-                      <p className="font-medium mt-0.5">{selectedEvent.name}</p>
-                    </div>
-                    <div>
-                      <p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p>
-                      <p className="font-medium mt-0.5">{getEventTypeById(selectedEvent.typeId)?.name || "—"}</p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <p className="font-mono text-[var(--muted-foreground)] font-bold">Date & Time</p>
-                      <p className="font-medium mt-0.5">
-                        {formatDateTime(selectedEvent.dateStart)} – {formatDateTime(selectedEvent.dateEnd)}
-                      </p>
-                    </div>
-                  </div>
-                  {selectedEvent.clearanceDetails && (
-                    <p className="text-xs text-[var(--foreground)] mt-2 leading-relaxed bg-white border border-[var(--border)] p-3 rounded-xl">
-                      {selectedEvent.clearanceDetails}
-                    </p>
-                  )}
-                </div>
+                <EventClearanceTab
+                  event={selectedEvent}
+                  eventTypeName={getEventTypeById(selectedEvent.typeId)?.name}
+                />
               )}
 
               {/* History Tab */}
@@ -753,27 +735,14 @@ export default function HistoryPage() {
                 <EventHistoryTimeline eventId={selectedEvent.id} event={selectedEvent} />
               )}
 
-              {/* Finance Tab (Student) */}
+              {/* Finance Tab */}
               {dialogTab === "finance" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-[var(--muted)]/50 p-4 rounded-xl">
-                      <p className="text-xs font-mono text-[var(--muted-foreground)]">Allocated Budget</p>
-                      <p className="text-lg font-bold text-[var(--primary)] font-mono">
-                        {formatCurrency(selectedEvent.proposedBudget)}
-                      </p>
-                    </div>
-                    <div className="bg-[var(--muted)]/50 p-4 rounded-xl">
-                      <p className="text-xs font-mono text-[var(--muted-foreground)]">Total Transactions</p>
-                      <p className="text-lg font-bold font-mono">
-                        {transactions.filter((t) => t.eventId === selectedEvent.id && !t.deleted).length} Records
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-[var(--muted)]/30 border border-[var(--border)] rounded-xl p-4 text-xs text-[var(--muted-foreground)] text-center">
-                    Financial ledger entries and receipts for this event are maintained in the Finance Portal.
-                  </div>
-                </div>
+                <EventFinanceTab
+                  event={selectedEvent}
+                  onOpenFinance={() => {
+                    setSelectedEvent(null);
+                  }}
+                />
               )}
             </div>
 

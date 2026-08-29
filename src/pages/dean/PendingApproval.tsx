@@ -4,6 +4,8 @@ import { Button, Dialog, Tabs, SignatoryProgress, EmptyState, Textarea } from ".
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, organizations, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
+import EventClearanceTab from "../../components/events/EventClearanceTab";
+import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanPendingApproval() {
   const { events, setEventStatus, updateEvent } = useApp();
@@ -37,6 +39,7 @@ export default function DeanPendingApproval() {
     { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance" },
     { id: "history", label: "History" },
+    { id: "finance", label: "Finance" },
   ];
 
   return (
@@ -93,7 +96,7 @@ export default function DeanPendingApproval() {
                   </div>
 
                   {/* Signatory Stepper */}
-                  <div className="pt-2 pb-1 border-t border-[var(--border)]/60">
+                  <div className="pt-4 pb-1 border-t border-[var(--border)]/60">
                     <SignatoryProgress status={e.status} />
                   </div>
                 </div>
@@ -201,41 +204,21 @@ export default function DeanPendingApproval() {
                 </div>
               )}
               {viewTab === "clearance" && (
-                <div className="bg-[var(--muted)] rounded-xl p-4 text-sm">
-                  <p className="font-semibold mb-3">Clearance Template</p>
-                  <div className="grid sm:grid-cols-2 gap-3 text-xs">
-                    <div><p className="font-mono text-[var(--muted-foreground)]">Event Name</p><p>{viewEvent.name}</p></div>
-                    <div><p className="font-mono text-[var(--muted-foreground)]">Type</p><p>{getEventTypeById(viewEvent.typeId)?.name}</p></div>
-                    <div><p className="font-mono text-[var(--muted-foreground)]">Date</p><p>{formatDate(viewEvent.dateStart)}</p></div>
-                    <div>
-                      <p className="font-mono text-[var(--muted-foreground)]">
-                        {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Location"}
-                      </p>
-                      {isWebUrl(viewEvent.location) ? (
-                        <a
-                          href={toWebUrl(viewEvent.location!)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-[var(--primary)] hover:underline underline-offset-2 font-medium break-all"
-                        >
-                          {viewEvent.location}
-                          <ExternalLink size={12} className="flex-shrink-0 text-[var(--primary)]" />
-                        </a>
-                      ) : (
-                        <p className="font-medium">{viewEvent.location || "—"}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-4 pt-4 border-t border-[var(--border)]">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Dean's Signatory</p>
-                    <div className="border-2 border-dashed border-[var(--border)] rounded-lg p-3 text-center text-xs text-[var(--muted-foreground)]">
-                      Signature will be affixed upon approval
-                    </div>
-                  </div>
-                </div>
+                <EventClearanceTab
+                  event={viewEvent}
+                  organizationName={organizations.find(o => o.id === viewEvent.organizationId)?.name}
+                  eventTypeName={getEventTypeById(viewEvent.typeId)?.name}
+                />
               )}
               {viewTab === "history" && (
                 <EventHistoryTimeline eventId={viewEvent.id} event={viewEvent} />
+              )}
+              {viewTab === "finance" && (
+                <EventFinanceTab
+                  event={viewEvent}
+                  organizationName={organizations.find(o => o.id === viewEvent.organizationId)?.name}
+                  showOpenFinance={false}
+                />
               )}
             </div>
             <div className="flex justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] flex-wrap gap-3">

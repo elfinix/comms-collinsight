@@ -27,14 +27,14 @@ export default function StudentProfile() {
   const org = currentUser?.organizationId ? getOrgById(currentUser.organizationId) : null;
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Personal Info Form State
+  const defaultYear = currentUser?.role === "student" ? (currentUser.yearLevel ?? "3rd Year") : (currentUser?.yearLevel ?? "Faculty/Staff");
   const [firstName, setFirstName] = useState(currentUser?.firstName ?? "");
   const [middleName, setMiddleName] = useState(currentUser?.middleName ?? "");
   const [lastName, setLastName] = useState(currentUser?.lastName ?? "");
   const [suffix, setSuffix] = useState(currentUser?.suffix ?? "");
   const [email, setEmail] = useState(currentUser?.email ?? "");
   const [gender, setGender] = useState<Gender>(currentUser?.gender ?? "male");
-  const [yearLevel, setYearLevel] = useState(currentUser?.yearLevel ?? "3rd Year");
+  const [yearLevel, setYearLevel] = useState(defaultYear);
   const [avatar, setAvatar] = useState<string | undefined>(currentUser?.avatar);
 
   // Feedback & Validations
@@ -47,6 +47,9 @@ export default function StudentProfile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
+  const [currentPwdError, setCurrentPwdError] = useState("");
+  const [newPwdError, setNewPwdError] = useState("");
+  const [confirmPwdError, setConfirmPwdError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   // System Preferences Feedback
@@ -127,19 +130,47 @@ export default function StudentProfile() {
   function handleUpdatePassword(e: React.FormEvent) {
     e.preventDefault();
     setPasswordError("");
+    setCurrentPwdError("");
+    setNewPwdError("");
+    setConfirmPwdError("");
+
+    let hasError = false;
 
     if (!currentPassword) {
+      setCurrentPwdError("Current password is required.");
       setPasswordError("Please enter your current password.");
-      return;
+      hasError = true;
+    } else if (currentUser?.password && currentPassword !== currentUser.password) {
+      setCurrentPwdError("Current password is incorrect.");
+      setPasswordError("The current password you entered is incorrect.");
+      hasError = true;
     }
-    if (newPassword.length < 6) {
-      setPasswordError("New password must be at least 6 characters.");
-      return;
+
+    if (!newPassword) {
+      setNewPwdError("New password is required.");
+      if (!hasError) setPasswordError("Please enter a new password.");
+      hasError = true;
+    } else if (newPassword.length < 6) {
+      setNewPwdError("Minimum 6 characters required.");
+      if (!hasError) setPasswordError("New password must be at least 6 characters.");
+      hasError = true;
+    } else if (currentPassword && newPassword === currentPassword) {
+      setNewPwdError("Cannot be same as current password.");
+      if (!hasError) setPasswordError("New password cannot be the same as your current password.");
+      hasError = true;
     }
-    if (newPassword !== confirmPassword) {
-      setPasswordError("New password and confirmation do not match.");
-      return;
+
+    if (!confirmPassword) {
+      setConfirmPwdError("Please confirm your password.");
+      if (!hasError) setPasswordError("Please confirm your new password.");
+      hasError = true;
+    } else if (newPassword && newPassword !== confirmPassword) {
+      setConfirmPwdError("Passwords do not match.");
+      if (!hasError) setPasswordError("New password and confirmation do not match.");
+      hasError = true;
     }
+
+    if (hasError) return;
 
     updateCurrentUser({ password: newPassword });
     updateUser(currentUser!.id, { password: newPassword });
@@ -147,6 +178,9 @@ export default function StudentProfile() {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    setCurrentPwdError("");
+    setNewPwdError("");
+    setConfirmPwdError("");
     setPasswordSuccess(true);
     setTimeout(() => setPasswordSuccess(false), 3500);
   }
@@ -204,6 +238,8 @@ export default function StudentProfile() {
               <div className="relative group flex-shrink-0">
                 <UserAvatar
                   gender={gender}
+                  firstName={firstName || currentUser.firstName}
+                  lastName={lastName || currentUser.lastName}
                   name={displayFullName}
                   avatar={avatar}
                   size="xl"
@@ -219,14 +255,9 @@ export default function StudentProfile() {
               </div>
 
               <div className="pt-2 sm:pt-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--foreground)]">
-                    {displayFullName}
-                  </h2>
-                  <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full font-bold bg-teal-50 text-teal-800 border border-teal-200 uppercase">
-                    {currentUser.role}
-                  </span>
-                </div>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[var(--foreground)]">
+                  {displayFullName}
+                </h2>
                 <p className="text-xs text-[var(--muted-foreground)] font-mono mt-0.5">{currentUser.email}</p>
               </div>
             </div>
@@ -350,7 +381,7 @@ export default function StudentProfile() {
 
               <div className="sm:col-span-1">
                 <Select
-                  label="Gender & Profile Color"
+                  label="Gender"
                   value={gender}
                   onChange={(e) => setGender(e.target.value as Gender)}
                   options={[
@@ -366,15 +397,20 @@ export default function StudentProfile() {
                   label="Year / Academic Level"
                   value={yearLevel}
                   onChange={(e) => setYearLevel(e.target.value)}
-                  options={[
-                    { value: "1st Year", label: "1st Year" },
-                    { value: "2nd Year", label: "2nd Year" },
-                    { value: "3rd Year", label: "3rd Year" },
-                    { value: "4th Year", label: "4th Year" },
-                    { value: "5th Year", label: "5th Year" },
-                    { value: "Faculty / Staff", label: "Faculty / Staff" },
-                    { value: "Not Applicable", label: "Not Applicable" },
-                  ]}
+                  options={
+                    currentUser.role === "student"
+                      ? [
+                          { value: "1st Year", label: "1st Year" },
+                          { value: "2nd Year", label: "2nd Year" },
+                          { value: "3rd Year", label: "3rd Year" },
+                          { value: "4th Year", label: "4th Year" },
+                          { value: "5th Year", label: "5th Year" },
+                        ]
+                      : [
+                          { value: "Faculty/Staff", label: "Faculty/Staff" },
+                          { value: "Not Applicable", label: "Not Applicable" },
+                        ]
+                  }
                 />
               </div>
             </div>
@@ -406,7 +442,7 @@ export default function StudentProfile() {
         <CardBody className="p-6">
           <form onSubmit={handleUpdatePassword} className="space-y-4">
             <div
-              className={`transition-all duration-500 ease-in-out overflow-hidden ${
+              className={`-mt-3 transition-all duration-500 ease-in-out overflow-hidden ${
                 passwordSuccess
                   ? "max-h-20 opacity-100 translate-y-0"
                   : "max-h-0 opacity-0 -translate-y-2 pointer-events-none"
@@ -428,27 +464,39 @@ export default function StudentProfile() {
               <PasswordInput
                 label="Current Password"
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                onChange={(e) => {
+                  setCurrentPassword(e.target.value);
+                  if (currentPwdError) setCurrentPwdError("");
+                  if (passwordError) setPasswordError("");
+                }}
+                error={currentPwdError}
                 placeholder="Enter current password"
               />
               <PasswordInput
                 label="New Password"
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  if (newPwdError) setNewPwdError("");
+                  if (passwordError) setPasswordError("");
+                }}
+                error={newPwdError}
                 placeholder="Min. 6 characters"
               />
               <PasswordInput
                 label="Confirm New Password"
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (confirmPwdError) setConfirmPwdError("");
+                  if (passwordError) setPasswordError("");
+                }}
+                error={confirmPwdError}
                 placeholder="Re-enter new password"
               />
             </div>
 
-            <div className="flex items-center justify-between pt-3 border-t border-[var(--border)] flex-wrap gap-3">
-              <p className="text-xs text-[var(--muted-foreground)]">
-                Forgot password or locked out? Contact your CITE Dean Directorate administrator.
-              </p>
+            <div className="flex items-center justify-end pt-3 border-t border-[var(--border)] flex-wrap gap-3">
               <Button type="submit" variant="outline" className="font-medium gap-1.5">
                 <ShieldCheck size={15} /> Update Password
               </Button>
