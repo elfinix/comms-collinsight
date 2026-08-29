@@ -16,7 +16,7 @@ export function Button({ variant = "primary", size = "md", className = "", child
     outline: "border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] bg-transparent",
     ghost: "text-[var(--foreground)] hover:bg-[var(--muted)] bg-transparent",
     danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
-    success: "bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm",
+    success: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm",
   };
   return (
     <button className={`${base} ${sizes[size]} ${variants[variant]} ${className}`} {...props}>
@@ -830,55 +830,53 @@ export function SignatoryProgress({ status }: { status: string }) {
   }[status] ?? 0;
 
   return (
-    <div className="w-full pt-2 pb-1">
-      <div className="flex items-start justify-between w-full relative">
+    <div className="w-full py-1.5 overflow-hidden">
+      <div className="relative flex items-start justify-between w-full">
+        {/* Continuous connector track line behind nodes */}
+        <div className="absolute left-[12.5%] right-[12.5%] top-4 h-0.5 bg-[var(--border)] -z-0" />
+        <div
+          className="absolute left-[12.5%] top-4 h-0.5 bg-[var(--primary)] transition-all duration-500 -z-0"
+          style={{
+            width: `${(stepIndex / (steps.length - 1)) * 75}%`,
+          }}
+        />
+
         {steps.map((step, i) => {
           const isPassed = i < stepIndex;
           const isCurrent = i === stepIndex;
 
           return (
-            <div key={step.label} className="flex items-start flex-1 last:flex-none">
-              <div className="flex flex-col items-center text-center min-w-[76px] sm:min-w-[90px]">
-                {/* Circle node with dedicated bounds for ring glow */}
-                <div className="h-11 flex items-center justify-center">
-                  <div
-                    className={`w-9 h-9 rounded-full text-xs flex items-center justify-center font-bold transition-all shadow-xs ${
-                      isPassed
-                        ? "bg-[var(--primary)] text-white"
-                        : isCurrent
-                        ? "bg-[var(--primary)] text-white ring-4 ring-[var(--primary)]/20 ring-offset-2"
-                        : "bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]"
-                    }`}
-                  >
-                    {isPassed ? "✓" : i + 1}
-                  </div>
-                </div>
-
-                {/* Text labels lowered with ample clearance */}
-                <div className="flex flex-col items-center gap-0.5 mt-2.5">
-                  <span
-                    className={`text-xs font-bold tracking-tight transition-colors ${
-                      isPassed || isCurrent ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                  <span className="text-[10px] font-mono text-[var(--muted-foreground)] hidden sm:block">
-                    {step.sub}
-                  </span>
-                </div>
+            <div key={step.label} className="relative z-10 flex flex-col items-center flex-1 min-w-0 px-0.5 text-center">
+              {/* Circle node */}
+              <div
+                className={`w-8 h-8 rounded-full text-xs flex items-center justify-center font-bold transition-all ${
+                  isPassed
+                    ? "bg-[var(--primary)] text-white shadow-2xs"
+                    : isCurrent
+                    ? "bg-[var(--primary)] text-white ring-3 ring-[var(--primary)]/25 ring-offset-2 ring-offset-[var(--card)] shadow-xs"
+                    : "bg-[var(--card)] text-[var(--muted-foreground)] border-2 border-[var(--border)]"
+                }`}
+              >
+                {isPassed ? "✓" : i + 1}
               </div>
 
-              {/* Connecting progress bar centered to the circle's vertical midpoint */}
-              {i < steps.length - 1 && (
-                <div className="flex-1 mx-2 sm:mx-4 h-11 flex items-center">
-                  <div
-                    className={`h-1 w-full rounded-full transition-all ${
-                      i < stepIndex ? "bg-[var(--primary)]" : "bg-[var(--border)]"
-                    }`}
-                  />
-                </div>
-              )}
+              {/* Text labels */}
+              <div className="flex flex-col items-center gap-0.5 mt-2 w-full">
+                <span
+                  className={`text-[11px] font-bold tracking-tight leading-tight truncate max-w-full ${
+                    isPassed || isCurrent ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
+                  }`}
+                  title={step.label}
+                >
+                  {step.label}
+                </span>
+                <span
+                  className="text-[9px] font-mono text-[var(--muted-foreground)] leading-tight truncate max-w-full hidden sm:block"
+                  title={step.sub}
+                >
+                  {step.sub}
+                </span>
+              </div>
             </div>
           );
         })}

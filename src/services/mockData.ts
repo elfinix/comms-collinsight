@@ -314,8 +314,8 @@ export const events: Event[] = [
     dateEnd: "2026-09-26T15:00",
     mode: "FTF",
     location: "San Miguel National High School",
-    apfUrl: "APF_Community_Outreach_Draft.pdf",
-    appendices: ["Syllabus_HighSchool_Coding.pdf", "LGU_Partnership_Letter.pdf"],
+    apfUrl: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+    appendices: ["/fixtures/TechnoFest_2025_Appendices_Sample.pdf"],
     clearanceDetails: "Extension community service introducing basic programming and web literacy to junior high students.",
     status: "Created",
     createdAt: "2026-08-18T10:00:00",
@@ -478,3 +478,39 @@ export const statusColors: Record<EventStatus, string> = {
   Completed: "bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium",
   Closed: "bg-gray-50 text-gray-600 border border-gray-200 font-medium",
 };
+
+export function isWebUrl(str?: string): boolean {
+  if (!str) return false;
+  const t = str.trim();
+  return /^(https?:\/\/|www\.)/i.test(t) || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/i.test(t) || t.includes("zoom.us") || t.includes("meet.google.com") || t.includes("teams.microsoft.com");
+}
+
+export function toWebUrl(str: string): string {
+  const t = str.trim();
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
+export const SAMPLE_FIXTURES = {
+  apf: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+  appendix: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
+  receipt: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
+};
+
+export function resolvePdfUrl(urlOrName?: string, fallbackType: "apf" | "appendix" | "receipt" = "apf"): string {
+  if (!urlOrName) return SAMPLE_FIXTURES[fallbackType];
+  const trimmed = urlOrName.trim();
+  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:") || trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  if (trimmed.toLowerCase().includes("activity_proposal_form") || trimmed.toLowerCase().includes("apf")) {
+    return SAMPLE_FIXTURES.apf;
+  }
+  if (trimmed.toLowerCase().includes("appendices") || trimmed.toLowerCase().includes("appendix") || trimmed.toLowerCase().includes("syllabus") || trimmed.toLowerCase().includes("letter") || trimmed.toLowerCase().includes("doc")) {
+    return SAMPLE_FIXTURES.appendix;
+  }
+  if (trimmed.toLowerCase().includes("receipt") || trimmed.toLowerCase().includes("invoice")) {
+    return SAMPLE_FIXTURES.receipt;
+  }
+  return SAMPLE_FIXTURES[fallbackType];
+}

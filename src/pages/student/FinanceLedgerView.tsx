@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors,
-  getCategoryById, expenditureCategories, Transaction, Event
+  getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl
 } from "../../services/mockData";
 
 interface FinanceLedgerViewProps {
@@ -755,10 +755,10 @@ export default function FinanceLedgerView({ selectedEventId, onBack }: FinanceLe
                         <button
                           onClick={() => setPreviewReceipt({
                             title: t.description,
-                            url: t.receiptUrl!,
+                            url: resolvePdfUrl(t.receiptUrl, "receipt"),
                             fileName: t.receiptUrl?.startsWith("data:") ? "Uploaded_Receipt" : t.receiptUrl?.split("/").pop() || "Official Receipt"
                           })}
-                          className="inline-flex items-center gap-1.5 text-xs font-mono text-teal-700 hover:text-teal-900 bg-teal-50 hover:bg-teal-100/70 border border-teal-200 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                          className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--primary)] hover:underline bg-[var(--muted)]/60 border border-[var(--border)] px-2.5 py-1 rounded-lg transition cursor-pointer"
                           title="View attached receipt"
                         >
                           <Paperclip size={12} />

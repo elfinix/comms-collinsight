@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, statusColors, eventTypes, expenditureCategories,
-  Event, EventStatus,
+  Event, EventStatus, resolvePdfUrl,
 } from "../../services/mockData";
 
 const MODES = [
@@ -1159,7 +1159,18 @@ export default function StudentEvents() {
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
                     {viewEvent.apfUrl ? (
-                      <a href={viewEvent.apfUrl} className="text-sm text-[var(--primary)] hover:underline">{viewEvent.apfUrl}</a>
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        <a
+                          href={resolvePdfUrl(viewEvent.apfUrl, "apf")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                        >
+                          <span>{viewEvent.apfUrl.replace(/^.*[\\/]/, '')}</span>
+                          <ExternalLink size={13} className="flex-shrink-0" />
+                        </a>
+                      </div>
                     ) : (
                       <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>
                     )}
@@ -1167,7 +1178,22 @@ export default function StudentEvents() {
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Appendices</p>
                     {viewEvent.appendices && viewEvent.appendices.length > 0 ? (
-                      <ul className="text-sm text-[var(--foreground)] list-disc list-inside">{viewEvent.appendices.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                      <ul className="text-sm space-y-1.5">
+                        {viewEvent.appendices.map((a, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            <a
+                              href={resolvePdfUrl(a, "appendix")}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1 break-all"
+                            >
+                              <span>{a.replace(/^.*[\\/]/, '')}</span>
+                              <ExternalLink size={12} className="flex-shrink-0" />
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
                     ) : (
                       <p className="text-sm text-[var(--muted-foreground)]">No appendices uploaded.</p>
                     )}
