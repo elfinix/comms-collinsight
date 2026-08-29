@@ -49,7 +49,7 @@ export default function StudentDashboard() {
             Welcome back, {currentUser?.firstName}!
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
-            Active Leadership: <strong className="text-[var(--foreground)]">{currentUser?.position}</strong> · {org?.name ?? "Student Guild"} ({org?.code})
+            <strong className="text-[var(--foreground)]">{currentUser?.position}</strong> · {org?.name ?? "Student Guild"} ({org?.code})
           </p>
         </div>
 

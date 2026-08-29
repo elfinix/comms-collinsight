@@ -1,6 +1,6 @@
 import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, StatCard } from "../../components/ui";
-import { DollarSign, CheckCircle } from "lucide-react";
+import { CalendarCheck, CreditCard, CheckCircle } from "lucide-react";
 import { formatCurrency, formatDate, statusColors, organizations } from "../../services/mockData";
 
 export default function DeanApprovedEvents() {
@@ -16,8 +16,8 @@ export default function DeanApprovedEvents() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        <StatCard label="Approved Events" value={approved.length} icon={<CheckCircle size={18} />} />
-        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<DollarSign size={18} />} />
+        <StatCard label="Approved Events" value={approved.length} icon={<CalendarCheck size={18} />} />
+        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
         <StatCard label="Closed Events" value={events.filter((e) => e.status === "Closed").length} icon={<CheckCircle size={18} />} />
       </div>
 

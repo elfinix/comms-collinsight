@@ -25,6 +25,7 @@ export interface User {
   organizationId?: string;
   yearLevel?: string;
   memberSince: string;
+  avatar?: string;
 }
 
 export interface Department {
@@ -72,6 +73,9 @@ export interface Event {
   status: EventStatus;
   adviserFeedback?: string;
   deanFeedback?: string;
+  revenue?: number;
+  liquidatedBy?: string;
+  liquidatedAt?: string;
   createdAt: string;
   createdBy: string;
 }
@@ -271,8 +275,8 @@ export const events: Event[] = [
     dateEnd: "2026-09-15T18:00",
     mode: "FTF",
     location: "CITE Auditorium, LCUP Main Campus",
-    apfUrl: "/mock-apf.pdf",
-    appendices: ["appendix-a.pdf", "appendix-b.pdf"],
+    apfUrl: "APF_TechFest_2026_Approved.pdf",
+    appendices: ["Program_Matrix_TechFest2026.pdf", "Speaker_Profiles_and_Budgets.pdf", "Venue_Layout_CITE_Auditorium.png"],
     clearanceDetails: "TechFest 2026 organized by IT Student Guild with full backing of the Department of IT.",
     remarks: [],
     status: "Approved",
@@ -287,10 +291,13 @@ export const events: Event[] = [
     description: "A half-day interactive workshop aimed at developing leadership and communication skills among student organization officers.",
     proposedBudget: 8000,
     requisites: "Meeting room, whiteboard, printed modules",
-    dateStart: "2026-10-05T13:00",
-    dateEnd: "2026-10-05T17:00",
+    dateStart: "2026-09-22T13:00",
+    dateEnd: "2026-09-22T17:00",
     mode: "FTF",
     location: "CITE Room 305",
+    apfUrl: "APF_Leadership_Workshop_2026.pdf",
+    appendices: ["Workshop_Modules_Outline.pdf", "Facilitator_CV.pdf"],
+    clearanceDetails: "Officer leadership capability building for AY 2026-2027 student executive committees.",
     status: "For Review",
     createdAt: "2026-08-10T14:00:00",
     createdBy: "user-stu-1",
@@ -303,10 +310,13 @@ export const events: Event[] = [
     description: "Teaching basic programming concepts to high school students in the nearby community. Includes hands-on exercises.",
     proposedBudget: 5500,
     requisites: "Laptops (10 units), printed worksheets, transport",
-    dateStart: "2026-11-22T08:00",
-    dateEnd: "2026-11-22T15:00",
+    dateStart: "2026-09-26T08:00",
+    dateEnd: "2026-09-26T15:00",
     mode: "FTF",
     location: "San Miguel National High School",
+    apfUrl: "APF_Community_Outreach_Draft.pdf",
+    appendices: ["Syllabus_HighSchool_Coding.pdf", "LGU_Partnership_Letter.pdf"],
+    clearanceDetails: "Extension community service introducing basic programming and web literacy to junior high students.",
     status: "Created",
     createdAt: "2026-08-18T10:00:00",
     createdBy: "user-stu-2",
@@ -319,10 +329,13 @@ export const events: Event[] = [
     description: "A 3-part webinar series on cloud platforms (AWS, Azure, GCP) delivered by certified industry practitioners.",
     proposedBudget: 3000,
     requisites: "Zoom Pro account, Canva graphics, promotion materials",
-    dateStart: "2026-09-20T15:00",
-    dateEnd: "2026-09-20T17:00",
+    dateStart: "2026-08-15T15:00",
+    dateEnd: "2026-08-15T17:00",
     mode: "Online/Virtual",
-    location: "Zoom (link to be shared)",
+    location: "https://meet.google.com/xyz-cloud-2026",
+    apfUrl: "APF_Cloud_Webinar_Series_Signed.pdf",
+    appendices: ["Speaker_Handouts_CloudAWS.pdf", "Participant_Attendance_Log.pdf", "Webinar_Evaluation_Summary.pdf"],
+    clearanceDetails: "Completed 3-part online lecture on modern cloud architecture and cloud security.",
     status: "Completed",
     createdAt: "2026-07-15T08:00:00",
     createdBy: "user-stu-1",
@@ -330,15 +343,18 @@ export const events: Event[] = [
   {
     id: "evt-5",
     organizationId: "org-1",
-    name: "Year-End Celebration Gala",
+    name: "CITE Tech Assembly & Officer Induction",
     typeId: "et-5",
-    description: "Annual culminating event celebrating student achievements, org milestones, and officer turnover.",
+    description: "Annual department-wide general assembly and ceremonial induction of incoming class officers and student leaders.",
     proposedBudget: 15000,
     requisites: "Venue, catering, sound system, photo wall",
-    dateStart: "2026-12-10T18:00",
-    dateEnd: "2026-12-10T22:00",
+    dateStart: "2026-09-29T18:00",
+    dateEnd: "2026-09-29T22:00",
     mode: "FTF",
     location: "LCUP Events Center",
+    apfUrl: "APF_Tech_Assembly_Revision_v2.pdf",
+    appendices: ["Catering_Quotations_Comparative.pdf", "Program_Flow_Draft.pdf"],
+    clearanceDetails: "Annual department-wide general assembly and ceremonial induction of incoming class officers.",
     status: "Pending Revision",
     adviserFeedback: "Please update the guest list and confirm the catering provider before resubmission.",
     createdAt: "2026-08-05T11:00:00",
@@ -355,7 +371,7 @@ export const transactions: Transaction[] = [
     amount: 5000,
     status: "Paid",
     receiptUrl: "/mock-receipt.jpg",
-    createdAt: "2025-09-16T09:00:00",
+    createdAt: "2026-09-15T09:00:00",
   },
   {
     id: "txn-2",
@@ -365,7 +381,7 @@ export const transactions: Transaction[] = [
     amount: 7500,
     status: "Paid",
     receiptUrl: "/mock-receipt.jpg",
-    createdAt: "2025-09-16T10:00:00",
+    createdAt: "2026-09-15T10:00:00",
   },
   {
     id: "txn-3",
@@ -375,7 +391,7 @@ export const transactions: Transaction[] = [
     amount: 1800,
     status: "Paid",
     receiptUrl: "/mock-receipt.jpg",
-    createdAt: "2025-09-16T11:00:00",
+    createdAt: "2026-09-15T11:00:00",
   },
   {
     id: "txn-4",
@@ -385,7 +401,7 @@ export const transactions: Transaction[] = [
     amount: 1200,
     status: "Paid",
     receiptUrl: "/mock-receipt.jpg",
-    createdAt: "2025-09-21T08:00:00",
+    createdAt: "2026-08-15T10:00:00",
   },
   {
     id: "txn-5",
@@ -395,18 +411,18 @@ export const transactions: Transaction[] = [
     amount: 600,
     status: "Paid",
     receiptUrl: "/mock-receipt.jpg",
-    createdAt: "2025-09-21T09:00:00",
+    createdAt: "2026-08-15T16:00:00",
   },
 ];
 
 export const auditTrail: AuditEntry[] = [
-  { id: "audit-1", userId: "user-stu-1", action: "Created Event", details: "Created event 'TechFest 2025'", timestamp: "2025-08-01T09:00:00" },
-  { id: "audit-2", userId: "user-stu-1", action: "Submitted Event", details: "Submitted 'TechFest 2025' to Adviser", timestamp: "2025-08-02T10:30:00" },
-  { id: "audit-3", userId: "user-adv-1", action: "Approved Event", details: "Approved 'TechFest 2025' — forwarded to Dean", timestamp: "2025-08-05T14:00:00" },
-  { id: "audit-4", userId: "user-dean-1", action: "Approved Event", details: "Approved 'TechFest 2025' — APF + CT sent to SDS", timestamp: "2025-08-07T09:00:00" },
-  { id: "audit-5", userId: "user-stu-1", action: "Added Transaction", details: "Added ₱5,000 venue deposit for 'TechFest 2025'", timestamp: "2025-09-16T09:00:00" },
-  { id: "audit-6", userId: "user-admin-1", action: "Added User", details: "Added new student officer: Ana Garcia", timestamp: "2025-08-15T08:00:00" },
-  { id: "audit-7", userId: "user-stu-2", action: "Created Event", details: "Created event 'Community Code Outreach'", timestamp: "2025-08-18T10:00:00" },
+  { id: "audit-1", userId: "user-stu-1", action: "Created Event", details: "Created event 'TechFest 2026: IT Innovation Summit'", timestamp: "2026-08-01T09:00:00" },
+  { id: "audit-2", userId: "user-stu-1", action: "Submitted Event", details: "Submitted 'TechFest 2026' to Adviser", timestamp: "2026-08-02T10:30:00" },
+  { id: "audit-3", userId: "user-adv-1", action: "Approved Event", details: "Approved 'TechFest 2026' — forwarded to Dean", timestamp: "2026-08-05T14:00:00" },
+  { id: "audit-4", userId: "user-dean-1", action: "Approved Event", details: "Approved 'TechFest 2026' — APF + CT sent to SDS", timestamp: "2026-08-07T09:00:00" },
+  { id: "audit-5", userId: "user-stu-1", action: "Added Transaction", details: "Added ₱5,000 venue deposit for 'TechFest 2026'", timestamp: "2026-09-15T09:00:00" },
+  { id: "audit-6", userId: "user-admin-1", action: "Added User", details: "Added new student officer: Ana Garcia", timestamp: "2026-08-15T08:00:00" },
+  { id: "audit-7", userId: "user-stu-2", action: "Created Event", details: "Created event 'Community Code Outreach'", timestamp: "2026-08-18T10:00:00" },
 ];
 
 export function getUserById(id: string): User | undefined {

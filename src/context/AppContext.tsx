@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import {
   events as initialEvents,
   transactions as initialTransactions,
@@ -53,6 +53,10 @@ interface AppContextType {
   setTheme: (t: "light" | "dark") => void;
   dataDensity: number;
   setDataDensity: (n: number) => void;
+  tableDensity: "comfortable" | "compact";
+  setTableDensity: (d: "comfortable" | "compact") => void;
+  defaultView: "grid" | "list";
+  setDefaultView: (v: "grid" | "list") => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -68,6 +72,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [audit, setAudit] = useState<AuditEntry[]>(initialAudit);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [dataDensity, setDataDensity] = useState(10);
+  const [tableDensity, setTableDensity] = useState<"comfortable" | "compact">("comfortable");
+  const [defaultView, setDefaultView] = useState<"grid" | "list">("grid");
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.classList.toggle("compact-density", tableDensity === "compact");
+    }
+  }, [tableDensity]);
 
   const addEvent = (e: Event) => setEvts((p) => [...p, e]);
   const updateEvent = (id: string, u: Partial<Event>) => setEvts((p) => p.map((e) => (e.id === id ? { ...e, ...u } : e)));
@@ -146,6 +158,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTheme,
         dataDensity,
         setDataDensity,
+        tableDensity,
+        setTableDensity,
+        defaultView,
+        setDefaultView,
       }}
     >
       {children}

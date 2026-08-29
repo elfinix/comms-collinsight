@@ -26,9 +26,6 @@ export default function AdviserDashboard() {
             <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
               <ShieldCheck size={13} /> Faculty Adviser Portal
             </span>
-            <span className="text-xs text-[var(--muted-foreground)] font-mono">
-              CITE Department
-            </span>
           </div>
           <h1 className="text-2xl font-extrabold text-[var(--foreground)] mt-1.5 tracking-tight">
             Welcome, Prof. {currentUser?.lastName}!
@@ -54,7 +51,6 @@ export default function AdviserDashboard() {
           sub="Requires your endorsement"
           icon={<Clock size={18} />}
           color="bg-amber-500 text-white"
-          badge={pending.length > 0 ? "Action needed" : undefined}
         />
         <StatCard
           label="Total Proposals"

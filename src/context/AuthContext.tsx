@@ -5,6 +5,7 @@ interface AuthContextType {
   currentUser: User | null;
   login: (email: string, password: string) => boolean;
   logout: () => void;
+  updateCurrentUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -25,7 +26,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCurrentUser(null);
   }
 
-  return <AuthContext.Provider value={{ currentUser, login, logout }}>{children}</AuthContext.Provider>;
+  function updateCurrentUser(updates: Partial<User>) {
+    setCurrentUser((prev) => (prev ? { ...prev, ...updates } : null));
+  }
+
+  return (
+    <AuthContext.Provider value={{ currentUser, login, logout, updateCurrentUser }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

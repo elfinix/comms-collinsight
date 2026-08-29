@@ -1,7 +1,7 @@
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, EmptyState } from "../../components/ui";
-import { DollarSign, CheckCircle } from "lucide-react";
+import { Wallet, CreditCard, Coins, CalendarCheck } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { formatCurrency, formatDate, statusColors, getCategoryById } from "../../services/mockData";
 
@@ -28,10 +28,10 @@ export default function AdviserFinance() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Allocated Budget" value={formatCurrency(org?.allocatedBudget ?? 0)} icon={<DollarSign size={18} />} />
-        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<DollarSign size={18} />} />
-        <StatCard label="Remaining" value={formatCurrency((org?.allocatedBudget ?? 0) - totalSpent)} icon={<DollarSign size={18} />} />
-        <StatCard label="Approved Events" value={approvedEvents.length} icon={<CheckCircle size={18} />} />
+        <StatCard label="Allocated Budget" value={formatCurrency(org?.allocatedBudget ?? 0)} icon={<Wallet size={18} />} />
+        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
+        <StatCard label="Remaining" value={formatCurrency((org?.allocatedBudget ?? 0) - totalSpent)} icon={<Coins size={18} />} />
+        <StatCard label="Approved Events" value={approvedEvents.length} icon={<CalendarCheck size={18} />} />
       </div>
 
       <Card className="mb-6">

@@ -97,9 +97,6 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <p className="text-xs text-[var(--muted-foreground)] -mt-2">
-                Default format: <span className="font-mono">lastname_123456</span>
-              </p>
               <Button type="submit" size="lg" className="w-full justify-center" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
