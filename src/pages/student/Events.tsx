@@ -12,6 +12,7 @@ import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, statusColors, eventTypes, expenditureCategories,
   Event, EventStatus, resolvePdfUrl,
 } from "../../services/mockData";
+import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 
 const MODES = [
   { value: "FTF", label: "FTF (Face-to-Face)" },
@@ -172,20 +173,17 @@ export default function StudentEvents() {
     if (!draft.name) return;
     const id = `evt-${Date.now()}`;
     addEvent({ ...draft, id });
-    addAuditEntry({ id: `aud-${Date.now()}`, userId: currentUser?.id ?? "", action: "Created Event", details: `Created event '${draft.name}'`, timestamp: new Date().toISOString() });
     setShowCreate(false);
   }
 
   function handleSaveEdit() {
     if (!editEvent) return;
     updateEvent(editEvent.id, { ...editEvent });
-    addAuditEntry({ id: `aud-${Date.now()}`, userId: currentUser?.id ?? "", action: "Updated Event", details: `Updated event '${editEvent.name}'`, timestamp: new Date().toISOString() });
     setEditEvent(null);
   }
 
   function handleSubmitToAdviser(evt: Event) {
     setEventStatus(evt.id, "For Review");
-    addAuditEntry({ id: `aud-${Date.now()}`, userId: currentUser?.id ?? "", action: "Submitted Event", details: `Submitted '${evt.name}' to Adviser`, timestamp: new Date().toISOString() });
     setSubmitConfirm(null);
   }
 
@@ -214,6 +212,7 @@ export default function StudentEvents() {
     { id: "details", label: "Event Details" },
     { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance" },
+    { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
   ];
 
@@ -1242,14 +1241,14 @@ export default function StudentEvents() {
                     </div>
                   )}
 
-                  {/* Dean Feedback */}
+                  {/* Dean Feedback / Executive Approval Notes */}
                   {viewEvent.deanFeedback && (
-                    <div className="bg-blue-50/80 border border-blue-200 rounded-2xl p-4">
+                    <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4">
                       <div className="flex items-center gap-2 mb-1.5">
-                        <MessageSquareQuote size={15} className="text-blue-600" />
-                        <p className="text-xs font-mono font-bold text-blue-800">Dean / Academic Endorsement Notes</p>
+                        <MessageSquareQuote size={15} className="text-emerald-600" />
+                        <p className="text-xs font-mono font-bold text-emerald-800">Dean / Executive Approval Notes</p>
                       </div>
-                      <p className="text-sm text-blue-800 leading-relaxed pl-5">{viewEvent.deanFeedback}</p>
+                      <p className="text-sm text-emerald-900 leading-relaxed pl-5">{viewEvent.deanFeedback}</p>
                     </div>
                   )}
 
@@ -1271,6 +1270,9 @@ export default function StudentEvents() {
                     )
                   )}
                 </div>
+              )}
+              {viewTab === "history" && (
+                <EventHistoryTimeline eventId={viewEvent.id} event={viewEvent} />
               )}
               {viewTab === "finance" && (
                 <div>

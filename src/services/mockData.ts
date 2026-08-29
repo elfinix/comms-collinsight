@@ -98,6 +98,12 @@ export interface AuditEntry {
   action: string;
   details: string;
   timestamp: string;
+  eventId?: string;
+  organizationId?: string;
+  actorRole?: "student" | "adviser" | "dean" | "admin" | "sds";
+  statusFrom?: EventStatus;
+  statusTo?: EventStatus;
+  remarks?: string;
 }
 
 export const departments: Department[] = [
@@ -416,13 +422,213 @@ export const transactions: Transaction[] = [
 ];
 
 export const auditTrail: AuditEntry[] = [
-  { id: "audit-1", userId: "user-stu-1", action: "Created Event", details: "Created event 'TechFest 2026: IT Innovation Summit'", timestamp: "2026-08-01T09:00:00" },
-  { id: "audit-2", userId: "user-stu-1", action: "Submitted Event", details: "Submitted 'TechFest 2026' to Adviser", timestamp: "2026-08-02T10:30:00" },
-  { id: "audit-3", userId: "user-adv-1", action: "Approved Event", details: "Approved 'TechFest 2026' — forwarded to Dean", timestamp: "2026-08-05T14:00:00" },
-  { id: "audit-4", userId: "user-dean-1", action: "Approved Event", details: "Approved 'TechFest 2026' — APF + CT sent to SDS", timestamp: "2026-08-07T09:00:00" },
-  { id: "audit-5", userId: "user-stu-1", action: "Added Transaction", details: "Added ₱5,000 venue deposit for 'TechFest 2026'", timestamp: "2026-09-15T09:00:00" },
-  { id: "audit-6", userId: "user-admin-1", action: "Added User", details: "Added new student officer: Ana Garcia", timestamp: "2026-08-15T08:00:00" },
-  { id: "audit-7", userId: "user-stu-2", action: "Created Event", details: "Created event 'Community Code Outreach'", timestamp: "2026-08-18T10:00:00" },
+  // TechFest 2026 (evt-1)
+  {
+    id: "audit-1",
+    eventId: "evt-1",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'TechFest 2026: IT Innovation Summit'",
+    statusTo: "Created",
+    timestamp: "2026-08-01T09:00:00",
+  },
+  {
+    id: "audit-2",
+    eventId: "evt-1",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted proposal 'TechFest 2026: IT Innovation Summit' to Adviser for review",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-08-02T10:30:00",
+  },
+  {
+    id: "audit-3",
+    eventId: "evt-1",
+    organizationId: "org-1",
+    userId: "user-adv-1",
+    actorRole: "adviser",
+    action: "Approved & Forwarded",
+    details: "Endorsed and forwarded proposal 'TechFest 2026: IT Innovation Summit' to Dean for approval",
+    statusFrom: "For Review",
+    statusTo: "For Approval",
+    remarks: "Activity proposal meets all departmental requirements and budget allocation guidelines.",
+    timestamp: "2026-08-05T14:00:00",
+  },
+  {
+    id: "audit-4",
+    eventId: "evt-1",
+    organizationId: "org-1",
+    userId: "user-dean-1",
+    actorRole: "dean",
+    action: "Executive Approval",
+    details: "Granted executive approval for 'TechFest 2026: IT Innovation Summit'",
+    statusFrom: "For Approval",
+    statusTo: "Approved",
+    remarks: "Approved with high commendation for technology innovation initiatives.",
+    timestamp: "2026-08-07T09:00:00",
+  },
+  {
+    id: "audit-5",
+    eventId: "evt-1",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Disbursed Expense",
+    details: "Recorded ₱5,000 expenditure for 'TechFest 2026: IT Innovation Summit'",
+    timestamp: "2026-08-10T11:15:00",
+  },
+
+  // Leadership Development Workshop (evt-2)
+  {
+    id: "audit-6",
+    eventId: "evt-2",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Leadership Development Workshop'",
+    statusTo: "Created",
+    timestamp: "2026-08-10T14:00:00",
+  },
+  {
+    id: "audit-7",
+    eventId: "evt-2",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted proposal 'Leadership Development Workshop' to Adviser for review",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-08-12T16:20:00",
+  },
+
+  // Community Code Outreach (evt-3)
+  {
+    id: "audit-8",
+    eventId: "evt-3",
+    organizationId: "org-1",
+    userId: "user-stu-2",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Community Code Outreach'",
+    statusTo: "Created",
+    timestamp: "2026-08-18T10:00:00",
+  },
+
+  // Webinar Series: Cloud Technologies (evt-4)
+  {
+    id: "audit-9",
+    eventId: "evt-4",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Webinar Series: Cloud Technologies'",
+    statusTo: "Created",
+    timestamp: "2026-07-15T08:00:00",
+  },
+  {
+    id: "audit-10",
+    eventId: "evt-4",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted proposal 'Webinar Series: Cloud Technologies' to Adviser for review",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-07-16T11:00:00",
+  },
+  {
+    id: "audit-11",
+    eventId: "evt-4",
+    organizationId: "org-1",
+    userId: "user-adv-1",
+    actorRole: "adviser",
+    action: "Approved & Forwarded",
+    details: "Endorsed and forwarded proposal 'Webinar Series: Cloud Technologies' to Dean for approval",
+    statusFrom: "For Review",
+    statusTo: "For Approval",
+    timestamp: "2026-07-18T15:30:00",
+  },
+  {
+    id: "audit-12",
+    eventId: "evt-4",
+    organizationId: "org-1",
+    userId: "user-dean-1",
+    actorRole: "dean",
+    action: "Executive Approval",
+    details: "Granted executive approval for 'Webinar Series: Cloud Technologies'",
+    statusFrom: "For Approval",
+    statusTo: "Approved",
+    timestamp: "2026-07-20T09:45:00",
+  },
+  {
+    id: "audit-13",
+    eventId: "evt-4",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Event Completed",
+    details: "Completed event execution for 'Webinar Series: Cloud Technologies'",
+    statusFrom: "Approved",
+    statusTo: "Completed",
+    timestamp: "2026-08-16T18:00:00",
+  },
+
+  // CITE Tech Assembly & Officer Induction (evt-5)
+  {
+    id: "audit-14",
+    eventId: "evt-5",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'CITE Tech Assembly & Officer Induction'",
+    statusTo: "Created",
+    timestamp: "2026-08-05T11:00:00",
+  },
+  {
+    id: "audit-15",
+    eventId: "evt-5",
+    organizationId: "org-1",
+    userId: "user-stu-1",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted proposal 'CITE Tech Assembly & Officer Induction' to Adviser for review",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-08-06T14:30:00",
+  },
+  {
+    id: "audit-16",
+    eventId: "evt-5",
+    organizationId: "org-1",
+    userId: "user-adv-1",
+    actorRole: "adviser",
+    action: "Requested Revision",
+    details: "Requested revisions for proposal 'CITE Tech Assembly & Officer Induction'",
+    statusFrom: "For Review",
+    statusTo: "Pending Revision",
+    remarks: "Please update the guest list and confirm the catering provider before resubmission.",
+    timestamp: "2026-08-08T10:15:00",
+  },
+
+  // Admin and General system actions
+  {
+    id: "audit-17",
+    userId: "user-admin-1",
+    actorRole: "admin",
+    action: "Added User",
+    details: "Enrolled user 'Ana Garcia' as student officer (Vice President)",
+    timestamp: "2026-08-15T08:00:00",
+  },
 ];
 
 export function getUserById(id: string): User | undefined {
@@ -474,7 +680,7 @@ export const statusColors: Record<EventStatus, string> = {
   "For Review": "bg-amber-50 text-amber-700 border border-amber-200 font-medium",
   "For Approval": "bg-blue-50 text-blue-700 border border-blue-200 font-medium",
   "Pending Revision": "bg-orange-50 text-orange-700 border border-orange-200 font-medium",
-  Approved: "bg-teal-50 text-teal-700 border border-teal-200 font-medium",
+  Approved: "bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium",
   Completed: "bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium",
   Closed: "bg-gray-50 text-gray-600 border border-gray-200 font-medium",
 };
@@ -492,25 +698,50 @@ export function toWebUrl(str: string): string {
 }
 
 export const SAMPLE_FIXTURES = {
-  apf: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
-  appendix: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
-  receipt: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
+  apf: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
+  appendix: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
+  venue: "/fixtures/Venue_Clearance_and_Laboratories.pdf",
+  receipt: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
 };
 
-export function resolvePdfUrl(urlOrName?: string, fallbackType: "apf" | "appendix" | "receipt" = "apf"): string {
-  if (!urlOrName) return SAMPLE_FIXTURES[fallbackType];
-  const trimmed = urlOrName.trim();
-  if (trimmed.startsWith("blob:") || trimmed.startsWith("data:") || trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("/")) {
-    return trimmed;
-  }
-  if (trimmed.toLowerCase().includes("activity_proposal_form") || trimmed.toLowerCase().includes("apf")) {
-    return SAMPLE_FIXTURES.apf;
-  }
-  if (trimmed.toLowerCase().includes("appendices") || trimmed.toLowerCase().includes("appendix") || trimmed.toLowerCase().includes("syllabus") || trimmed.toLowerCase().includes("letter") || trimmed.toLowerCase().includes("doc")) {
-    return SAMPLE_FIXTURES.appendix;
-  }
-  if (trimmed.toLowerCase().includes("receipt") || trimmed.toLowerCase().includes("invoice")) {
-    return SAMPLE_FIXTURES.receipt;
+export function resolvePdfUrl(url?: string, fallbackType: "apf" | "appendix" | "venue" | "receipt" = "apf"): string {
+  if (!url) return SAMPLE_FIXTURES[fallbackType];
+  if (isWebUrl(url)) return toWebUrl(url);
+  const fname = url.replace(/^.*[\\/]/, "");
+  if (fname.startsWith("blob:") || fname.startsWith("data:") || fname.startsWith("http")) {
+    return url;
   }
   return SAMPLE_FIXTURES[fallbackType];
+}
+
+export function getActionBadgeClass(action: string): string {
+  const act = action.toLowerCase();
+  if (act.includes("executive approval") || (act.includes("executive") && act.includes("approv"))) {
+    return "bg-emerald-600 text-white border-emerald-700 font-bold shadow-2xs";
+  }
+  if (act.includes("approve") || act.includes("endors") || act.includes("executive")) {
+    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+  }
+  if (act.includes("revision") || act.includes("change") || act.includes("reject")) {
+    return "bg-rose-50 text-rose-800 border-rose-200";
+  }
+  if (act.includes("delete") || act.includes("removed")) {
+    return "bg-red-50 text-red-800 border-red-200";
+  }
+  if (act.includes("modified") || act.includes("edit") || act.includes("update")) {
+    return "bg-amber-50 text-amber-800 border-amber-200";
+  }
+  if (act.includes("submit") || act.includes("for review")) {
+    return "bg-blue-50 text-blue-800 border-blue-200";
+  }
+  if (act.includes("disburs") || act.includes("expense") || act.includes("transaction")) {
+    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+  }
+  if (act.includes("completed") || act.includes("closed") || act.includes("closure")) {
+    return "bg-slate-100 text-slate-700 border-slate-200";
+  }
+  if (act.includes("create")) {
+    return "bg-slate-100 text-slate-700 border-slate-200";
+  }
+  return "bg-slate-100 text-slate-700 border-slate-200";
 }

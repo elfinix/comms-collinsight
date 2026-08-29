@@ -6,7 +6,7 @@ import { UserAvatar } from "../ui";
 import {
   LayoutDashboard, Calendar, Wallet, BarChart2, Settings, LogOut, Menu, X,
   FileText, Users, Building2, Sliders, ClipboardList, ChevronRight,
-  BookOpen, Shield, Landmark,
+  BookOpen, Shield, Landmark, History,
 } from "lucide-react";
 
 interface NavItem {
@@ -190,6 +190,7 @@ export function studentNavItems(pendingCount = 0): NavItem[] {
     { to: "/student/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { to: "/student/events", label: "Events", icon: <Calendar size={16} /> },
     { to: "/student/finance", label: "Finance", icon: <Wallet size={16} /> },
+    { to: "/student/history", label: "History", icon: <History size={16} /> },
     { to: "/student/reports", label: "Reports", icon: <BarChart2 size={16} /> },
     { to: "/student/sds", label: "SDS Workspace", icon: <FileText size={16} /> },
     { to: "/student/profile", label: "Profile & Settings", icon: <Settings size={16} /> },
@@ -201,6 +202,7 @@ export function adviserNavItems(pendingCount = 0): NavItem[] {
     { to: "/adviser/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { to: "/adviser/pending", label: "Pending Review", icon: <ClipboardList size={16} />, badge: pendingCount },
     { to: "/adviser/finance", label: "Finance", icon: <Wallet size={16} /> },
+    { to: "/adviser/history", label: "History", icon: <History size={16} /> },
     { to: "/adviser/reports", label: "Reports", icon: <BarChart2 size={16} /> },
     { to: "/adviser/profile", label: "Profile & Settings", icon: <Settings size={16} /> },
   ];
@@ -211,6 +213,7 @@ export function deanNavItems(): NavItem[] {
     { to: "/dean/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { to: "/dean/pending", label: "Pending Approval", icon: <ClipboardList size={16} /> },
     { to: "/dean/approved", label: "Approved Events", icon: <Calendar size={16} /> },
+    { to: "/dean/history", label: "History", icon: <History size={16} /> },
     { to: "/dean/reports", label: "Reports", icon: <BarChart2 size={16} /> },
     { to: "/dean/profile", label: "Profile & Settings", icon: <Settings size={16} /> },
   ];

@@ -81,13 +81,143 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [tableDensity]);
 
-  const addEvent = (e: Event) => setEvts((p) => [...p, e]);
-  const updateEvent = (id: string, u: Partial<Event>) => setEvts((p) => p.map((e) => (e.id === id ? { ...e, ...u } : e)));
-  const deleteEvent = (id: string) => setEvts((p) => p.filter((e) => e.id !== id));
+  const addAuditEntry = (entry: AuditEntry) => setAudit((p) => [entry, ...p]);
 
-  const addTransaction = (t: Transaction) => setTxns((p) => [...p, t]);
-  const updateTransaction = (id: string, u: Partial<Transaction>) => setTxns((p) => p.map((t) => (t.id === id ? { ...t, ...u } : t)));
-  const deleteTransaction = (id: string) => setTxns((p) => p.map((t) => (t.id === id ? { ...t, deleted: true } : t)));
+  const addEvent = (e: Event) => {
+    setEvts((p) => [...p, e]);
+    addAuditEntry({
+      id: `audit-${Date.now()}`,
+      eventId: e.id,
+      organizationId: e.organizationId,
+      userId: e.createdBy || "user-stu-1",
+      actorRole: "student",
+      action: "Created Event",
+      details: `Created event proposal for '${e.name}'`,
+      statusTo: e.status || "Created",
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  const updateEvent = (id: string, u: Partial<Event>) => {
+    let targetEvt: Event | undefined;
+    setEvts((p) =>
+      p.map((e) => {
+        if (e.id !== id) return e;
+        targetEvt = e;
+        return { ...e, ...u };
+      })
+    );
+    if (targetEvt) {
+      if (u.status === "Closed") {
+        const rev = u.revenue !== undefined ? u.revenue : (targetEvt as Event).revenue;
+        const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
+        addAuditEntry({
+          id: `audit-${Date.now()}`,
+          eventId: id,
+          organizationId: (targetEvt as Event).organizationId,
+          userId: (targetEvt as Event).createdBy || "user-stu-1",
+          actorRole: "student",
+          action: "Event Closed",
+          details: `Finalized liquidation and closed event '${(targetEvt as Event).name}'${revStr}`,
+          statusFrom: (targetEvt as Event).status,
+          statusTo: "Closed",
+          timestamp: new Date().toISOString(),
+        });
+      } else if (!u.status || u.status === (targetEvt as Event).status) {
+        addAuditEntry({
+          id: `audit-${Date.now()}`,
+          eventId: id,
+          organizationId: (targetEvt as Event).organizationId,
+          userId: (targetEvt as Event).createdBy || "user-stu-1",
+          actorRole: "student",
+          action: "Modified Proposal",
+          details: `Updated proposal details for '${u.name || (targetEvt as Event).name}'`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+  };
+
+  const deleteEvent = (id: string) => {
+    const targetEvt = evts.find((e) => e.id === id);
+    setEvts((p) => p.filter((e) => e.id !== id));
+    if (targetEvt) {
+      addAuditEntry({
+        id: `audit-${Date.now()}`,
+        eventId: id,
+        organizationId: targetEvt.organizationId,
+        userId: targetEvt.createdBy || "user-stu-1",
+        actorRole: "student",
+        action: "Deleted Proposal",
+        details: `Deleted event proposal '${targetEvt.name}'`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  const addTransaction = (t: Transaction) => {
+    setTxns((p) => [...p, t]);
+    const targetEvt = evts.find((e) => e.id === t.eventId);
+    if (targetEvt) {
+      addAuditEntry({
+        id: `audit-${Date.now()}`,
+        eventId: t.eventId,
+        organizationId: targetEvt.organizationId,
+        userId: targetEvt.createdBy || "user-stu-1",
+        actorRole: "student",
+        action: "Disbursed Expense",
+        details: `Recorded ₱${t.amount.toLocaleString()} expenditure for '${targetEvt.name}'`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
+
+  const updateTransaction = (id: string, u: Partial<Transaction>) => {
+    let targetTxn: Transaction | undefined;
+    setTxns((p) =>
+      p.map((t) => {
+        if (t.id !== id) return t;
+        targetTxn = t;
+        return { ...t, ...u };
+      })
+    );
+    if (targetTxn) {
+      const targetEvt = evts.find((e) => e.id === (targetTxn as Transaction).eventId);
+      if (targetEvt) {
+        const newAmount = u.amount !== undefined ? u.amount : (targetTxn as Transaction).amount;
+        addAuditEntry({
+          id: `audit-${Date.now()}`,
+          eventId: targetEvt.id,
+          organizationId: targetEvt.organizationId,
+          userId: targetEvt.createdBy || "user-stu-1",
+          actorRole: "student",
+          action: "Modified Expense",
+          details: `Updated expense entry to ₱${newAmount.toLocaleString()} for '${targetEvt.name}'`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+  };
+
+  const deleteTransaction = (id: string) => {
+    const targetTxn = txns.find((t) => t.id === id);
+    setTxns((p) => p.map((t) => (t.id === id ? { ...t, deleted: true } : t)));
+    if (targetTxn) {
+      const targetEvt = evts.find((e) => e.id === targetTxn.eventId);
+      if (targetEvt) {
+        addAuditEntry({
+          id: `audit-${Date.now()}`,
+          eventId: targetEvt.id,
+          organizationId: targetEvt.organizationId,
+          userId: targetEvt.createdBy || "user-stu-1",
+          actorRole: "student",
+          action: "Removed Expense",
+          details: `Removed expense entry of ₱${targetTxn.amount.toLocaleString()} for '${targetEvt.name}'`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+  };
 
   const addUser = (u: User) => setUsrs((p) => [...p, u]);
   const updateUser = (id: string, u: Partial<User>) => setUsrs((p) => p.map((x) => (x.id === id ? { ...x, ...u } : x)));
@@ -108,9 +238,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const deleteCategory = (id: string) => setCats((p) => p.filter((c) => c.id !== id));
 
   const setEventStatus = (eventId: string, status: EventStatus, feedback?: string) => {
+    let targetEvt: Event | undefined;
     setEvts((p) =>
       p.map((e) => {
         if (e.id !== eventId) return e;
+        targetEvt = e;
         const updates: Partial<Event> = { status };
         if (feedback) {
           if (status === "Pending Revision") updates.adviserFeedback = feedback;
@@ -118,9 +250,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return { ...e, ...updates };
       })
     );
-  };
+    if (targetEvt) {
+      const isDeanApproval = status === "Approved";
+      const isAdviserApproval = status === "For Approval";
+      const isRevision = status === "Pending Revision";
+      const isSubmission = status === "For Review";
+      const isCompleted = status === "Completed";
+      const isClosed = status === "Closed";
 
-  const addAuditEntry = (entry: AuditEntry) => setAudit((p) => [entry, ...p]);
+      const actionName = isDeanApproval
+        ? "Executive Approval"
+        : isAdviserApproval
+        ? "Approved & Forwarded"
+        : isRevision
+        ? "Requested Revision"
+        : isSubmission
+        ? "Submitted for Review"
+        : isCompleted
+        ? "Event Completed"
+        : isClosed
+        ? "Event Closed"
+        : `Status updated to ${status}`;
+      const role = isDeanApproval ? "dean" : isAdviserApproval || isRevision ? "adviser" : "student";
+      const userId = isDeanApproval ? "user-dean-1" : isAdviserApproval || isRevision ? "user-adv-1" : (targetEvt as Event).createdBy;
+
+      let actionDetails = "";
+      if (isDeanApproval) {
+        actionDetails = `Granted executive approval for '${(targetEvt as Event).name}'`;
+      } else if (isAdviserApproval) {
+        actionDetails = `Endorsed and forwarded proposal '${(targetEvt as Event).name}' to Dean for approval`;
+      } else if (isRevision) {
+        actionDetails = `Requested revisions for proposal '${(targetEvt as Event).name}'`;
+      } else if (isSubmission) {
+        actionDetails = `Submitted proposal '${(targetEvt as Event).name}' to Adviser for review`;
+      } else if (isCompleted) {
+        actionDetails = `Completed event execution for '${(targetEvt as Event).name}'`;
+      } else if (isClosed) {
+        const rev = (targetEvt as Event).revenue;
+        const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
+        actionDetails = `Finalized liquidation and closed event '${(targetEvt as Event).name}'${revStr}`;
+      } else {
+        actionDetails = `Updated status to '${status}' for '${(targetEvt as Event).name}'`;
+      }
+
+      addAuditEntry({
+        id: `audit-${Date.now()}`,
+        eventId: (targetEvt as Event).id,
+        organizationId: (targetEvt as Event).organizationId,
+        userId,
+        actorRole: role,
+        action: actionName,
+        details: actionDetails,
+        statusFrom: (targetEvt as Event).status,
+        statusTo: status,
+        remarks: feedback,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  };
 
   return (
     <AppContext.Provider

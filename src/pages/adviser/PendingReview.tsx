@@ -4,6 +4,7 @@ import { useApp } from "../../context/AppContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, FileText, UploadCloud, Calendar, MapPin, Video, ExternalLink } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
+import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 
 export default function AdviserPendingReview() {
   const { currentUser } = useAuth();
@@ -38,6 +39,7 @@ export default function AdviserPendingReview() {
     { id: "details", label: "Event Details" },
     { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance" },
+    { id: "history", label: "History" },
   ];
 
   return (
@@ -232,12 +234,17 @@ export default function AdviserPendingReview() {
                   </div>
                 </div>
               )}
+              {viewTab === "history" && (
+                <EventHistoryTimeline eventId={viewEvent.id} event={viewEvent} />
+              )}
             </div>
 
             <div className="flex items-center justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] flex-wrap gap-3">
               <Button variant="outline" onClick={() => setViewEvent(null)}>Close</Button>
               <div className="flex gap-2 flex-wrap">
-                {viewTab !== "clearance" && <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>}
+                {(viewTab === "details" || viewTab === "compliance") && (
+                  <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>
+                )}
                 {viewTab === "clearance" && (
                   <>
                     <Button variant="danger" onClick={() => setShowRequestChange(true)}>

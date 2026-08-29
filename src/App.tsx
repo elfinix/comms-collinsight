@@ -35,6 +35,7 @@ import AdminConfigurations from "./pages/admin/Configurations";
 import AdminAuditTrail from "./pages/admin/AuditTrail";
 import AdminReports from "./pages/admin/Reports";
 import AdminProfile from "./pages/admin/Profile";
+import HistoryPage from "./pages/HistoryPage";
 import { useApp } from "./context/AppContext";
 
 function ProtectedRoute({ role }: { role: string }) {
@@ -99,6 +100,7 @@ export default function App() {
                 <Route path="/student/dashboard" element={<StudentDashboard />} />
                 <Route path="/student/events" element={<StudentEvents />} />
                 <Route path="/student/finance" element={<StudentFinance />} />
+                <Route path="/student/history" element={<HistoryPage />} />
                 <Route path="/student/reports" element={<StudentReports />} />
                 <Route path="/student/sds" element={<SDSWorkspace />} />
                 <Route path="/student/profile" element={<StudentProfile />} />
@@ -111,6 +113,7 @@ export default function App() {
                 <Route path="/adviser/dashboard" element={<AdviserDashboard />} />
                 <Route path="/adviser/pending" element={<AdviserPendingReview />} />
                 <Route path="/adviser/finance" element={<AdviserFinance />} />
+                <Route path="/adviser/history" element={<HistoryPage />} />
                 <Route path="/adviser/reports" element={<AdviserReports />} />
                 <Route path="/adviser/profile" element={<AdviserProfile />} />
               </Route>
@@ -122,6 +125,7 @@ export default function App() {
                 <Route path="/dean/dashboard" element={<DeanDashboard />} />
                 <Route path="/dean/pending" element={<DeanPendingApproval />} />
                 <Route path="/dean/approved" element={<DeanApprovedEvents />} />
+                <Route path="/dean/history" element={<HistoryPage />} />
                 <Route path="/dean/reports" element={<DeanReports />} />
                 <Route path="/dean/profile" element={<DeanProfile />} />
               </Route>
