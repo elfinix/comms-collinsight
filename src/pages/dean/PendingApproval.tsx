@@ -1,15 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
-import { Button, Dialog, Tabs, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
-import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, organizations, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
+import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
+import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
+import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanPendingApproval() {
-  const { events, setEventStatus, updateEvent } = useApp();
+  const { events, organizations, setEventStatus, updateEvent, defaultView } = useApp();
   const pending = events.filter((e) => e.status === "For Approval");
+
+  const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
+
+  useEffect(() => {
+    setView(defaultView || "grid");
+  }, [defaultView]);
 
   const [viewEvent, setViewEvent] = useState<Event | null>(null);
   const [viewTab, setViewTab] = useState("details");
@@ -44,14 +50,45 @@ export default function DeanPendingApproval() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">Pending Approval</h1>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">{pending.length} event(s) awaiting Dean's endorsement and executive approval.</p>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">Pending Approval</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">{pending.length} event(s) awaiting Dean's endorsement and executive approval.</p>
+        </div>
+
+        {pending.length > 0 && (
+          <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setView("grid")}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                view === "grid"
+                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+              title="Grid View"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                view === "list"
+                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+              title="List View"
+            >
+              <List size={15} />
+            </button>
+          </div>
+        )}
       </div>
 
       {pending.length === 0 ? (
         <EmptyState icon={<CheckCircle size={40} />} title="All clear!" description="No events pending your approval." />
-      ) : (
+      ) : view === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {pending.map((e) => {
             const org = organizations.find((o) => o.id === e.organizationId);
@@ -114,6 +151,60 @@ export default function DeanPendingApproval() {
             );
           })}
         </div>
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[var(--muted)] border-b border-[var(--border)]">
+                  <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Proposal Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Organization</th>
+                  <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Schedule & Location</th>
+                  <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Budget</th>
+                  <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-mono font-semibold text-[var(--muted-foreground)]">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {pending.map((e) => {
+                  const org = organizations.find((o) => o.id === e.organizationId);
+                  return (
+                    <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition-colors">
+                      <td className="px-4 py-3.5">
+                        <div className="font-bold text-[var(--foreground)]">{e.name}</div>
+                        <div className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</div>
+                      </td>
+                      <td className="px-4 py-3.5 text-xs font-mono text-[var(--muted-foreground)]">
+                        <span className="font-bold text-[var(--primary)]">{org?.code}</span>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-[var(--muted-foreground)]">
+                        <div>{formatDate(e.dateStart)}</div>
+                        <div className="text-[11px] truncate max-w-[180px]">{e.location}</div>
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-xs font-bold text-[var(--primary)]">
+                        {formatCurrency(e.proposedBudget)}
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                          {e.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <Button
+                          size="sm"
+                          onClick={() => { setViewEvent(e); setViewTab("details"); }}
+                          className="gap-1.5 font-semibold text-xs h-8"
+                        >
+                          <Eye size={13} /> Review & Approve
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
 
       {/* Review Dialog */}

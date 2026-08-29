@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { useApp } from "../context/AppContext";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
@@ -7,7 +8,6 @@ import {
   CheckCircle, ChevronRight, ArrowUpRight, BookOpen, Star,
   Landmark, ClipboardList, Calendar, Plus,
 } from "lucide-react";
-import { organizations, events } from "../services/mockData";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -37,6 +37,7 @@ function StatPill({ value, label }: { value: string; label: string }) {
 }
 
 export default function LandingPage() {
+  const { organizations, events } = useApp();
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
 

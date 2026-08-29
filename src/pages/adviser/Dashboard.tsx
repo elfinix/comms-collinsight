@@ -2,14 +2,14 @@ import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Activity, ShieldCheck } from "lucide-react";
-import { getOrgById, formatCurrency, formatDate, statusColors, getCategoryById } from "../../services/mockData";
+import { formatCurrency, formatDate, statusColors } from "../../services/mockData";
 
 export default function AdviserDashboard() {
   const { currentUser } = useAuth();
-  const { events, transactions } = useApp();
+  const { events, transactions, organizations, expenditureCategories } = useApp();
 
   const orgId = currentUser?.organizationId ?? "";
-  const org = getOrgById(orgId);
+  const org = organizations.find((o) => o.id === orgId);
   const orgEvents = events.filter((e) => e.organizationId === orgId);
   const pending = orgEvents.filter((e) => e.status === "For Review");
   const approved = orgEvents.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
@@ -22,7 +22,7 @@ export default function AdviserDashboard() {
   const orgTxns = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted);
   const byCategory = Object.entries(
     orgTxns.reduce<Record<string, number>>((acc, t) => {
-      const name = getCategoryById(t.categoryId)?.name ?? "General Operations";
+      const name = expenditureCategories.find((c) => c.id === t.categoryId)?.name ?? "General Operations";
       acc[name] = (acc[name] || 0) + t.amount;
       return acc;
     }, {})

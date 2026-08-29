@@ -2,10 +2,10 @@ import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody } from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Landmark, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { formatCurrency, statusColors, organizations, formatDate } from "../../services/mockData";
+import { formatCurrency, statusColors, formatDate } from "../../services/mockData";
 
 export default function DeanDashboard() {
-  const { events, transactions } = useApp();
+  const { events, transactions, organizations } = useApp();
 
   const allEvents = events;
   const pending = allEvents.filter((e) => e.status === "For Approval");

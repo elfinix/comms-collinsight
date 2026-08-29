@@ -6,7 +6,7 @@ import {
   User as UserIcon, Building2, Calendar, Moon, Sun, RefreshCw, UploadCloud,
   Trash2, CheckCircle, AlertCircle, ShieldCheck, Sliders, Lock, Sparkles, Layers, LayoutGrid, List
 } from "lucide-react";
-import { getOrgById, formatDate, Gender } from "../../services/mockData";
+import { formatDate, Gender } from "../../services/mockData";
 
 function formatMiddleInitial(middleName?: string): string {
   if (!middleName || !middleName.trim()) return "";
@@ -24,7 +24,7 @@ export default function StudentProfile() {
     updateUser
   } = useApp();
 
-  const org = currentUser?.organizationId ? getOrgById(currentUser.organizationId) : null;
+  const org = currentUser?.organizationId ? organizations.find((o) => o.id === currentUser.organizationId) : null;
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const defaultYear = currentUser?.role === "student" ? (currentUser.yearLevel ?? "3rd Year") : (currentUser?.yearLevel ?? "Faculty/Staff");

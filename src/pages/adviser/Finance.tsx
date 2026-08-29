@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, Button, EmptyState } from "../../components/ui";
@@ -14,7 +14,7 @@ const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#ef4444", "#10b981"
 
 export default function AdviserFinance() {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, defaultView } = useApp();
+  const { events, transactions, organizations, expenditureCategories, defaultView } = useApp();
 
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
@@ -28,13 +28,17 @@ export default function AdviserFinance() {
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
+
+  useEffect(() => {
+    setView(defaultView || "grid");
+  }, [defaultView]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState("dateStart");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const byCategory = Object.entries(
     allTxns.reduce<Record<string, number>>((acc, t) => {
-      const name = getCategoryById(t.categoryId)?.name ?? "Other";
+      const name = expenditureCategories.find((c) => c.id === t.categoryId)?.name ?? getCategoryById(t.categoryId)?.name ?? "Other";
       acc[name] = (acc[name] || 0) + t.amount;
       return acc;
     }, {})

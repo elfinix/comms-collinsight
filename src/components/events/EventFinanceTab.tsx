@@ -7,7 +7,7 @@ import {
   CheckCircle, Clock, Scale
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, getCategoryById, Event, organizations,
+  formatCurrency, formatDate, Event,
   printLiquidationDocument
 } from "../../services/mockData";
 
@@ -24,7 +24,7 @@ export default function EventFinanceTab({
   onOpenFinance,
   showOpenFinance,
 }: EventFinanceTabProps) {
-  const { transactions, users } = useApp();
+  const { transactions, users, organizations, expenditureCategories } = useApp();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -250,7 +250,7 @@ export default function EventFinanceTab({
                 <div className="space-y-0.5">
                   <p className="font-medium text-[var(--foreground)]">{t.description}</p>
                   <p className="text-[10px] text-[var(--muted-foreground)] font-mono">
-                    #{idx + 1} · {formatDate(t.createdAt)} · {getCategoryById(t.categoryId)?.name || "General"}
+                    #{idx + 1} · {formatDate(t.createdAt)} · {expenditureCategories.find((c) => c.id === t.categoryId)?.name || "General"}
                   </p>
                 </div>
                 <div className="text-right font-mono">

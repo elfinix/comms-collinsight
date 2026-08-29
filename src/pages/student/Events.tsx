@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
@@ -77,6 +77,10 @@ export default function StudentEvents() {
   const getEventType = (id: string) => eventTypes.find((t) => t.id === id) || getEventTypeById(id);
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
+
+  useEffect(() => {
+    setView(defaultView || "grid");
+  }, [defaultView]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [sortKey, setSortKey] = useState("createdAt");

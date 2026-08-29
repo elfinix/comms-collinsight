@@ -10,7 +10,7 @@ import {
   X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt, Video, ExternalLink, FileText, Printer, BadgeCheck, FileSpreadsheet
 } from "lucide-react";
 import {
-  departments, organizations, users, expenditureCategories, getEventTypeById,
+  getEventTypeById,
   formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl, printClearanceDocument, printLiquidationDocument
 } from "../services/mockData";
 
@@ -72,11 +72,13 @@ function formatTimeRange(startStr: string, endStr: string): string {
 
 function CalendarGrid({
   events,
+  organizations = [],
   onSelectEvent,
   selectedDay,
   onSelectDay,
 }: {
   events: Event[];
+  organizations?: any[];
   onSelectEvent: (e: Event) => void;
   selectedDay: { year: number; month: number; day: number } | null;
   onSelectDay: (dayObj: { year: number; month: number; day: number } | null) => void;
@@ -269,7 +271,14 @@ function CalendarGrid({
 type Tab = "roster" | "calendar";
 
 export default function OrganizationsPage() {
-  const { events: liveEvents, transactions: liveTxns } = useApp();
+  const {
+    events: liveEvents,
+    transactions: liveTxns,
+    organizations,
+    departments,
+    users,
+    expenditureCategories,
+  } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-driven tab state
@@ -593,11 +602,11 @@ export default function OrganizationsPage() {
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <h2 className="font-bold text-xl text-[var(--foreground)]">{org.name}</h2>
-                              <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-md bg-[var(--card)] border border-[var(--border)] text-[var(--primary)]">
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-[var(--card)] border border-[var(--border)] text-[var(--primary)]">
                                 {dept?.code}
                               </span>
                             </div>
-                            <p className="text-xs text-[var(--muted-foreground)] font-mono mt-1">
+                            <p className="text-xs text-[var(--muted-foreground)] mt-1">
                               {dept?.name}
                             </p>
                           </div>
@@ -605,17 +614,17 @@ export default function OrganizationsPage() {
 
                         {/* Org Meta Badges */}
                         <div className="flex items-center gap-2.5 flex-wrap">
-                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-xs bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
                             <Users size={13} className="text-[var(--primary)]" />
                             <span className="font-bold">{orgStudents.length}</span> Officers
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-xs bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
                             <CalendarIcon size={13} className="text-[var(--primary)]" />
                             <span className="font-bold">{orgEvents.length}</span> Events
                           </div>
 
-                          <div className="flex items-center gap-1.5 text-xs font-mono bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
+                          <div className="flex items-center gap-1.5 text-xs bg-[var(--card)] border border-[var(--border)] px-3 py-1.5 rounded-lg text-[var(--foreground)] shadow-2xs">
                             <Wallet size={13} className="text-[var(--primary)]" />
                             <span>Current Budget: <strong className="text-[var(--primary)] font-bold">{formatCurrency(org.allocatedBudget)}</strong></span>
                           </div>
@@ -720,12 +729,12 @@ export default function OrganizationsPage() {
                                     <p className="text-sm font-bold text-[var(--foreground)] truncate">
                                       {adviser.firstName} {adviser.lastName} {adviser.suffix}
                                     </p>
-                                    <span className="inline-flex items-center gap-1 text-[10px] bg-[var(--primary)]/10 text-[var(--primary)] font-mono font-bold px-2 py-0.5 rounded-md">
+                                    <span className="inline-flex items-center gap-1 text-[10px] bg-[var(--primary)]/10 text-[var(--primary)] font-semibold px-2 py-0.5 rounded-md">
                                       <ShieldCheck size={11} />
                                       Adviser
                                     </span>
                                   </div>
-                                  <p className="text-[11px] text-[var(--muted-foreground)] font-mono truncate mt-0.5">
+                                  <p className="text-[11px] text-[var(--muted-foreground)] truncate mt-0.5">
                                     {adviser.email}
                                   </p>
                                 </div>
@@ -760,7 +769,7 @@ export default function OrganizationsPage() {
                                       <p className="text-xs font-bold text-[var(--foreground)] truncate">
                                         {u.firstName} {u.lastName} {u.suffix}
                                       </p>
-                                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] truncate">
+                                      <p className="text-[11px] text-[var(--muted-foreground)] truncate font-medium">
                                         {u.position} {u.yearLevel ? `· ${u.yearLevel}` : ""}
                                       </p>
                                     </div>
@@ -786,6 +795,7 @@ export default function OrganizationsPage() {
             <FadeSection>
               <CalendarGrid
                 events={publicEvents}
+                organizations={organizations}
                 onSelectEvent={setSelectedEvent}
                 selectedDay={selectedDay}
                 onSelectDay={setSelectedDay}

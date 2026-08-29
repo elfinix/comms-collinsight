@@ -3,16 +3,16 @@ import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
 import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Sparkles, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { getOrgById, getEventTypeById, formatCurrency, formatDate, statusColors } from "../../services/mockData";
+import { formatCurrency, formatDate, statusColors } from "../../services/mockData";
 
 const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981"];
 
 export default function StudentDashboard() {
   const { currentUser } = useAuth();
-  const { events, transactions } = useApp();
+  const { events, transactions, organizations, eventTypes } = useApp();
 
   const orgId = currentUser?.organizationId;
-  const org = orgId ? getOrgById(orgId) : null;
+  const org = orgId ? organizations.find((o) => o.id === orgId) : null;
   const orgEvents = events.filter((e) => e.organizationId === orgId);
   const approvedEvents = orgEvents.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
   const totalSpent = transactions.filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
@@ -27,7 +27,7 @@ export default function StudentDashboard() {
 
   const byType = Object.entries(
     orgEvents.reduce<Record<string, number>>((acc, e) => {
-      const typeName = getEventTypeById(e.typeId)?.name ?? "Other";
+      const typeName = eventTypes.find((t) => t.id === e.typeId)?.name ?? "Other";
       acc[typeName] = (acc[typeName] || 0) + 1;
       return acc;
     }, {})

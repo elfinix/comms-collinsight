@@ -10,7 +10,7 @@ import {
   Building2, FileText, ExternalLink
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, formatDateTime, statusColors, organizations, getEventTypeById,
+  formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById,
   Event, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -22,7 +22,7 @@ const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981", "#64748b"
 const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
 
 export default function DeanReports() {
-  const { events, transactions, users } = useApp();
+  const { events, transactions, users, organizations } = useApp();
   const [tab, setTab] = useState<"events" | "finance">("events");
 
   // Filtering & Sorting State for Events Table

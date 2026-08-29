@@ -6,7 +6,7 @@ import { UserAvatar } from "../ui";
 import {
   LayoutDashboard, Calendar, Wallet, BarChart2, Settings, LogOut, Menu, X,
   FileText, Users, Building2, Sliders, ClipboardList, ChevronRight,
-  BookOpen, Shield, Landmark, History,
+  BookOpen, Shield, Landmark, History, ScrollText,
 } from "lucide-react";
 
 interface NavItem {
@@ -233,7 +233,7 @@ export function adminNavItems(): NavItem[] {
     { to: "/admin/organizations", label: "Organizations", icon: <Building2 size={16} /> },
     { to: "/admin/users", label: "Users", icon: <Users size={16} /> },
     { to: "/admin/configurations", label: "Configurations", icon: <Sliders size={16} /> },
-    { to: "/admin/audit", label: "Audit Trail", icon: <Shield size={16} /> },
+    { to: "/admin/audit", label: "Audit Trail", icon: <ScrollText size={16} /> },
     { to: "/admin/reports", label: "Reports", icon: <BarChart2 size={16} /> },
     { to: "/admin/profile", label: "Profile & Settings", icon: <Settings size={16} /> },
   ];

@@ -1,6 +1,7 @@
 import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Printer } from "lucide-react";
-import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event, organizations, getEventTypeById, printClearanceDocument } from "../../services/mockData";
+import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event, printClearanceDocument } from "../../services/mockData";
 import { Button } from "../ui";
+import { useApp } from "../../context/AppContext";
 
 interface EventClearanceTabProps {
   event: Event;
@@ -14,13 +15,15 @@ export default function EventClearanceTab({
   organizationName,
   eventTypeName,
 }: EventClearanceTabProps) {
+  const { organizations, eventTypes } = useApp();
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
   const org = organizations.find((o) => o.id === event.organizationId);
+  const typeObj = eventTypes.find((t) => t.id === event.typeId);
   const resolvedOrgName = organizationName || org?.name || "Student Organization";
   const resolvedOrgCode = org?.code || "CITE";
-  const resolvedTypeName = eventTypeName || getEventTypeById(event.typeId)?.name || "Institutional Event";
+  const resolvedTypeName = eventTypeName || typeObj?.name || "Institutional Event";
 
   const handlePrint = () => {
     printClearanceDocument(event, resolvedOrgName, resolvedTypeName);

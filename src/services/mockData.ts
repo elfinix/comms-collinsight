@@ -26,12 +26,14 @@ export interface User {
   yearLevel?: string;
   memberSince: string;
   avatar?: string;
+  deleted?: boolean;
 }
 
 export interface Department {
   id: string;
   name: string;
   code: string;
+  deleted?: boolean;
 }
 
 export interface Organization {
@@ -42,16 +44,19 @@ export interface Organization {
   allocatedBudget: number;
   adviserId: string;
   logoColor: string;
+  deleted?: boolean;
 }
 
 export interface EventType {
   id: string;
   name: string;
+  deleted?: boolean;
 }
 
 export interface ExpenditureCategory {
   id: string;
   name: string;
+  deleted?: boolean;
 }
 
 export interface Event {
@@ -78,6 +83,7 @@ export interface Event {
   liquidatedAt?: string;
   createdAt: string;
   createdBy: string;
+  deleted?: boolean;
 }
 
 export interface Transaction {
@@ -370,6 +376,86 @@ export const events: Event[] = [
     adviserFeedback: "Please update the guest list and confirm the catering provider before resubmission.",
     createdAt: "2026-08-05T11:00:00",
     createdBy: "user-stu-1",
+  },
+  {
+    id: "evt-6",
+    organizationId: "org-2",
+    name: "Embedded Systems & IoT Hackathon",
+    typeId: "et-6",
+    description: "An intensive 24-hour hardware and IoT development hackathon featuring microcontrollers and sensors.",
+    proposedBudget: 16000,
+    requisites: "Engineering Lab 2, breadboards, power supplies, high-speed Wi-Fi",
+    dateStart: "2026-10-05T08:00",
+    dateEnd: "2026-10-06T12:00",
+    mode: "FTF",
+    location: "CITE Hardware & Robotics Laboratory",
+    apfUrl: "APF_IoT_Hackathon_Approved.pdf",
+    appendices: ["Hardware_Requirements_Matrix.pdf", "Judging_Criteria.pdf"],
+    clearanceDetails: "Cross-disciplinary microcontroller innovation challenge endorsed by CpE faculty.",
+    remarks: [],
+    status: "Approved",
+    createdAt: "2026-08-12T10:00:00",
+    createdBy: "user-adv-2",
+  },
+  {
+    id: "evt-7",
+    organizationId: "org-2",
+    name: "Robotics & Circuits Tech Showcase",
+    typeId: "et-6",
+    description: "Exhibition of automated robotic projects and circuit designs engineered by Computer Engineering students.",
+    proposedBudget: 9500,
+    requisites: "Auditorium display tables, safety barriers, power strips",
+    dateStart: "2026-10-20T09:00",
+    dateEnd: "2026-10-20T17:00",
+    mode: "FTF",
+    location: "CITE Lobby Exhibition Area",
+    apfUrl: "APF_Robotics_Showcase_2026.pdf",
+    appendices: ["Exhibitor_List.pdf"],
+    clearanceDetails: "Annual technical project exhibition open to all CITE students.",
+    remarks: [],
+    status: "For Review",
+    createdAt: "2026-08-18T14:30:00",
+    createdBy: "user-adv-2",
+  },
+  {
+    id: "evt-8",
+    organizationId: "org-3",
+    name: "Lean Process Optimization Summit",
+    typeId: "et-1",
+    description: "Industry lecture and workshop on continuous improvement and lean manufacturing frameworks.",
+    proposedBudget: 12000,
+    requisites: "Projector, sound system, breakout room materials",
+    dateStart: "2026-10-12T13:00",
+    dateEnd: "2026-10-12T18:00",
+    mode: "FTF",
+    location: "CITE Amphitheater",
+    apfUrl: "APF_Lean_Summit_Approved.pdf",
+    appendices: ["Speaker_Profile_LeanExpert.pdf"],
+    clearanceDetails: "Professional engineering operations seminar series.",
+    remarks: [],
+    status: "Approved",
+    createdAt: "2026-08-14T09:15:00",
+    createdBy: "user-adv-3",
+  },
+  {
+    id: "evt-9",
+    organizationId: "org-3",
+    name: "Supply Chain Simulation Challenge",
+    typeId: "et-6",
+    description: "Interactive simulation gaming tournament modeling warehouse logistics and supply chain optimization.",
+    proposedBudget: 7000,
+    requisites: "Computer Lab 1, simulation software licenses",
+    dateStart: "2026-08-20T10:00",
+    dateEnd: "2026-08-20T16:00",
+    mode: "FTF",
+    location: "CITE Computer Laboratory 1",
+    apfUrl: "APF_SupplyChain_Challenge_Closed.pdf",
+    appendices: ["Tournament_Rules.pdf", "Scoring_Rubrics.pdf"],
+    clearanceDetails: "Inter-year competition on industrial optimization simulations.",
+    remarks: [],
+    status: "Completed",
+    createdAt: "2026-07-28T16:00:00",
+    createdBy: "user-adv-3",
   },
 ];
 

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, StatCard, Dialog, Tabs, SignatoryProgress, Button } from "../../components/ui";
-import { CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video } from "lucide-react";
+import { CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video, LayoutGrid, List } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors, organizations, Event,
   getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl
@@ -11,9 +11,15 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanApprovedEvents() {
-  const { events, transactions } = useApp();
+  const { events, transactions, defaultView } = useApp();
   const approved = events.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
   const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
+
+  const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
+
+  useEffect(() => {
+    setView(defaultView || "grid");
+  }, [defaultView]);
 
   const [viewEvent, setViewEvent] = useState<Event | null>(null);
   const [viewTab, setViewTab] = useState("details");
@@ -27,39 +33,140 @@ export default function DeanApprovedEvents() {
   ];
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Approved Events</h1>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">All approved events across CITE organizations (read-only).</p>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">Approved Events</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">All approved events across CITE organizations (read-only).</p>
+        </div>
+
+        {approved.length > 0 && (
+          <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setView("grid")}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                view === "grid"
+                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+              title="Grid View"
+            >
+              <LayoutGrid size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("list")}
+              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                view === "list"
+                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+              title="List View"
+            >
+              <List size={15} />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard label="Approved Events" value={approved.length} icon={<CalendarCheck size={18} />} />
         <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
         <StatCard label="Closed Events" value={events.filter((e) => e.status === "Closed").length} icon={<CheckCircle size={18} />} />
       </div>
 
-      <Card>
-        <CardHeader><h2 className="font-semibold">Approved Event List</h2></CardHeader>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[var(--muted)] border-b border-[var(--border)]">
-                {["Event", "Organization", "Date", "Budget", "Spent", "Status"].map((h) => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {approved.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-[var(--muted-foreground)]">No approved events yet.</td></tr>
-              ) : (
-                approved.map((e) => {
+      {approved.length === 0 ? (
+        <Card>
+          <div className="p-12 text-center text-[var(--muted-foreground)]">No approved events yet.</div>
+        </Card>
+      ) : view === "grid" ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {approved.map((e) => {
+            const org = organizations.find((o) => o.id === e.organizationId);
+            const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
+            return (
+              <div
+                key={e.id}
+                className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:shadow-md hover:border-[var(--primary)]/40 transition-all flex flex-col justify-between gap-4 shadow-2xs"
+              >
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                      {e.status}
+                    </span>
+                    <span className="text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                      {org?.code}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-base text-[var(--foreground)] leading-snug">
+                      {e.name}
+                    </h3>
+                    <div className="flex flex-col gap-1 text-xs text-[var(--muted-foreground)] mt-1.5 font-mono">
+                      <p className="flex items-center gap-1.5">
+                        <Calendar size={13} className="text-[var(--primary)] flex-shrink-0" />
+                        <span>{formatDate(e.dateStart)}</span>
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        {e.mode === "Online/Virtual" ? (
+                          <Video size={13} className="text-[var(--muted-foreground)] flex-shrink-0" />
+                        ) : (
+                          <MapPin size={13} className="text-[var(--muted-foreground)] flex-shrink-0" />
+                        )}
+                        <span className="truncate">{e.location}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--muted)]/30 border border-[var(--border)] font-mono text-xs">
+                    <div>
+                      <span className="text-[var(--muted-foreground)] block text-[10px]">Budget:</span>
+                      <span className="font-bold text-[var(--foreground)]">{formatCurrency(e.proposedBudget)}</span>
+                    </div>
+                    <div>
+                      <span className="text-[var(--muted-foreground)] block text-[10px]">Spent:</span>
+                      <span className="font-extrabold text-[var(--primary)]">{formatCurrency(spent)}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 pb-1 border-t border-[var(--border)]/60">
+                    <SignatoryProgress status={e.status} />
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-3 border-t border-[var(--border)]">
+                  <Button
+                    size="sm"
+                    onClick={() => { setViewEvent(e); setViewTab("details"); }}
+                    className="w-full h-8 px-3 text-xs font-bold flex items-center justify-center gap-1.5 rounded-lg shadow-2xs"
+                  >
+                    View Details
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[var(--muted)] border-b border-[var(--border)]">
+                  {["Event", "Organization", "Date", "Budget", "Spent", "Status", "Action"].map((h) => (
+                    <th key={h} className={`px-4 py-3 text-xs font-mono font-semibold text-[var(--muted-foreground)] ${h === "Action" ? "text-right" : "text-left"}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {approved.map((e) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
                   const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
                   return (
-                    <tr key={e.id} className="border-b border-[var(--border)] hover:bg-[var(--muted)] transition-colors">
-                      <td className="px-4 py-3 font-medium max-w-[240px]">
+                    <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition-colors">
+                      <td className="px-4 py-3.5 font-medium max-w-[240px]">
                         <button
                           type="button"
                           onClick={() => {
@@ -72,23 +179,32 @@ export default function DeanApprovedEvents() {
                           {e.name}
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-xs text-[var(--muted-foreground)]">{org?.name}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{formatDate(e.dateStart)}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{formatCurrency(e.proposedBudget)}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-[var(--primary)] font-semibold">{formatCurrency(spent)}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>
+                      <td className="px-4 py-3.5 text-xs text-[var(--muted-foreground)]">{org?.name}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs">{formatDate(e.dateStart)}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs">{formatCurrency(e.proposedBudget)}</td>
+                      <td className="px-4 py-3.5 font-mono text-xs text-[var(--primary)] font-semibold">{formatCurrency(spent)}</td>
+                      <td className="px-4 py-3.5">
+                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
                           {e.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3.5 text-right">
+                        <Button
+                          size="sm"
+                          onClick={() => { setViewEvent(e); setViewTab("details"); }}
+                          className="gap-1.5 font-semibold text-xs h-8"
+                        >
+                          View
+                        </Button>
+                      </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Event Details Dialog */}
       {viewEvent && (

@@ -140,7 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteEvent = (id: string) => {
     const targetEvt = evts.find((e) => e.id === id);
-    setEvts((p) => p.filter((e) => e.id !== id));
+    setEvts((p) => p.map((e) => (e.id === id ? { ...e, deleted: true } : e)));
     if (targetEvt) {
       addAuditEntry({
         id: `audit-${Date.now()}`,
@@ -221,21 +221,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addUser = (u: User) => setUsrs((p) => [...p, u]);
   const updateUser = (id: string, u: Partial<User>) => setUsrs((p) => p.map((x) => (x.id === id ? { ...x, ...u } : x)));
-  const deleteUser = (id: string) => setUsrs((p) => p.filter((u) => u.id !== id));
+  const deleteUser = (id: string) => setUsrs((p) => p.map((u) => (u.id === id ? { ...u, deleted: true } : u)));
 
   const addDepartment = (d: Department) => setDepts((p) => [...p, d]);
   const updateDepartment = (id: string, u: Partial<Department>) => setDepts((p) => p.map((d) => (d.id === id ? { ...d, ...u } : d)));
-  const deleteDepartment = (id: string) => setDepts((p) => p.filter((d) => d.id !== id));
+  const deleteDepartment = (id: string) => setDepts((p) => p.map((d) => (d.id === id ? { ...d, deleted: true } : d)));
 
   const addOrganization = (o: Organization) => setOrgs((p) => [...p, o]);
   const updateOrganization = (id: string, u: Partial<Organization>) => setOrgs((p) => p.map((o) => (o.id === id ? { ...o, ...u } : o)));
-  const deleteOrganization = (id: string) => setOrgs((p) => p.filter((o) => o.id !== id));
+  const deleteOrganization = (id: string) => setOrgs((p) => p.map((o) => (o.id === id ? { ...o, deleted: true } : o)));
 
   const addEventType = (et: EventType) => setEtypes((p) => [...p, et]);
-  const deleteEventType = (id: string) => setEtypes((p) => p.filter((e) => e.id !== id));
+  const deleteEventType = (id: string) => setEtypes((p) => p.map((e) => (e.id === id ? { ...e, deleted: true } : e)));
 
   const addCategory = (c: ExpenditureCategory) => setCats((p) => [...p, c]);
-  const deleteCategory = (id: string) => setCats((p) => p.filter((c) => c.id !== id));
+  const deleteCategory = (id: string) => setCats((p) => p.map((c) => (c.id === id ? { ...c, deleted: true } : c)));
 
   const setEventStatus = (eventId: string, status: EventStatus, feedback?: string) => {
     let targetEvt: Event | undefined;
@@ -309,16 +309,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const activeEvents = evts.filter((e) => !e.deleted);
+  const activeUsers = usrs.filter((u) => !u.deleted);
+  const activeDepts = depts.filter((d) => !d.deleted);
+  const activeOrgs = orgs.filter((o) => !o.deleted);
+  const activeEtypes = etypes.filter((t) => !t.deleted);
+  const activeCats = cats.filter((c) => !c.deleted);
+  const activeTxns = txns.filter((t) => !t.deleted);
+
   return (
     <AppContext.Provider
       value={{
-        events: evts,
-        transactions: txns,
-        users: usrs,
-        departments: depts,
-        organizations: orgs,
-        eventTypes: etypes,
-        expenditureCategories: cats,
+        events: activeEvents,
+        transactions: activeTxns,
+        users: activeUsers,
+        departments: activeDepts,
+        organizations: activeOrgs,
+        eventTypes: activeEtypes,
+        expenditureCategories: activeCats,
         auditTrail: audit,
         addEvent,
         updateEvent,

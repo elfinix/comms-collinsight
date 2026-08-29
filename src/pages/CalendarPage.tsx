@@ -9,7 +9,7 @@ import {
   Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, Printer, FileSpreadsheet
 } from "lucide-react";
 import {
-  organizations, departments, expenditureCategories, getEventTypeById, formatDate, formatCurrency, statusColors, Event,
+  getEventTypeById, formatDate, formatCurrency, statusColors, Event,
   isWebUrl, toWebUrl, resolvePdfUrl, printClearanceDocument, printLiquidationDocument
 } from "../services/mockData";
 
@@ -57,11 +57,15 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-function formatTimeRange(startStr: string, endStr: string): string {
+function formatTimeRange(startStr: string, endStr: string) {
   try {
     const s = new Date(startStr);
     const e = new Date(endStr);
-    const startFormatted = s.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+    const startFormatted = s.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
     const startTime = s.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
     const endTime = e.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
     return `${startFormatted} · ${startTime} – ${endTime}`;
@@ -72,11 +76,13 @@ function formatTimeRange(startStr: string, endStr: string): string {
 
 function CalendarGrid({
   events,
+  organizations = [],
   onSelectEvent,
   selectedDay,
   onSelectDay,
 }: {
   events: Event[];
+  organizations?: any[];
   onSelectEvent: (e: Event) => void;
   selectedDay: { year: number; month: number; day: number } | null;
   onSelectDay: (dayObj: { year: number; month: number; day: number } | null) => void;
@@ -269,7 +275,13 @@ function CalendarGrid({
 }
 
 export default function CalendarPage() {
-  const { events: liveEvents, transactions: liveTxns } = useApp();
+  const {
+    events: liveEvents,
+    transactions: liveTxns,
+    organizations,
+    departments,
+    expenditureCategories,
+  } = useApp();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
   const [selectedOrgFilter, setSelectedOrgFilter] = useState("all");
@@ -372,6 +384,7 @@ export default function CalendarPage() {
         <FadeSection>
           <CalendarGrid
             events={publicEvents}
+            organizations={organizations}
             onSelectEvent={setSelectedEvent}
             selectedDay={selectedDay}
             onSelectDay={setSelectedDay}
