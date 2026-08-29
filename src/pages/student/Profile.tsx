@@ -279,7 +279,7 @@ export default function StudentProfile() {
                   onClick={handleRemoveAvatar}
                   className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 gap-1"
                 >
-                  <Trash2 size={13} /> Revert to Initials
+                  <Trash2 size={13} /> Revert
                 </Button>
               )}
             </div>
