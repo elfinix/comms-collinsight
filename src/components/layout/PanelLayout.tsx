@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { UserAvatar } from "../ui";
 import {
-  LayoutDashboard, Calendar, DollarSign, BarChart2, Settings, LogOut, Menu, X,
+  LayoutDashboard, Calendar, Wallet, BarChart2, Settings, LogOut, Menu, X,
   FileText, Users, Building2, Sliders, ClipboardList, ChevronRight,
   BookOpen, Shield, Landmark,
 } from "lucide-react";
@@ -189,7 +189,7 @@ export function studentNavItems(pendingCount = 0): NavItem[] {
   return [
     { to: "/student/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { to: "/student/events", label: "Events", icon: <Calendar size={16} /> },
-    { to: "/student/finance", label: "Finance", icon: <DollarSign size={16} /> },
+    { to: "/student/finance", label: "Finance", icon: <Wallet size={16} /> },
     { to: "/student/reports", label: "Reports", icon: <BarChart2 size={16} /> },
     { to: "/student/sds", label: "SDS Workspace", icon: <FileText size={16} /> },
     { to: "/student/profile", label: "Profile & Settings", icon: <Settings size={16} /> },
@@ -200,7 +200,7 @@ export function adviserNavItems(pendingCount = 0): NavItem[] {
   return [
     { to: "/adviser/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { to: "/adviser/pending", label: "Pending Review", icon: <ClipboardList size={16} />, badge: pendingCount },
-    { to: "/adviser/finance", label: "Finance", icon: <DollarSign size={16} /> },
+    { to: "/adviser/finance", label: "Finance", icon: <Wallet size={16} /> },
     { to: "/adviser/reports", label: "Reports", icon: <BarChart2 size={16} /> },
     { to: "/adviser/profile", label: "Profile & Settings", icon: <Settings size={16} /> },
   ];
