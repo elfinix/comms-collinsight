@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Card } from "../../components/ui";
 import { Plus, Pencil, Trash2, Search, Landmark, Save, X, AlertTriangle } from "lucide-react";
 import { Department } from "../../services/mockData";
 
 export default function AdminDepartments() {
   const { departments, organizations, addDepartment, updateDepartment, deleteDepartment } = useApp();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editDept, setEditDept] = useState<Department | null>(null);
@@ -28,6 +30,7 @@ export default function AdminDepartments() {
       name: form.name.trim(),
       code: form.code.trim().toUpperCase(),
     });
+    toast.success("Department Created", `'${form.name.trim()}' (${form.code.trim().toUpperCase()}) added.`);
     setForm({ name: "", code: "" });
     setShowAdd(false);
   }
@@ -38,6 +41,7 @@ export default function AdminDepartments() {
       name: editDept.name.trim(),
       code: editDept.code.trim().toUpperCase(),
     });
+    toast.success("Department Updated", `'${editDept.name.trim()}' updated successfully.`);
     setEditDept(null);
   }
 
@@ -214,7 +218,10 @@ export default function AdminDepartments() {
             <Button
               variant="danger"
               onClick={() => {
-                if (deleteConfirm) deleteDepartment(deleteConfirm.id);
+                if (deleteConfirm) {
+                  deleteDepartment(deleteConfirm.id);
+                  toast.info("Department Deactivated", `'${deleteConfirm.name}' archived safely.`);
+                }
                 setDeleteConfirm(null);
               }}
               className="gap-1.5 text-xs font-bold"

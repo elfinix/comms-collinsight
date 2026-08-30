@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
@@ -9,6 +10,7 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanPendingApproval() {
   const { events, organizations, setEventStatus, updateEvent, defaultView } = useApp();
+  const { toast } = useToast();
   const pending = events.filter((e) => e.status === "For Approval");
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
@@ -27,6 +29,7 @@ export default function DeanPendingApproval() {
     if (!viewEvent) return;
     setEventStatus(viewEvent.id, "Approved");
     if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Dean note: ${feedback}`] });
+    toast.success("Executive Approval Granted", `'${viewEvent.name}' officially approved by the College Dean.`);
     setViewEvent(null);
     setFeedback("");
     setShowApproveRemarks(false);
@@ -35,6 +38,7 @@ export default function DeanPendingApproval() {
   function handleRequestChange() {
     if (!viewEvent || !feedback) return;
     setEventStatus(viewEvent.id, "Pending Revision", feedback);
+    toast.warning("Revision Requested", `'${viewEvent.name}' returned for revisions with Dean instructions.`);
     setViewEvent(null);
     setFeedback("");
     setShowRequestChange(false);

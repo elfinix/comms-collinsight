@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card } from "../../components/ui";
 import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X } from "lucide-react";
 import { Organization, formatCurrency } from "../../services/mockData";
 
 export default function AdminOrganizations() {
   const { organizations, departments, users, addOrganization, updateOrganization, deleteOrganization, updateUser } = useApp();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
@@ -47,6 +49,8 @@ export default function AdminOrganizations() {
       updateUser(form.adviserId, { organizationId: newOrgId });
     }
 
+    toast.success("Organization Created", `'${form.name.trim()}' established with code '${form.code.trim().toUpperCase()}'.`);
+
     setForm({
       name: "",
       code: "",
@@ -67,6 +71,7 @@ export default function AdminOrganizations() {
       updateUser(editOrg.adviserId, { organizationId: editOrg.id });
     }
 
+    toast.success("Organization Updated", `'${editOrg.name}' profile & budget updated.`);
     setEditOrg(null);
   }
 
@@ -404,7 +409,10 @@ export default function AdminOrganizations() {
             <Button
               variant="danger"
               onClick={() => {
-                if (deleteConfirm) deleteOrganization(deleteConfirm.id);
+                if (deleteConfirm) {
+                  deleteOrganization(deleteConfirm.id);
+                  toast.info("Organization Removed", `'${deleteConfirm.name}' was removed from the active roster.`);
+                }
                 setDeleteConfirm(null);
               }}
               className="gap-1.5 text-xs font-bold"

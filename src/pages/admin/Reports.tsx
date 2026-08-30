@@ -1,5 +1,6 @@
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { Card, CardHeader, CardBody, Button, StatCard } from "../../components/ui";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Calendar, Activity, Building2, Printer } from "lucide-react";
@@ -8,6 +9,7 @@ import { formatCurrency, formatDateTime } from "../../services/mockData";
 export default function AdminReports() {
   const { users, events, auditTrail, organizations, departments } = useApp();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
 
   const adminName = currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? ", " + currentUser.suffix : ""}`
@@ -228,6 +230,7 @@ export default function AdminReports() {
 
     printWindow.document.close();
     printWindow.focus();
+    toast.success("System Activity Report Exported", "Comprehensive administrative report prepared for PDF/print export.");
     setTimeout(() => {
       printWindow.print();
     }, 250);

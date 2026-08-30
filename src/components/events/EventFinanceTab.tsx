@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { Button } from "../ui";
 import {
   Wallet, CreditCard, Coins, FileSpreadsheet, ArrowRight, Printer,
@@ -26,6 +27,7 @@ export default function EventFinanceTab({
 }: EventFinanceTabProps) {
   const { transactions, users, organizations, expenditureCategories } = useApp();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
@@ -75,6 +77,7 @@ export default function EventFinanceTab({
 
   const handlePrintLiquidation = () => {
     printLiquidationDocument(event, eventTxns, resolvedOrgName, liquidatorName, adviserName, deanName);
+    toast.success("Liquidation Statement Prepared", "Official document dispatched for print/PDF export.");
   };
 
   if (!isApproved) {

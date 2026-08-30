@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import { useToast } from "../context/ToastContext";
 import { Dialog, SignatoryProgress } from "../components/ui";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
@@ -279,6 +280,7 @@ export default function OrganizationsPage() {
     users,
     expenditureCategories,
   } = useApp();
+  const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // URL-driven tab state
@@ -1320,61 +1322,69 @@ export default function OrganizationsPage() {
                 {/* Official Clearance Banner if Approved */}
                 {["Approved", "Completed", "Closed"].includes(selectedEvent.status) && (
                   <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-emerald-700/80 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-emerald-300 flex-shrink-0">
                         <BadgeCheck size={20} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-xs font-bold text-white">Official Event Clearance Granted</p>
                           <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 uppercase font-bold">
                             SDS Dispatched
                           </span>
                         </div>
-                        <p className="text-[11px] text-teal-100/80 font-mono">
+                        <p className="text-[11px] text-teal-100/80 font-mono truncate">
                           Event_Clearance_{selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => printClearanceDocument(selectedEvent, org?.name, type?.name)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs"
-                    >
-                      <Printer size={13} /> Print / Preview Clearance
-                    </button>
+                    <div className="flex items-center justify-end ml-auto flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          printClearanceDocument(selectedEvent, org?.name, type?.name);
+                          toast.success("Clearance Certificate Prepared", "Official document dispatched to printer.");
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
+                      >
+                        <Printer size={13} /> Print / Preview Clearance
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {/* Official Liquidation Banner if Closed */}
                 {selectedEvent.status === "Closed" && (
                   <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-teal-700/80 flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-teal-200 flex-shrink-0">
                         <FileSpreadsheet size={20} />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-xs font-bold text-white">Digital Liquidation Report Reconciled</p>
                           <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-200 border border-teal-400/30 uppercase font-bold">
                             Audited & Archived
                           </span>
                         </div>
-                        <p className="text-[11px] text-teal-100/80 font-mono">
+                        <p className="text-[11px] text-teal-100/80 font-mono truncate">
                           Liquidation_Report_{selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
-                        printLiquidationDocument(selectedEvent, eventTxns, org?.name);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs"
-                    >
-                      <Printer size={13} /> Print / Preview Liquidation
-                    </button>
+                    <div className="flex items-center justify-end ml-auto flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
+                          printLiquidationDocument(selectedEvent, eventTxns, org?.name);
+                          toast.success("Liquidation Statement Prepared", "Official document dispatched for print/PDF export.");
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
+                      >
+                        <Printer size={13} /> Print / Preview Liquidation
+                      </button>
+                    </div>
                   </div>
                 )}
 

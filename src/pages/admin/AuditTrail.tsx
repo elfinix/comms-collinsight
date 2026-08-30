@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { Card, Button, UserAvatar } from "../../components/ui";
 import {
   History, Search, Filter, Clock, ArrowDownWideNarrow, ArrowUpNarrowWide,
@@ -28,6 +29,7 @@ const BATCH_INCREMENT = 25;
 export default function AdminAuditTrail() {
   const { auditTrail, users, events } = useApp();
   const { currentUser } = useAuth();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [actionFilter, setActionFilter] = useState<ActionFilterType>("ALL");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -283,6 +285,7 @@ export default function AdminAuditTrail() {
 
     printWindow.document.close();
     printWindow.focus();
+    toast.success("Audit Log Exported", `Prepared ${filteredEntries.length} audit entries for print/PDF export.`);
     setTimeout(() => {
       printWindow.print();
     }, 250);

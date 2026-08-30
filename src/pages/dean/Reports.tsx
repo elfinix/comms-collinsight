@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Card, CardHeader, CardBody, Button, StatCard, Dialog, Tabs, SignatoryProgress } from "../../components/ui";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid
@@ -23,6 +24,7 @@ const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending
 
 export default function DeanReports() {
   const { events, transactions, users, organizations } = useApp();
+  const { toast } = useToast();
   const [tab, setTab] = useState<"events" | "finance">("events");
 
   // Filtering & Sorting State for Events Table
@@ -273,6 +275,7 @@ export default function DeanReports() {
 
     printWindow.document.close();
     printWindow.focus();
+    toast.success("Directorate Report Exported", "Comprehensive analytics report prepared for PDF/print export.");
     setTimeout(() => {
       printWindow.print();
     }, 400);

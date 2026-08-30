@@ -2,6 +2,7 @@ import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Printer } from "lu
 import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event, printClearanceDocument } from "../../services/mockData";
 import { Button } from "../ui";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 
 interface EventClearanceTabProps {
   event: Event;
@@ -16,6 +17,7 @@ export default function EventClearanceTab({
   eventTypeName,
 }: EventClearanceTabProps) {
   const { organizations, eventTypes } = useApp();
+  const { toast } = useToast();
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
@@ -27,6 +29,7 @@ export default function EventClearanceTab({
 
   const handlePrint = () => {
     printClearanceDocument(event, resolvedOrgName, resolvedTypeName);
+    toast.success("Clearance Certificate Prepared", "Official document dispatched to printer.");
   };
 
   return (
@@ -51,12 +54,12 @@ export default function EventClearanceTab({
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-shrink-0">
+          <div className="flex items-center justify-end gap-2.5 flex-shrink-0 ml-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={handlePrint}
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white font-medium text-xs gap-1.5 cursor-pointer shadow-2xs"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white font-medium text-xs gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
             >
               <Printer size={13} /> Print / Preview Clearance
             </Button>

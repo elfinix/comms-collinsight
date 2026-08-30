@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card, UserAvatar } from "../../components/ui";
 import { Plus, Pencil, Trash2, Search, Users, Save, X, Building2 } from "lucide-react";
 import { User } from "../../services/mockData";
@@ -48,6 +49,7 @@ function emptyUser(): Omit<User, "id"> {
 
 export default function AdminUsers() {
   const { users, organizations, addUser, updateUser, deleteUser, updateOrganization } = useApp();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [orgFilter, setOrgFilter] = useState("all");
@@ -59,24 +61,26 @@ export default function AdminUsers() {
   const filtered = users.filter((u) => {
     if (roleFilter !== "all" && u.role !== roleFilter) return false;
     if (orgFilter !== "all" && u.organizationId !== orgFilter) return false;
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      const fullName = `${u.firstName} ${u.lastName}`.toLowerCase();
-      const pos = (u.position || "").toLowerCase();
-      const email = u.email.toLowerCase();
-      return fullName.includes(q) || pos.includes(q) || email.includes(q);
-    }
-    return true;
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    const fullName = `${u.firstName} ${u.middleName || ""} ${u.lastName} ${u.suffix || ""}`.toLowerCase();
+    return (
+      fullName.includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      (u.position && u.position.toLowerCase().includes(q))
+    );
   });
 
   function handleAdd() {
     if (!form.firstName || !form.lastName || !form.email) return;
-    const newUserId = `user-${Date.now()}`;
+    const newUserId = `usr-${Date.now()}`;
     const userPayload: User = {
       ...form,
       id: newUserId,
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim().toLowerCase(),
       position: form.role === "adviser" ? "Faculty Adviser" : form.position,
-      password: form.password || `${form.lastName.toLowerCase()}_${Math.floor(100000 + Math.random() * 900000)}`,
     };
     addUser(userPayload);
 
@@ -85,6 +89,7 @@ export default function AdminUsers() {
       updateOrganization(form.organizationId, { adviserId: newUserId });
     }
 
+    toast.success("User Account Created", `'${form.firstName} ${form.lastName}' has been added.`);
     setForm(emptyUser());
     setShowAdd(false);
   }
@@ -108,6 +113,7 @@ export default function AdminUsers() {
       }
     }
 
+    toast.success("User Updated", `Profile and roles for '${editUser.firstName} ${editUser.lastName}' were saved.`);
     setEditUser(null);
   }
 
@@ -517,7 +523,10 @@ export default function AdminUsers() {
             <Button
               variant="danger"
               onClick={() => {
-                if (deleteConfirm) deleteUser(deleteConfirm.id);
+                if (deleteConfirm) {
+                  deleteUser(deleteConfirm.id);
+                  toast.info("User Removed", `'${deleteConfirm.firstName} ${deleteConfirm.lastName}' was removed from the active directory.`);
+                }
                 setDeleteConfirm(null);
               }}
               className="gap-1.5 text-xs font-bold"

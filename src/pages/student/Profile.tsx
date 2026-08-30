@@ -1,6 +1,7 @@
 import { useState, useRef, ChangeEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Card, CardHeader, CardBody, Button, Input, Select, PasswordInput, UserAvatar } from "../../components/ui";
 import {
   User as UserIcon, Building2, Calendar, Moon, Sun, RefreshCw, UploadCloud,
@@ -23,6 +24,7 @@ export default function StudentProfile() {
     tableDensity, setTableDensity, defaultView, setDefaultView,
     updateUser
   } = useApp();
+  const { toast } = useToast();
 
   const org = currentUser?.organizationId ? organizations.find((o) => o.id === currentUser.organizationId) : null;
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -79,6 +81,7 @@ export default function StudentProfile() {
       // Immediately update auth & app user avatars
       updateCurrentUser({ avatar: result });
       updateUser(currentUser!.id, { avatar: result });
+      toast.success("Avatar Uploaded", "Your profile avatar has been updated.");
     };
     reader.readAsDataURL(file);
   }
@@ -88,6 +91,7 @@ export default function StudentProfile() {
     updateCurrentUser({ avatar: undefined });
     updateUser(currentUser!.id, { avatar: undefined });
     if (avatarInputRef.current) avatarInputRef.current.value = "";
+    toast.info("Avatar Removed", "Profile photo reverted to avatar initials.");
   }
 
   // Handle Personal Info Save
@@ -123,6 +127,7 @@ export default function StudentProfile() {
     updateUser(currentUser!.id, updates);
 
     setSaveSuccess(true);
+    toast.success("Profile Updated", "Personal information saved successfully.");
     setTimeout(() => setSaveSuccess(false), 3500);
   }
 
@@ -182,6 +187,7 @@ export default function StudentProfile() {
     setNewPwdError("");
     setConfirmPwdError("");
     setPasswordSuccess(true);
+    toast.success("Password Updated", "Your account password was successfully updated.");
     setTimeout(() => setPasswordSuccess(false), 3500);
   }
 
@@ -191,6 +197,7 @@ export default function StudentProfile() {
     setDefaultView("grid");
     setTableDensity("comfortable");
     setPrefSuccess(true);
+    toast.info("Preferences Reset", "Display and density defaults restored.");
     setTimeout(() => setPrefSuccess(false), 2500);
   }
 

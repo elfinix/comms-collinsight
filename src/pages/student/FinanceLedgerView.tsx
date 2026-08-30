@@ -1,6 +1,7 @@
 import { useState, useRef, ChangeEvent } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import { StatCard, Card, CardHeader, CardBody, Button, Dialog, Input, Select } from "../../components/ui";
 import {
   Wallet, CreditCard, Coins, Scale, FileSpreadsheet, Plus, Edit2, Trash2, FileText, CheckCircle, UploadCloud,
@@ -21,6 +22,7 @@ interface FinanceLedgerViewProps {
 export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = false }: FinanceLedgerViewProps) {
   const { currentUser } = useAuth();
   const { events, transactions, organizations, users, updateEvent, addTransaction, updateTransaction, deleteTransaction } = useApp();
+  const { toast } = useToast();
 
   const activeEvent = events.find((e) => e.id === selectedEventId);
   const org = organizations.find((o) => o.id === activeEvent?.organizationId);
@@ -193,6 +195,8 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       createdAt: new Date().toISOString(),
     });
 
+    toast.success("Expense Disbursed", `Recorded ₱${amountNum.toLocaleString()} for '${newTxn.description.trim()}'.`);
+
     setNewTxn({
       description: "",
       categoryId: expenditureCategories[0]?.id ?? "ec-1",
@@ -249,6 +253,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       receiptUrl: editTxnForm.receiptPreviewUrl || editTxnForm.receiptName || editTxn.receiptUrl,
     });
 
+    toast.success("Expense Updated", `Transaction '${editTxnForm.description.trim()}' was successfully updated.`);
     setEditTxn(null);
   }
 
@@ -256,6 +261,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   function handleDeleteConfirm() {
     if (deleteConfirmTxn) {
       deleteTransaction(deleteConfirmTxn.id);
+      toast.info("Expense Removed", `Expense entry '${deleteConfirmTxn.description}' was removed.`);
       setDeleteConfirmTxn(null);
     }
   }
@@ -282,6 +288,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       liquidatedBy: activeLiquidator,
       liquidatedAt: new Date().toISOString(),
     });
+    toast.success("Liquidation Finalized", `'${activeEvent!.name}' has been liquidated and closed.`);
     setShowLiquidationConfirm(false);
     setShowPdfModal(true);
   }
@@ -297,6 +304,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       remarks: [...(activeEvent!.remarks ?? []), newRemark],
     });
 
+    toast.info("Ledger Amendment Logged", "Audit amendment note successfully appended to ledger.");
     setAmendmentNote("");
     setAmendmentAmount("");
     setShowAddAmendment(false);
@@ -425,6 +433,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     `);
     printWindow.document.close();
     printWindow.focus();
+    toast.success("Financial Ledger Prepared", `'${activeEvent.name}' financial statement dispatched for print/PDF export.`);
     setTimeout(() => {
       printWindow.print();
     }, 250);
@@ -554,6 +563,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     `);
     printWindow.document.close();
     printWindow.focus();
+    toast.success("Liquidation Report Exported", `'${activeEvent.name}' liquidation statement prepared for PDF export.`);
     setTimeout(() => {
       printWindow.print();
     }, 250);

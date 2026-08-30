@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Card, CardHeader, CardBody, Button, StatCard } from "../../components/ui";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import {
@@ -14,6 +15,7 @@ const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending
 export default function StudentReports() {
   const { currentUser } = useAuth();
   const { events, transactions, organizations, users } = useApp();
+  const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
 
@@ -434,6 +436,7 @@ export default function StudentReports() {
 
     printWindow.document.close();
     printWindow.focus();
+    toast.success("Organization Report Exported", "Comprehensive activity and financial report prepared for PDF/print export.");
     setTimeout(() => {
       printWindow.print();
     }, 250);

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Textarea, Select, Tabs, Card, CardHeader, CardBody, SignatoryProgress, EmptyState, DateTimePicker } from "../../components/ui";
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
@@ -68,6 +69,7 @@ function newEventShell(createdBy: string, orgId: string, defaultTypeId: string =
 export default function StudentEvents() {
   const { currentUser } = useAuth();
   const { events, addEvent, updateEvent, deleteEvent, organizations, setEventStatus, addAuditEntry, eventTypes, transactions, defaultView } = useApp();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const orgId = currentUser?.organizationId ?? "";
@@ -180,21 +182,25 @@ export default function StudentEvents() {
     const id = `evt-${Date.now()}`;
     addEvent({ ...draft, id });
     setShowCreate(false);
+    toast.success("Event Proposal Created", `'${draft.name}' was created and saved to drafts.`);
   }
 
   function handleSaveEdit() {
     if (!editEvent) return;
     updateEvent(editEvent.id, { ...editEvent });
+    toast.success("Event Proposal Updated", `Changes to '${editEvent.name}' were successfully saved.`);
     setEditEvent(null);
   }
 
   function handleSubmitToAdviser(evt: Event) {
     setEventStatus(evt.id, "For Review");
+    toast.success("Submitted for Review", `'${evt.name}' has been forwarded to the Faculty Adviser.`);
     setSubmitConfirm(null);
   }
 
   function handleDelete(evt: Event) {
     deleteEvent(evt.id);
+    toast.info("Proposal Removed", `'${evt.name}' proposal was successfully deleted.`);
     setDeleteConfirm(null);
   }
 

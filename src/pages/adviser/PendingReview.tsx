@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, FileText, UploadCloud, Calendar, MapPin, Video, ExternalLink, LayoutGrid, List } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
@@ -11,6 +12,7 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 export default function AdviserPendingReview() {
   const { currentUser } = useAuth();
   const { events, setEventStatus, updateEvent, defaultView } = useApp();
+  const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const pending = events.filter((e) => e.organizationId === orgId && e.status === "For Review");
 
@@ -30,6 +32,7 @@ export default function AdviserPendingReview() {
     if (!viewEvent) return;
     setEventStatus(viewEvent.id, "For Approval");
     if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Adviser note: ${feedback}`] });
+    toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`);
     setViewEvent(null);
     setFeedback("");
     setShowApproveRemarks(false);
@@ -38,6 +41,7 @@ export default function AdviserPendingReview() {
   function handleRequestChange() {
     if (!viewEvent || !feedback) return;
     setEventStatus(viewEvent.id, "Pending Revision", feedback);
+    toast.warning("Revision Requested", `'${viewEvent.name}' returned to student officers with revision notes.`);
     setViewEvent(null);
     setFeedback("");
     setShowRequestChange(false);

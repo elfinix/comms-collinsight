@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
+import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Card, CardHeader, CardBody } from "../../components/ui";
 import { Plus, Trash2, Tag, Layers, Sliders, Save, X, Search } from "lucide-react";
 
 export default function AdminConfigurations() {
   const { eventTypes, expenditureCategories, addEventType, deleteEventType, addCategory, deleteCategory } = useApp();
+  const { toast } = useToast();
   const [showAddType, setShowAddType] = useState(false);
   const [showAddCat, setShowAddCat] = useState(false);
   const [typeName, setTypeName] = useState("");
@@ -29,6 +31,7 @@ export default function AdminConfigurations() {
       id: `et-${Date.now()}`,
       name: typeName.trim(),
     });
+    toast.success("Event Type Added", `'${typeName.trim()}' added to proposal classifications.`);
     setTypeName("");
     setShowAddType(false);
   }
@@ -39,6 +42,7 @@ export default function AdminConfigurations() {
       id: `ec-${Date.now()}`,
       name: catName.trim(),
     });
+    toast.success("Expenditure Category Added", `'${catName.trim()}' added to financial categories.`);
     setCatName("");
     setShowAddCat(false);
   }
@@ -242,7 +246,10 @@ export default function AdminConfigurations() {
             <Button
               variant="danger"
               onClick={() => {
-                if (deleteTypeConfirm) deleteEventType(deleteTypeConfirm.id);
+                if (deleteTypeConfirm) {
+                  deleteEventType(deleteTypeConfirm.id);
+                  toast.info("Event Type Removed", `'${deleteTypeConfirm.name}' removed from classifications.`);
+                }
                 setDeleteTypeConfirm(null);
               }}
               className="gap-1.5 text-xs font-bold"
@@ -266,7 +273,10 @@ export default function AdminConfigurations() {
             <Button
               variant="danger"
               onClick={() => {
-                if (deleteCatConfirm) deleteCategory(deleteCatConfirm.id);
+                if (deleteCatConfirm) {
+                  deleteCategory(deleteCatConfirm.id);
+                  toast.info("Category Removed", `'${deleteCatConfirm.name}' removed from expenditure categories.`);
+                }
                 setDeleteCatConfirm(null);
               }}
               className="gap-1.5 text-xs font-bold"
