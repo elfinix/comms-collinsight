@@ -211,7 +211,7 @@ export default function AdminReports() {
           org.code,
           org.name,
           orgDept,
-          `PHP ${org.allocatedBudget.toLocaleString()}`,
+          `PHP ${Number(org.allocatedBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           advName,
           orgOfficers,
           orgEvents.length,

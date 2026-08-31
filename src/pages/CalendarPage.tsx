@@ -7,13 +7,14 @@ import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, Clock, MapPin, ArrowLeft, ChevronLeft, ChevronRight,
-  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, Printer, FileSpreadsheet
+  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet
 } from "lucide-react";
 import {
-  getEventTypeById, formatDate, formatCurrency, statusColors, Event,
+  getEventTypeById, formatDate, formatCurrency, statusColors, Event, Transaction,
   isWebUrl, toWebUrl, resolvePdfUrl
 } from "../services/mockData";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
+import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../services/storageService";
 
 function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mode?: string; size?: number; className?: string }) {
   if (mode?.toLowerCase().includes("online") || mode?.toLowerCase().includes("virtual")) {
@@ -50,7 +51,7 @@ function FadeSection({ children, className = "", delay = 0 }: { children: React.
   );
 }
 
-const STATUS_FILTER_OPTIONS = ["All", "Approved", "For Approval", "For Review", "Completed", "Closed"] as const;
+const STATUS_FILTER_OPTIONS = ["All", "Approved", "For Approval", "For Review", "Pending Revision", "Completed", "Closed"] as const;
 type StatusFilter = (typeof STATUS_FILTER_OPTIONS)[number];
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -253,9 +254,9 @@ function CalendarGrid({
                           }}
                           className="w-full text-left text-[10px] font-medium px-2 py-1 rounded-md truncate text-white leading-tight hover:brightness-110 hover:shadow-xs transition cursor-pointer"
                           style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
-                          title={`${e.name} (${org?.code ?? ""})`}
+                          title={`${e.name} (${org?.code?.substring(0, 3) ?? ""})`}
                         >
-                          <span className="font-bold opacity-90 mr-1">{org?.code}:</span>
+                          <span className="font-bold opacity-90 mr-1">{org?.code?.substring(0, 3)}:</span>
                           {e.name}
                         </button>
                       );
@@ -294,7 +295,7 @@ export default function CalendarPage() {
 
   const publicEvents = useMemo(() => {
     return liveEvents.filter((e) =>
-      ["Created", "For Review", "For Approval", "Approved", "Completed", "Closed"].includes(e.status)
+      ["Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"].includes(e.status)
     );
   }, [liveEvents]);
 
@@ -617,7 +618,7 @@ export default function CalendarPage() {
                           className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
                           style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                         >
-                          {org?.code?.slice(0, 2) ?? "?"}
+                          {org?.code?.substring(0, 3) ?? "?"}
                         </div>
                         <span className="text-xs font-semibold text-[var(--foreground)] truncate">
                           {org?.name}
@@ -650,7 +651,7 @@ export default function CalendarPage() {
                         className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-2xs"
                         style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                       >
-                        {org?.code}
+                        {org?.code?.substring(0, 3)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -732,7 +733,7 @@ export default function CalendarPage() {
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-2xs flex-shrink-0"
                       style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                     >
-                      {org?.code}
+                      {org?.code?.substring(0, 3)}
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-[var(--foreground)] truncate">{org?.name}</p>
@@ -810,9 +811,26 @@ export default function CalendarPage() {
                     <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
                       <Award size={12} className="text-[var(--primary)]" /> Compliance Documents
                     </p>
-                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
-                      {selectedEvent.apfUrl ? "APF Attached" : "Activity Proposal Form"} · {selectedEvent.appendices?.length ?? 0} Appendices
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      {selectedEvent.apfUrl ? (
+                        <a
+                          href={resolvePdfUrl(selectedEvent.apfUrl, "apf")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline font-bold font-mono text-[11px]"
+                          title="Open Activity Proposal Form from Storage"
+                        >
+                          <FileText size={11} /> APF Document <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        <span className="text-[var(--muted-foreground)] text-xs">No APF</span>
+                      )}
+                      {selectedEvent.appendices && selectedEvent.appendices.length > 0 && (
+                        <span className="text-[11px] font-mono text-[var(--muted-foreground)]">
+                          · {selectedEvent.appendices.length} {selectedEvent.appendices.length === 1 ? "Appendix" : "Appendices"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -937,13 +955,32 @@ export default function CalendarPage() {
                     <div className="flex items-center justify-end ml-auto flex-shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          printClearanceDocument(selectedEvent, org?.name, type?.name);
-                          toast.success("Clearance Certificate Prepared", "Document dispatched to the browser.");
+                        onClick={async () => {
+                          const clearanceFileName = `Event_Clearance_${selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+                          try {
+                            const storagePath = buildAttachmentPath(selectedEvent.organizationId || org?.name, selectedEvent.id || selectedEvent.name, "Clearance", clearanceFileName);
+                            const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
+                            let opened = false;
+                            if (storageUrl) {
+                              try {
+                                const resp = await fetch(storageUrl, { method: "HEAD" });
+                                if (resp.ok) {
+                                  window.open(storageUrl, "_blank", "noopener,noreferrer");
+                                  opened = true;
+                                }
+                              } catch {}
+                            }
+                            if (!opened) {
+                              printClearanceDocument(selectedEvent, org?.name, type?.name);
+                            }
+                            toast.success("Clearance Certificate Opened", "Viewing official stored clearance from database.");
+                          } catch {
+                            printClearanceDocument(selectedEvent, org?.name, type?.name);
+                          }
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >
-                        <Printer size={13} /> Print / Preview Clearance
+                        <FileText size={13} /> View Clearance
                       </button>
                     </div>
                   </div>
@@ -971,14 +1008,33 @@ export default function CalendarPage() {
                     <div className="flex items-center justify-end ml-auto flex-shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
-                          printLiquidationDocument(selectedEvent, eventTxns, { organizationName: org?.name });
-                          toast.success("Liquidation Statement Prepared", "Document dispatched for print/PDF export.");
+                          const liquidationFileName = `Liquidation_Report_${selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+                          try {
+                            const storagePath = buildAttachmentPath(selectedEvent.organizationId || org?.name, selectedEvent.id || selectedEvent.name, "Liquidation", liquidationFileName);
+                            const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
+                            let opened = false;
+                            if (storageUrl) {
+                              try {
+                                const resp = await fetch(storageUrl, { method: "HEAD" });
+                                if (resp.ok) {
+                                  window.open(storageUrl, "_blank", "noopener,noreferrer");
+                                  opened = true;
+                                }
+                              } catch {}
+                            }
+                            if (!opened) {
+                              printLiquidationDocument(selectedEvent, eventTxns, { organizationName: org?.name });
+                            }
+                            toast.success("Liquidation Report Opened", "Viewing official stored liquidation from database.");
+                          } catch {
+                            printLiquidationDocument(selectedEvent, eventTxns, { organizationName: org?.name });
+                          }
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >
-                        <Printer size={13} /> Print / Preview Liquidation
+                        <FileText size={13} /> View Liquidation
                       </button>
                     </div>
                   </div>

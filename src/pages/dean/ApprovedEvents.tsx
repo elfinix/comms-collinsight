@@ -294,6 +294,10 @@ export default function DeanApprovedEvents() {
                     )}
                   </div>
                   <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
+                    <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{viewEvent.requisites || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p>
                     <p className="font-semibold text-[var(--foreground)]">{organizations.find((o) => o.id === viewEvent.organizationId)?.name}</p>
                   </div>

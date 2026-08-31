@@ -5,14 +5,19 @@ import { useToast } from "../../context/ToastContext";
 import { StatCard, Card, CardHeader, CardBody, Button, Dialog, Input, Select } from "../../components/ui";
 import {
   Wallet, CreditCard, Coins, Scale, FileSpreadsheet, Plus, Edit2, Trash2, FileText, CheckCircle, UploadCloud,
-  ArrowLeft, ChevronRight, Download, Printer, Eye, X, AlertTriangle,
+  ArrowLeft, ChevronRight, Download, Eye, X, AlertTriangle,
   Paperclip, FileCheck, ExternalLink, Calendar, MapPin
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors,
   getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl
 } from "../../services/mockData";
-import { uploadEventAttachment } from "../../services/storageService";
+import {
+  uploadEventAttachment,
+  buildAttachmentPath,
+  getPublicStorageUrl,
+  STORAGE_BUCKETS,
+} from "../../services/storageService";
 import { generateLiquidationPdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 
 interface FinanceLedgerViewProps {
@@ -23,7 +28,7 @@ interface FinanceLedgerViewProps {
 
 export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = false }: FinanceLedgerViewProps) {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, users, expenditureCategories, updateEvent, addTransaction, updateTransaction, deleteTransaction } = useApp();
+  const { events, transactions, organizations, users, expenditureCategories, updateEvent, setEventStatus, addTransaction, updateTransaction, deleteTransaction } = useApp();
   const { toast } = useToast();
 
   const activeEvent = events.find((e) => e.id === selectedEventId);
@@ -44,7 +49,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   const deanUser = users.find((u) => u.role === "dean");
   const deanName = deanUser
     ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-    : "Dr. Aris S. Gonzales";
+    : "Dr. Marilou Castro Villanueva, Ph.D.";
 
   const liquidatorName = activeEvent?.liquidatedBy || (currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? " " + currentUser.suffix : ""}`
@@ -91,7 +96,8 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   // Delete Confirmation State
   const [deleteConfirmTxn, setDeleteConfirmTxn] = useState<Transaction | null>(null);
 
-  // Liquidation State
+  // Complete Event & Liquidation State
+  const [showCompleteEventConfirm, setShowCompleteEventConfirm] = useState(false);
   const [showLiquidationConfirm, setShowLiquidationConfirm] = useState(false);
   const [revenue, setRevenue] = useState("");
 
@@ -278,6 +284,17 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     }
   }
 
+  // Handle Complete Event
+  function handleCompleteEvent() {
+    if (!activeEvent) return;
+    setEventStatus(activeEvent.id, "Completed");
+    setShowCompleteEventConfirm(false);
+    toast.success(
+      "Event Marked as Completed",
+      `'${activeEvent.name}' has been marked as Completed. You can now finalize liquidation.`
+    );
+  }
+
   // Handle Liquidation
   async function handleCompleteLiquidation() {
     const revNum = parseFloat(revenue);
@@ -316,6 +333,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       });
 
       await uploadEventAttachment({
+        organizationId: activeEvent!.organizationId || org?.id,
         organizationName: orgName,
         eventId: activeEvent!.id,
         eventName: activeEvent!.name,
@@ -356,156 +374,45 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     setShowAddAmendment(false);
   }
 
-  function handlePrintDocument() {
+  async function handleTriggerOpenPdf() {
     if (!activeEvent) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-
-    const orgName = org?.name || "Student Organization";
-    const docRef = `LQ-${activeEvent.id.toUpperCase()}-2026`;
-    const rowsHtml = eventTxns.map((t, idx) => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${idx + 1}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${t.description}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #475569;">${getCategoryById(t.categoryId)?.name ?? "General"}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatCurrency(t.amount)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-          <span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">${t.status}</span>
-        </td>
-      </tr>
-    `).join("");
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Digital_Liquidation_Report_${activeEvent.name.replace(/[^a-zA-Z0-9]/g, '_')}</title>
-        <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 20px; font-size: 12px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 14px; margin-bottom: 16px; }
-          .brand { display: flex; align-items: center; gap: 12px; }
-          .logo { width: 44px; height: 44px; border-radius: 8px; background-color: #134e4a; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; }
-          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-family: monospace; }
-          .grid-label { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-          .grid-val { font-weight: bold; font-size: 11px; margin-top: 2px; }
-          table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; margin-bottom: 16px; }
-          th { background: #f1f5f9; text-align: left; padding: 8px; border-bottom: 1px solid #cbd5e1; font-weight: bold; }
-          .total-row { background: #f0fdfa; font-weight: bold; border-top: 2px solid #0f766e; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand">
-            <div class="logo">LCUP</div>
-            <div>
-              <h2 style="margin: 0; font-size: 16px; font-weight: 800; color: #134e4a; text-transform: uppercase;">La Consolacion University Philippines</h2>
-              <p style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">College of Information Technology & Engineering</p>
-              <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e;">${orgName}</p>
-            </div>
-          </div>
-          <div style="text-align: right; font-family: monospace;">
-            <span style="background: #ccfbf1; color: #115e59; font-weight: bold; padding: 4px 8px; border-radius: 4px; border: 1px solid #99f6e4; font-size: 10px;">DIGITAL LIQUIDATION</span>
-            <p style="margin: 4px 0 0 0; font-size: 10px; color: #64748b;">Doc Ref: ${docRef}</p>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div><span class="grid-label">Event Name</span><div class="grid-val">${activeEvent.name}</div></div>
-          <div><span class="grid-label">Date Conducted</span><div class="grid-val">${formatDate(activeEvent.dateStart)}</div></div>
-          <div><span class="grid-label">Approved Budget</span><div class="grid-val" style="color: #0f766e;">${formatCurrency(budget)}</div></div>
-          <div><span class="grid-label">Total Disbursed</span><div class="grid-val">${formatCurrency(eventSpent)}</div></div>
-        </div>
-
-        <h4 style="font-family: monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; margin: 0 0 8px 0; color: #334155;">Itemized Financial Statement</h4>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 30px;">#</th>
-              <th>Description</th>
-              <th>Category</th>
-              <th style="text-align: right;">Amount (₱)</th>
-              <th style="text-align: center;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-            <tr class="total-row">
-              <td colspan="3" style="padding: 8px; text-align: right; color: #134e4a;">TOTAL EXPENDITURES:</td>
-              <td style="padding: 8px; text-align: right; color: #134e4a;">${formatCurrency(eventSpent)}</td>
-              <td style="padding: 8px; text-align: center; color: #0f766e; font-size: 10px;">100% RECONCILED</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 8px;">
-          <span style="color: #475569;">Net Balance Remaining (Surplus / Reversion):</span>
-          <span style="font-weight: bold; color: #0f766e; font-size: 13px;">${formatCurrency(remaining)}</span>
-        </div>
-
-        ${activeEvent.revenue && activeEvent.revenue > 0 ? `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 8px;">
-          <span style="color: #115e59;">Total Gross Event Revenue Generated:</span>
-          <span style="font-weight: bold; color: #0f766e; font-size: 13px;">${formatCurrency(activeEvent.revenue)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 8px;">
-          <span style="color: #065f46; font-weight: bold;">Net Total Surplus Reconciled to Treasury:</span>
-          <span style="font-weight: 800; color: #047857; font-size: 14px;">${formatCurrency(remaining + activeEvent.revenue)}</span>
-        </div>
-        ` : ''}
-
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; font-family: monospace;">
-          <div>
-            <div style="height: 26px; display: flex; align-items: center; justify-content: center; color: #047857; font-weight: bold; font-size: 11px;">✓ Digitally Certified</div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${liquidatorName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Student Finance Officer, ${orgName}</div>
-          </div>
-          <div>
-            <div style="height: 26px;"></div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${adviserName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Organization Adviser</div>
-          </div>
-          <div>
-            <div style="height: 26px;"></div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${deanName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">College Dean, CITE</div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    toast.success("Financial Ledger Prepared", `'${activeEvent.name}' financial statement dispatched for print/PDF export.`);
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
-  }
-
-  function handleTriggerDownloadPdf() {
-    if (!activeEvent) return;
-    const orgName = org?.name || "Student Organization";
+    const orgName = org?.name || org?.code || "Student Organization";
     const fileName = `Liquidation_Report_${activeEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
     try {
-      const pdfBlob = generateLiquidationPdfBlob(activeEvent, eventTxns, {
-        organizationName: orgName,
-        officerName: liquidatorName,
-        adviserName,
-        deanName,
-        categories: expenditureCategories,
-      });
+      const orgIdentifier = activeEvent.organizationId || org?.id;
+      const eventIdentifier = activeEvent.id;
+      const storagePath = buildAttachmentPath(orgIdentifier, eventIdentifier, "Liquidation", fileName);
+      const publicUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
 
-      openPdfBlobInNewTab(pdfBlob, fileName);
-      toast.success("Liquidation Report Exported", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and opened.`);
-      setDownloadSuccess(true);
-      setTimeout(() => setDownloadSuccess(false), 3000);
+      let opened = false;
+      if (publicUrl) {
+        try {
+          const resp = await fetch(publicUrl, { method: "HEAD" });
+          if (resp.ok) {
+            window.open(publicUrl, "_blank", "noopener,noreferrer");
+            opened = true;
+          }
+        } catch {
+          // Fallback to blob in new tab
+        }
+      }
+
+      if (!opened) {
+        const pdfBlob = generateLiquidationPdfBlob(activeEvent, eventTxns, {
+          organizationName: orgName,
+          officerName: liquidatorName,
+          adviserName,
+          deanName,
+          categories: expenditureCategories,
+        });
+        openPdfBlobInNewTab(pdfBlob, fileName);
+      }
+
+      toast.success("Liquidation Report Opened", `'${activeEvent.name}' PDF document opened in a new tab.`);
     } catch (err: any) {
-      console.error("Liquidation export error:", err);
-      toast.error("Export Failed", "Could not compile Liquidation Report PDF.");
+      console.error("Liquidation open error:", err);
+      toast.error("Open Failed", "Could not open Liquidation Report PDF.");
     }
   }
 
@@ -596,6 +503,15 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       {/* Action Bar */}
       {!readOnly && (
         <div className="flex items-center justify-end gap-3 flex-wrap mb-6">
+          {activeEvent.status === "Approved" && (
+            <Button
+              variant="ghost"
+              onClick={() => setShowCompleteEventConfirm(true)}
+              className="text-[var(--primary)] hover:bg-[var(--primary)]/10 font-bold border border-[var(--border)] shadow-2xs"
+            >
+              <CheckCircle size={15} /> Complete Event
+            </Button>
+          )}
           {activeEvent.status === "Completed" && (
             <Button variant="success" onClick={() => setShowLiquidationConfirm(true)}>
               <CheckCircle size={14} /> Complete Liquidation
@@ -1091,6 +1007,36 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
         </div>
       </Dialog>
 
+      {/* ── DIALOG: COMPLETE EVENT CONFIRMATION ──────────────────────────── */}
+      <Dialog
+        open={showCompleteEventConfirm}
+        onClose={() => setShowCompleteEventConfirm(false)}
+        title="Mark Event as Completed"
+        size="sm"
+      >
+        <div className="p-6 flex flex-col gap-4">
+          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-teal-50 border border-teal-200">
+            <CheckCircle size={20} className="text-teal-700 flex-shrink-0" />
+            <p className="text-xs text-teal-900 leading-relaxed">
+              Marking <strong>'{activeEvent.name}'</strong> as completed transitions the event to the post-event stage and enables the <strong>Complete Liquidation</strong> workflow.
+            </p>
+          </div>
+
+          <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
+            Are you sure you want to change this event's status from <strong>Approved</strong> to <strong>Completed</strong>?
+          </p>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <Button variant="outline" onClick={() => setShowCompleteEventConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="success" onClick={handleCompleteEvent}>
+              <CheckCircle size={14} /> Yes, Complete Event
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
       {/* ── DIALOG: COMPLETE LIQUIDATION ──────────────────────────────── */}
       <Dialog open={showLiquidationConfirm} onClose={() => setShowLiquidationConfirm(false)} title="Complete Event Liquidation" size="sm">
         <div className="p-6 flex flex-col gap-4">
@@ -1351,16 +1297,11 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
           </div>
 
           {/* Dialog Action Buttons */}
-          <div className="flex items-center justify-between gap-3 pt-3 border-t border-[var(--border)]">
-            <Button variant="outline" size="sm" onClick={handlePrintDocument} className="font-mono text-xs">
-              <Printer size={13} /> Print Document
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+            <Button variant="outline" size="sm" onClick={() => setShowPdfModal(false)}>Close</Button>
+            <Button variant="success" size="sm" onClick={handleTriggerOpenPdf} className="font-mono text-xs gap-1.5">
+              <ExternalLink size={13} /> Open PDF
             </Button>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setShowPdfModal(false)}>Close</Button>
-              <Button variant="success" size="sm" onClick={handleTriggerDownloadPdf} className="font-mono text-xs">
-                <Download size={13} /> Download PDF
-              </Button>
-            </div>
           </div>
         </div>
       </Dialog>

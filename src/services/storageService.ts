@@ -17,14 +17,34 @@ export const STORAGE_BUCKETS = {
 export type AttachmentCategory = "APF" | "Appendices" | "Clearance" | "Liquidation";
 
 /**
- * Sanitizes folder names for cloud storage path safety
+ * Generates an 8-character ID-based storage segment (e.g., org_01000000, event_e1000000, user_51000000)
+ * Uses "org_administration" for institutional / admin / cross-org files.
+ */
+export function toIdSegment(prefix: "org" | "event" | "user", idOrName?: string | null): string {
+  if (!idOrName || !idOrName.trim()) {
+    return prefix === "org" ? "org_administration" : `${prefix}_general`;
+  }
+  const str = idOrName.trim();
+  const lower = str.toLowerCase();
+  if (
+    prefix === "org" &&
+    (lower === "administration" || lower === "admin" || lower === "institutional" || lower === "general" || lower === "cross-org")
+  ) {
+    return "org_administration";
+  }
+  const cleanId = str.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
+  return `${prefix}_${cleanId || (prefix === "org" ? "administration" : "general")}`;
+}
+
+/**
+ * Sanitizes file names for cloud storage path safety
  */
 export function sanitizeStorageSegment(name: string): string {
-  if (!name || !name.trim()) return "General";
+  if (!name || !name.trim()) return "file.pdf";
   return name
     .trim()
     .replace(/[\\/:*?"<>|#%]/g, "_")
-    .replace(/\s+/g, " ");
+    .replace(/\s+/g, "_");
 }
 
 /**
@@ -39,62 +59,49 @@ export function getReportDateFolder(date?: Date | string): string {
 }
 
 /**
- * Converts any event string to PascalCase for cloud folder naming
- */
-export function toPascalCase(str: string): string {
-  if (!str || !str.trim()) return "Event";
-  return str
-    .replace(/[^a-zA-Z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join("") || "Event";
-}
-
-/**
  * Builds the exact cloud storage path for event attachments
- * Pattern: attachments / {orgName} / {EventNameInPascalCase} / {category} / {fileName}
+ * Pattern: attachments / org_{first_8_id_digits} / event_{first_8_id_digits} / {category} / {fileName}
  */
 export function buildAttachmentPath(
-  organizationName: string,
-  eventNameOrId: string,
+  organizationIdOrName: string | undefined | null,
+  eventIdOrName: string | undefined | null,
   category: AttachmentCategory,
   fileName: string
 ): string {
-  const org = sanitizeStorageSegment(organizationName || "General");
-  const eventPascal = toPascalCase(eventNameOrId);
+  const orgSegment = toIdSegment("org", organizationIdOrName);
+  const eventSegment = toIdSegment("event", eventIdOrName);
   const cleanFileName = sanitizeStorageSegment(fileName);
-  return `${org}/${eventPascal}/${category}/${cleanFileName}`;
+  return `${orgSegment}/${eventSegment}/${category}/${cleanFileName}`;
 }
 
 /**
  * Builds the cloud storage path for user avatars / media
- * Pattern: {organizationName or "Administration"}/{userID}/{fileName}
+ * Pattern: media / org_{first_8_id_digits} / user_{first_8_id_digits} / {fileName}
  */
 export function buildUserMediaPath(
-  organizationName: string | undefined | null,
+  organizationIdOrName: string | undefined | null,
   userId: string,
   fileName: string
 ): string {
-  const org = organizationName ? sanitizeStorageSegment(organizationName) : "Administration";
-  const uid = sanitizeStorageSegment(userId);
+  const orgSegment = toIdSegment("org", organizationIdOrName);
+  const userSegment = toIdSegment("user", userId);
   const cleanFileName = sanitizeStorageSegment(fileName);
-  return `${org}/${uid}/${cleanFileName}`;
+  return `${orgSegment}/${userSegment}/${cleanFileName}`;
 }
 
 /**
  * Builds the cloud storage path for system-generated reports
- * Pattern: {organizationName}/{date_report_generated}/{fileName}
+ * Pattern: reports / org_{first_8_id_digits} / {YYYY-MM-DD} / {fileName}
  */
 export function buildReportPath(
-  organizationName: string | undefined | null,
+  organizationIdOrName: string | undefined | null,
   dateGenerated: string | Date | undefined,
   fileName: string
 ): string {
-  const org = organizationName ? sanitizeStorageSegment(organizationName) : "Administration";
+  const orgSegment = toIdSegment("org", organizationIdOrName);
   const dateFolder = getReportDateFolder(dateGenerated);
   const cleanFileName = sanitizeStorageSegment(fileName);
-  return `${org}/${dateFolder}/${cleanFileName}`;
+  return `${orgSegment}/${dateFolder}/${cleanFileName}`;
 }
 
 /**
@@ -111,10 +118,11 @@ export function getPublicStorageUrl(bucket: string, path: string): string {
 
 /**
  * Uploads an event attachment (APF, Appendices, Clearance, or Liquidation)
- * Path: attachments / {orgName} / {EventNameInPascalCase} / {category} / {fileName}
+ * Path: attachments / org_{first_8_id_digits} / event_{first_8_id_digits} / {category} / {fileName}
  */
 export async function uploadEventAttachment(params: {
-  organizationName: string;
+  organizationId?: string;
+  organizationName?: string;
   eventId?: string;
   eventName?: string;
   category: AttachmentCategory;
@@ -123,8 +131,9 @@ export async function uploadEventAttachment(params: {
 }): Promise<{ path: string; publicUrl: string; error: Error | null }> {
   try {
     const rawName = params.fileName || (params.file instanceof File ? params.file.name : "attachment.pdf");
-    const eventIdentifier = params.eventName || params.eventId || "Event";
-    const path = buildAttachmentPath(params.organizationName, eventIdentifier, params.category, rawName);
+    const orgIdentifier = params.organizationId || params.organizationName;
+    const eventIdentifier = params.eventId || params.eventName;
+    const path = buildAttachmentPath(orgIdentifier, eventIdentifier, params.category, rawName);
 
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKETS.ATTACHMENTS)
@@ -151,7 +160,8 @@ export async function uploadEventAttachment(params: {
  * Uploads multiple event appendices in parallel
  */
 export async function uploadEventAppendices(params: {
-  organizationName: string;
+  organizationId?: string;
+  organizationName?: string;
   eventId?: string;
   eventName?: string;
   files: (File | Blob)[];
@@ -165,6 +175,7 @@ export async function uploadEventAppendices(params: {
     params.files.map(async (file, idx) => {
       const fileName = params.fileNames?.[idx] || (file instanceof File ? file.name : `appendix_${idx + 1}.pdf`);
       const res = await uploadEventAttachment({
+        organizationId: params.organizationId,
         organizationName: params.organizationName,
         eventId: params.eventId,
         eventName: params.eventName,
@@ -188,6 +199,7 @@ export async function uploadEventAppendices(params: {
  * Uploads a user avatar image to the `media` bucket
  */
 export async function uploadUserMedia(params: {
+  organizationId?: string | null;
   organizationName?: string | null;
   userId: string;
   file: File | Blob;
@@ -195,7 +207,8 @@ export async function uploadUserMedia(params: {
 }): Promise<{ path: string; publicUrl: string; error: Error | null }> {
   try {
     const rawName = params.fileName || (params.file instanceof File ? params.file.name : "avatar.png");
-    const path = buildUserMediaPath(params.organizationName, params.userId, rawName);
+    const orgIdentifier = params.organizationId || params.organizationName;
+    const path = buildUserMediaPath(orgIdentifier, params.userId, rawName);
 
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKETS.MEDIA)
@@ -222,13 +235,15 @@ export async function uploadUserMedia(params: {
  * Uploads a generated report to the `reports` bucket
  */
 export async function uploadGeneratedReport(params: {
+  organizationId?: string | null;
   organizationName?: string | null;
   dateGenerated?: string | Date;
   file: File | Blob;
   fileName: string;
 }): Promise<{ path: string; publicUrl: string; error: Error | null }> {
   try {
-    const path = buildReportPath(params.organizationName, params.dateGenerated, params.fileName);
+    const orgIdentifier = params.organizationId || params.organizationName;
+    const path = buildReportPath(orgIdentifier, params.dateGenerated, params.fileName);
 
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKETS.REPORTS)

@@ -339,21 +339,38 @@ ON CONFLICT (id) DO UPDATE SET public = true;
 
 DO $$
 BEGIN
+  -- attachments bucket
   DROP POLICY IF EXISTS "Allow public access for attachments" ON storage.objects;
-  CREATE POLICY "Allow public access for attachments" ON storage.objects
+  DROP POLICY IF EXISTS "Allow public read for attachments" ON storage.objects;
+  DROP POLICY IF EXISTS "Allow authenticated write for attachments" ON storage.objects;
+  CREATE POLICY "Allow public read for attachments" ON storage.objects
+    FOR SELECT USING (bucket_id = 'attachments');
+  CREATE POLICY "Allow authenticated write for attachments" ON storage.objects
     FOR ALL USING (bucket_id = 'attachments') WITH CHECK (bucket_id = 'attachments');
 
+  -- media bucket
   DROP POLICY IF EXISTS "Allow public access for media" ON storage.objects;
-  CREATE POLICY "Allow public access for media" ON storage.objects
+  DROP POLICY IF EXISTS "Allow public read for media" ON storage.objects;
+  DROP POLICY IF EXISTS "Allow authenticated write for media" ON storage.objects;
+  CREATE POLICY "Allow public read for media" ON storage.objects
+    FOR SELECT USING (bucket_id = 'media');
+  CREATE POLICY "Allow authenticated write for media" ON storage.objects
     FOR ALL USING (bucket_id = 'media') WITH CHECK (bucket_id = 'media');
 
+  -- reports bucket
   DROP POLICY IF EXISTS "Allow public access for reports" ON storage.objects;
-  CREATE POLICY "Allow public access for reports" ON storage.objects
+  DROP POLICY IF EXISTS "Allow public read for reports" ON storage.objects;
+  DROP POLICY IF EXISTS "Allow authenticated write for reports" ON storage.objects;
+  CREATE POLICY "Allow public read for reports" ON storage.objects
+    FOR SELECT USING (bucket_id = 'reports');
+  CREATE POLICY "Allow authenticated write for reports" ON storage.objects
     FOR ALL USING (bucket_id = 'reports') WITH CHECK (bucket_id = 'reports');
 
+  -- team_images bucket (Read Only for Public)
   DROP POLICY IF EXISTS "Allow public access for team_images" ON storage.objects;
-  CREATE POLICY "Allow public access for team_images" ON storage.objects
-    FOR ALL USING (bucket_id = 'team_images') WITH CHECK (bucket_id = 'team_images');
+  DROP POLICY IF EXISTS "Allow public read for team_images" ON storage.objects;
+  CREATE POLICY "Allow public read for team_images" ON storage.objects
+    FOR SELECT USING (bucket_id = 'team_images');
 END $$;
 
 COMMIT;

@@ -6,7 +6,7 @@ import { Card, Button, UserAvatar } from "../../components/ui";
 import {
   History, Search, Filter, Clock, ArrowDownWideNarrow, ArrowUpNarrowWide,
   ScrollText, FileText, ArrowRight, Activity, Building2, CheckCircle,
-  ChevronDown, Loader2, Printer
+  ChevronDown, Loader2
 } from "lucide-react";
 import { formatDateTime, getActionBadgeClass, Event, statusColors } from "../../services/mockData";
 import { uploadGeneratedReport } from "../../services/storageService";
@@ -485,7 +485,7 @@ export default function AdminAuditTrail() {
           </p>
         </div>
         <Button onClick={handleExportPDF} variant="outline" className="gap-1.5 shadow-2xs font-semibold text-xs h-9">
-          <Printer size={15} /> Export PDF
+          <FileText size={15} /> Export PDF
         </Button>
       </div>
 

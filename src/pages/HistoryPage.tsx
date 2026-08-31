@@ -669,6 +669,10 @@ export default function HistoryPage() {
                       <p className="font-medium">{selectedEvent.location || "—"}</p>
                     )}
                   </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
+                    <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{selectedEvent.requisites || "—"}</p>
+                  </div>
                 </div>
               )}
 

@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import { Button } from "../ui";
 import {
-  Wallet, CreditCard, Coins, FileSpreadsheet, ArrowRight, Printer,
+  Wallet, CreditCard, Coins, FileSpreadsheet, ArrowRight, FileText,
   CheckCircle, Clock, Scale
 } from "lucide-react";
 import {
@@ -140,7 +140,7 @@ export default function EventFinanceTab({
               onClick={handlePrintLiquidation}
               className="bg-white/10 hover:bg-white/20 border-white/20 text-white font-medium text-xs gap-1.5 cursor-pointer shadow-2xs"
             >
-              <Printer size={13} /> Print / Preview Liquidation
+              <FileText size={13} /> View Liquidation
             </Button>
           </div>
         </div>

@@ -231,7 +231,7 @@ export default function DeanReports() {
       doc.text("TOTAL ALLOCATION", margin + colW * 2 + 4, kpiY + 4.5);
       doc.setFontSize(9);
       doc.setTextColor(15, 118, 110);
-      doc.text(`PHP ${totalBudget.toLocaleString()}`, margin + colW * 2 + 4, kpiY + 9.5);
+      doc.text(`PHP ${Number(totalBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + colW * 2 + 4, kpiY + 9.5);
 
       // Col 4: Total Disbursed
       doc.setFontSize(6.5);
@@ -239,7 +239,7 @@ export default function DeanReports() {
       doc.text("TOTAL DISBURSED", margin + colW * 3 + 4, kpiY + 4.5);
       doc.setFontSize(9);
       doc.setTextColor(21, 128, 61);
-      doc.text(`PHP ${totalSpent.toLocaleString()} (${spentPercentage}%)`, margin + colW * 3 + 4, kpiY + 9.5);
+      doc.text(`PHP ${Number(totalSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${spentPercentage}%)`, margin + colW * 3 + 4, kpiY + 9.5);
 
       // ── 3. STATUS BADGE COLOR HELPER ────────────────────────────────
       const getStatusPillColors = (status: string) => {
@@ -271,8 +271,8 @@ export default function DeanReports() {
           orgCode,
           typeName,
           date: formatDate(e.dateStart),
-          budget: `PHP ${e.proposedBudget.toLocaleString()}`,
-          spent: `PHP ${spent.toLocaleString()}`,
+          budget: `PHP ${Number(e.proposedBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          spent: `PHP ${Number(spent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           status: e.status,
         };
       });
@@ -907,6 +907,10 @@ export default function DeanReports() {
                     ) : (
                       <p className="font-medium">{viewEvent.location || "—"}</p>
                     )}
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
+                    <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{viewEvent.requisites || "—"}</p>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p>

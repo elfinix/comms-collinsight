@@ -49,6 +49,7 @@ export default function DeanPendingApproval() {
       });
 
       await uploadEventAttachment({
+        organizationId: viewEvent.organizationId || org?.id,
         organizationName: orgName,
         eventId: viewEvent.id,
         eventName: viewEvent.name,
@@ -84,8 +85,12 @@ export default function DeanPendingApproval() {
 
   function handleRequestChange() {
     if (!viewEvent || !feedback.trim()) return;
-    const targetEvent = { ...viewEvent, status: "Pending Revision" as const };
     const trimmed = feedback.trim();
+    const targetEvent = {
+      ...viewEvent,
+      status: "Pending Revision" as const,
+      deanFeedback: trimmed,
+    };
     setEventStatus(viewEvent.id, "Pending Revision", trimmed);
     const updatedRemarks = [...(viewEvent.remarks ?? []), `[Dean Remarks] Revision Requested: ${trimmed}`];
     updateEvent(viewEvent.id, {
@@ -332,7 +337,11 @@ export default function DeanPendingApproval() {
                       <p className="font-medium">{viewEvent.location || "—"}</p>
                     )}
                   </div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p><p>{organizations.find(o => o.id === viewEvent.organizationId)?.name}</p></div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
+                    <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{viewEvent.requisites || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p><p className="font-semibold text-[var(--foreground)]">{organizations.find(o => o.id === viewEvent.organizationId)?.name}</p></div>
                 </div>
               )}
               {viewTab === "compliance" && (

@@ -2,19 +2,20 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { useToast } from "../context/ToastContext";
-import { Dialog, SignatoryProgress } from "../components/ui";
+import { Dialog, SignatoryProgress, UserAvatar } from "../components/ui";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, ArrowUpRight, Clock, MapPin, Building2, Users,
   ChevronLeft, ChevronRight, ArrowLeft, Search, LayoutGrid, ListFilter,
-  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt, Video, ExternalLink, FileText, Printer, BadgeCheck, FileSpreadsheet
+  X, CalendarDays, Award, ShieldCheck, Globe, Radio, Wallet, Receipt, Video, ExternalLink, FileText, BadgeCheck, FileSpreadsheet
 } from "lucide-react";
 import {
   getEventTypeById,
-  formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl
+  formatDate, formatCurrency, statusColors, Event, Transaction, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../services/mockData";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
+import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../services/storageService";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -46,7 +47,7 @@ const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
-const STATUS_FILTER_OPTIONS = ["All", "Approved", "For Approval", "For Review", "Completed", "Closed"] as const;
+const STATUS_FILTER_OPTIONS = ["All", "Approved", "For Approval", "For Review", "Pending Revision", "Completed", "Closed"] as const;
 type StatusFilter = (typeof STATUS_FILTER_OPTIONS)[number];
 
 function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mode?: string; size?: number; className?: string }) {
@@ -312,10 +313,10 @@ export default function OrganizationsPage() {
   // Modal
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  // Public events (includes ongoing proposals and approved/closed events)
+  // Public events (includes ongoing proposals, revisions, and approved/closed events)
   const publicEvents = useMemo(() => {
     return liveEvents.filter((e) =>
-      ["Created", "For Review", "For Approval", "Approved", "Completed", "Closed"].includes(e.status)
+      ["Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"].includes(e.status)
     );
   }, [liveEvents]);
 
@@ -600,7 +601,7 @@ export default function OrganizationsPage() {
                             className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-xs flex-shrink-0"
                             style={{ backgroundColor: org.logoColor }}
                           >
-                            {org.code}
+                            {org.code?.substring(0, 3)}
                           </div>
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -724,9 +725,13 @@ export default function OrganizationsPage() {
                             {/* Faculty Adviser */}
                             {adviser && (
                               <div className="flex items-center gap-3 p-3 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-2xs hover:border-[var(--primary)] transition">
-                                <div className="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-2xs">
-                                  {adviser.firstName[0]}
-                                </div>
+                                <UserAvatar
+                                  avatar={adviser.avatar}
+                                  firstName={adviser.firstName}
+                                  lastName={adviser.lastName}
+                                  gender={adviser.gender}
+                                  size="md"
+                                />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center gap-2">
                                     <p className="text-sm font-bold text-[var(--foreground)] truncate">
@@ -751,23 +756,18 @@ export default function OrganizationsPage() {
                               </p>
                             ) : (
                               orgStudents.map((u) => {
-                                const avatarBg =
-                                  u.gender === "male"
-                                    ? "bg-sky-50 text-sky-800 dark:bg-sky-950 dark:text-sky-200 border-sky-200 dark:border-sky-800"
-                                    : u.gender === "female"
-                                    ? "bg-pink-50 text-pink-800 dark:bg-pink-950 dark:text-pink-200 border-pink-200 dark:border-pink-800"
-                                    : "bg-purple-50 text-purple-800 dark:bg-purple-950 dark:text-purple-200 border-purple-200 dark:border-purple-800";
-
                                 return (
                                   <div
                                     key={u.id}
                                     className="flex items-center gap-3 p-2.5 bg-[var(--card)] border border-[var(--border)] rounded-xl shadow-2xs hover:border-[var(--primary)]/40 transition"
                                   >
-                                    <div
-                                      className={`w-8 h-8 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0 ${avatarBg}`}
-                                    >
-                                      {u.firstName[0]}
-                                    </div>
+                                    <UserAvatar
+                                      avatar={u.avatar}
+                                      firstName={u.firstName}
+                                      lastName={u.lastName}
+                                      gender={u.gender}
+                                      size="sm"
+                                    />
                                     <div className="min-w-0 flex-1">
                                       <p className="text-xs font-bold text-[var(--foreground)] truncate">
                                         {u.firstName} {u.lastName} {u.suffix}
@@ -942,18 +942,26 @@ export default function OrganizationsPage() {
                     </span>
                   )}
                 </div>
+                {selectedDay && (
+                  <button
+                    onClick={() => setSelectedDay(null)}
+                    className="hover:underline font-bold text-[11px] cursor-pointer"
+                  >
+                    Show Full Month
+                  </button>
+                )}
               </div>
             </FadeSection>
 
-            {/* Events Catalog View */}
+            {/* Events Grid / List */}
             {filteredCalendarEvents.length === 0 ? (
-              <FadeSection>
-                <div className="flex flex-col items-center justify-center py-20 gap-3 bg-[var(--card)] rounded-2xl border border-[var(--border)] text-center p-6">
-                  <CalendarIcon size={44} className="text-[var(--muted-foreground)] opacity-30 mb-1" />
-                  <h3 className="text-base font-bold text-[var(--foreground)]">No events match your criteria</h3>
-                  <p className="text-xs text-[var(--muted-foreground)] max-w-sm">
-                    Try adjusting your status filter, organization selection, or chosen calendar date.
-                  </p>
+              <div className="p-12 text-center rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/20">
+                <CalendarDays size={36} className="mx-auto text-[var(--muted-foreground)] mb-3 opacity-60" />
+                <p className="text-sm font-bold text-[var(--foreground)]">No campus events match your criteria</p>
+                <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                  Try selecting a different date, clearing filters, or searching for other event types.
+                </p>
+                {(statusFilter !== "All" || selectedOrgFilter !== "all" || selectedDay !== null || calendarSearch) && (
                   <button
                     onClick={() => {
                       setStatusFilter("All");
@@ -961,52 +969,55 @@ export default function OrganizationsPage() {
                       setSelectedDay(null);
                       setCalendarSearch("");
                     }}
-                    className="mt-2 px-4 py-2 text-xs font-semibold bg-[var(--primary)] text-white rounded-lg hover:bg-[var(--primary)]/90 transition cursor-pointer"
+                    className="mt-4 px-4 py-2 bg-[var(--primary)] text-white text-xs font-bold rounded-xl shadow-xs hover:brightness-110 transition cursor-pointer"
                   >
-                    Show All Events
+                    Reset All Filters
                   </button>
-                </div>
-              </FadeSection>
+                )}
+              </div>
             ) : calendarLayout === "grid" ? (
               /* Grid Layout */
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredCalendarEvents.map((e, i) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
                   const type = getEventTypeById(e.typeId);
                   return (
-                    <FadeSection key={e.id} delay={i * 30}>
+                    <FadeSection key={e.id} delay={i * 25}>
                       <button
                         onClick={() => setSelectedEvent(e)}
-                        className="w-full bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-left hover:shadow-md hover:border-[var(--primary)] transition-all group flex flex-col gap-4 h-full cursor-pointer shadow-2xs"
+                        className="w-full text-left bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 hover:border-[var(--primary)]/50 hover:shadow-md transition-all group flex flex-col justify-between h-full gap-4 cursor-pointer shadow-2xs"
                       >
-                        {/* Card Header: Status & Mode */}
-                        <div className="flex items-center justify-between gap-2 w-full">
-                          <span className={`text-[11px] font-mono px-2.5 py-1 rounded-full ${statusColors[e.status]}`}>
-                            {e.status}
-                          </span>
-                          <span className="text-[11px] font-mono text-[var(--foreground)] bg-[var(--muted)] px-2 py-0.5 rounded-md border border-[var(--border)] font-medium">
-                            {e.mode}
-                          </span>
-                        </div>
+                        <div className="space-y-3 w-full">
+                          {/* Card Header: Date & Status */}
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <span className="text-[11px] font-mono font-bold text-[var(--primary)] bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full">
+                              {formatDate(e.dateStart)}
+                            </span>
+                            <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>
+                              {e.status}
+                            </span>
+                          </div>
 
-                        {/* Title & Time */}
-                        <div className="flex-1">
-                          <h3 className="font-bold text-base text-[var(--foreground)] group-hover:text-[var(--primary)] transition leading-snug line-clamp-2">
+                          {/* Event Title */}
+                          <h3 className="font-bold text-base text-[var(--foreground)] group-hover:text-[var(--primary)] transition line-clamp-2 leading-snug">
                             {e.name}
                           </h3>
-                          <div className="flex flex-col gap-1.5 mt-2.5 text-xs font-mono text-[var(--foreground)]">
-                            <span className="flex items-center gap-1.5 font-bold text-[var(--foreground)]">
-                              <Clock size={13} className="text-[var(--primary)]" />
-                              {formatTimeRange(e.dateStart, e.dateEnd)}
-                            </span>
-                            {e.location && (
-                              <span className="flex items-center gap-1.5 min-w-0 text-[var(--muted-foreground)] font-medium" title={e.location}>
-                                {e.mode === "Online/Virtual" ? (
-                                  <Video size={13} className="text-[var(--primary)] flex-shrink-0" />
-                                ) : (
-                                  <MapPin size={13} className="text-[var(--primary)] flex-shrink-0" />
-                                )}
-                                <span className="truncate">{e.location}</span>
+
+                          {/* Location & Time details */}
+                          <div className="space-y-1.5 text-xs text-[var(--muted-foreground)] font-mono">
+                            <div className="flex items-center gap-2 truncate">
+                              <Clock size={13} className="text-[var(--primary)] flex-shrink-0" />
+                              <span className="truncate">
+                                {formatTimeRange(e.dateStart, e.dateEnd)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 truncate">
+                              <ModeIcon mode={e.mode} size={13} className="flex-shrink-0" />
+                              <span className="truncate">{e.location || "TBA"}</span>
+                            </div>
+                            {e.mode && (
+                              <span className="inline-block text-[10px] px-2 py-0.5 rounded bg-[var(--muted)] text-[var(--foreground)] border border-[var(--border)] font-semibold mt-1">
+                                {e.mode === "Online/Virtual" ? "Online" : e.mode}
                               </span>
                             )}
                           </div>
@@ -1019,7 +1030,7 @@ export default function OrganizationsPage() {
                               className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
                               style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                             >
-                              {org?.code?.slice(0, 2) ?? "?"}
+                              {org?.code?.substring(0, 3) ?? "?"}
                             </div>
                             <span className="text-xs font-semibold text-[var(--foreground)] truncate">
                               {org?.name}
@@ -1037,7 +1048,7 @@ export default function OrganizationsPage() {
                 })}
               </div>
             ) : (
-              /* List / Agenda Layout */
+              /* List Layout */
               <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xs divide-y divide-[var(--border)]">
                 {filteredCalendarEvents.map((e, i) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
@@ -1053,7 +1064,7 @@ export default function OrganizationsPage() {
                             className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-2xs"
                             style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                           >
-                            {org?.code}
+                            {org?.code?.substring(0, 3)}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -1064,41 +1075,27 @@ export default function OrganizationsPage() {
                                 {e.status}
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 flex-wrap text-xs text-[var(--foreground)] font-mono">
-                              <span className="flex items-center gap-1 font-bold">
-                                <Clock size={12} className="text-[var(--primary)]" />
-                                {formatTimeRange(e.dateStart, e.dateEnd)}
-                              </span>
-                              <span className="flex items-center gap-1 text-[var(--muted-foreground)]">
+                            <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)] font-mono flex-wrap">
+                              <span className="font-bold text-[var(--primary)]">{formatDate(e.dateStart)}</span>
+                              <span>•</span>
+                              <span>{formatTimeRange(e.dateStart, e.dateEnd)}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1">
                                 <ModeIcon mode={e.mode} size={12} />
-                                {e.mode === "Online/Virtual" ? "Online" : e.mode}
+                                {e.location || "TBA"}
                               </span>
-                              {e.location && (
-                                <span className="flex items-center gap-1 min-w-0 text-[var(--muted-foreground)]" title={e.location}>
-                                  {e.mode === "Online/Virtual" ? (
-                                    <Video size={12} className="text-[var(--primary)] flex-shrink-0" />
-                                  ) : (
-                                    <MapPin size={12} className="text-[var(--primary)] flex-shrink-0" />
-                                  )}
-                                  <span className="truncate max-w-[180px] sm:max-w-[240px]">{e.location}</span>
-                                </span>
-                              )}
-                              {type && (
-                                <span className="bg-[var(--primary)] text-white px-2 py-0.5 rounded text-[10px] font-semibold shadow-2xs">
-                                  {type.name}
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 justify-between md:justify-end flex-shrink-0">
-                          <span className="text-xs font-semibold text-[var(--foreground)] font-mono">
-                            {org?.name}
-                          </span>
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] group-hover:translate-x-0.5 transition">
-                            <ArrowUpRight size={14} />
-                          </span>
+                        <div className="flex items-center gap-3 flex-shrink-0 self-end md:self-auto">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-xs font-bold text-[var(--foreground)]">{org?.name}</p>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)]">{type?.name}</p>
+                          </div>
+                          <div className="w-8 h-8 rounded-xl bg-[var(--muted)]/50 group-hover:bg-[var(--primary)] group-hover:text-white flex items-center justify-center transition shadow-2xs">
+                            <ArrowUpRight size={15} />
+                          </div>
                         </div>
                       </button>
                     </FadeSection>
@@ -1110,14 +1107,12 @@ export default function OrganizationsPage() {
         )}
       </div>
 
-      <PublicFooter />
-
-      {/* Rich Event Detail Dialog */}
+      {/* ── PUBLIC EVENT DETAILS MODAL ── */}
       {selectedEvent && (
         <Dialog
           open={!!selectedEvent}
           onClose={() => setSelectedEvent(null)}
-          title="Event Clearance Details"
+          title={selectedEvent.name}
           size="lg"
         >
           {(() => {
@@ -1125,8 +1120,8 @@ export default function OrganizationsPage() {
             const dept = departments.find((d) => d.id === org?.departmentId);
             const type = getEventTypeById(selectedEvent.typeId);
             const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
-            const totalSpent = eventTxns.reduce((sum, t) => sum + (t.status === "Paid" ? t.amount : 0), 0);
-            const remainingBalance = selectedEvent.proposedBudget - totalSpent;
+            const totalDisbursed = eventTxns.reduce((s, t) => s + t.amount, 0);
+            const remainingBalance = selectedEvent.proposedBudget - totalDisbursed;
 
             return (
               <div className="p-6 flex flex-col gap-6">
@@ -1137,7 +1132,7 @@ export default function OrganizationsPage() {
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-2xs flex-shrink-0"
                       style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                     >
-                      {org?.code}
+                      {org?.code?.substring(0, 3)}
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-[var(--foreground)] truncate">{org?.name}</p>
@@ -1215,9 +1210,26 @@ export default function OrganizationsPage() {
                     <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
                       <Award size={12} className="text-[var(--primary)]" /> Compliance Documents
                     </p>
-                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
-                      {selectedEvent.apfUrl ? "APF Attached" : "Activity Proposal Form"} · {selectedEvent.appendices?.length ?? 0} Appendices
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap text-xs">
+                      {selectedEvent.apfUrl ? (
+                        <a
+                          href={resolvePdfUrl(selectedEvent.apfUrl, "apf")}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline font-bold font-mono text-[11px]"
+                          title="Open Activity Proposal Form from Storage"
+                        >
+                          <FileText size={11} /> APF Document <ExternalLink size={10} />
+                        </a>
+                      ) : (
+                        <span className="text-[var(--muted-foreground)] text-xs">No APF</span>
+                      )}
+                      {selectedEvent.appendices && selectedEvent.appendices.length > 0 && (
+                        <span className="text-[11px] font-mono text-[var(--muted-foreground)]">
+                          · {selectedEvent.appendices.length} {selectedEvent.appendices.length === 1 ? "Appendix" : "Appendices"}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1260,7 +1272,7 @@ export default function OrganizationsPage() {
                     <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
                       <p className="text-[9px] font-mono text-[var(--muted-foreground)] uppercase">Total Disbursed</p>
                       <p className="text-xs sm:text-sm font-bold font-mono text-teal-400 dark:text-teal-600 mt-0.5 truncate">
-                        {formatCurrency(totalSpent)}
+                        {formatCurrency(totalDisbursed)}
                       </p>
                     </div>
                     <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
@@ -1342,13 +1354,32 @@ export default function OrganizationsPage() {
                     <div className="flex items-center justify-end ml-auto flex-shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
-                          printClearanceDocument(selectedEvent, org?.name, type?.name);
-                          toast.success("Clearance Certificate Prepared", "Document dispatched to the browser.");
+                        onClick={async () => {
+                          const clearanceFileName = `Event_Clearance_${selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+                          try {
+                            const storagePath = buildAttachmentPath(selectedEvent.organizationId || org?.name, selectedEvent.id || selectedEvent.name, "Clearance", clearanceFileName);
+                            const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
+                            let opened = false;
+                            if (storageUrl) {
+                              try {
+                                const resp = await fetch(storageUrl, { method: "HEAD" });
+                                if (resp.ok) {
+                                  window.open(storageUrl, "_blank", "noopener,noreferrer");
+                                  opened = true;
+                                }
+                              } catch {}
+                            }
+                            if (!opened) {
+                              printClearanceDocument(selectedEvent, org?.name, type?.name);
+                            }
+                            toast.success("Clearance Certificate Opened", "Viewing official stored clearance from database.");
+                          } catch {
+                            printClearanceDocument(selectedEvent, org?.name, type?.name);
+                          }
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >
-                        <Printer size={13} /> Print / Preview Clearance
+                        <FileText size={13} /> View Clearance
                       </button>
                     </div>
                   </div>
@@ -1376,14 +1407,33 @@ export default function OrganizationsPage() {
                     <div className="flex items-center justify-end ml-auto flex-shrink-0">
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
-                          printLiquidationDocument(selectedEvent, eventTxns, org?.name);
-                          toast.success("Liquidation Statement Prepared", "Official document dispatched for print/PDF export.");
+                          const liquidationFileName = `Liquidation_Report_${selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+                          try {
+                            const storagePath = buildAttachmentPath(selectedEvent.organizationId || org?.name, selectedEvent.id || selectedEvent.name, "Liquidation", liquidationFileName);
+                            const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
+                            let opened = false;
+                            if (storageUrl) {
+                              try {
+                                const resp = await fetch(storageUrl, { method: "HEAD" });
+                                if (resp.ok) {
+                                  window.open(storageUrl, "_blank", "noopener,noreferrer");
+                                  opened = true;
+                                }
+                              } catch {}
+                            }
+                            if (!opened) {
+                              printLiquidationDocument(selectedEvent, eventTxns, org?.name);
+                            }
+                            toast.success("Liquidation Report Opened", "Viewing official stored liquidation from database.");
+                          } catch {
+                            printLiquidationDocument(selectedEvent, eventTxns, org?.name);
+                          }
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >
-                        <Printer size={13} /> Print / Preview Liquidation
+                        <FileText size={13} /> View Liquidation
                       </button>
                     </div>
                   </div>

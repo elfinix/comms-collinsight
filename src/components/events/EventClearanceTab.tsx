@@ -1,4 +1,4 @@
-import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Printer, Eye } from "lucide-react";
+import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Eye } from "lucide-react";
 import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event } from "../../services/mockData";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
@@ -36,7 +36,7 @@ export default function EventClearanceTab({
   // Official Clearance Viewer from Database Storage (for approved events)
   const handleViewClearance = () => {
     try {
-      const storagePath = buildAttachmentPath(resolvedOrgName, event.name, "Clearance", clearanceFileName);
+      const storagePath = buildAttachmentPath(event.organizationId || resolvedOrgName, event.id || event.name, "Clearance", clearanceFileName);
       const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
 
       if (onViewPdf) {
@@ -145,7 +145,7 @@ export default function EventClearanceTab({
             <div className="text-xs space-y-0.5">
               <p className="font-bold text-amber-950">Clearance Template in Preparation</p>
               <p className="text-amber-800/90 leading-relaxed">
-                Institutional clearance certificate will be finalized and sealed with executive digital signatories once approved by the College Dean.
+                Clearance certificate will be finalized with executive digital signatories once approved by the College Dean.
               </p>
             </div>
           </div>

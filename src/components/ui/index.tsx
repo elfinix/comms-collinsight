@@ -834,16 +834,17 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
 
 // --- Signatory Progress ---
 export function SignatoryProgress({ status }: { status: string }) {
+  const isRevision = status === "Pending Revision";
   const steps = [
-    { label: "Student", sub: "APF Submission" },
+    { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
     { label: "Adviser", sub: "Endorsement" },
     { label: "Dean", sub: "Approval" },
     { label: "SDS", sub: "Final Clearance" },
   ];
   const stepIndex = {
     Created: 0,
+    "Pending Revision": 0,
     "For Review": 1,
-    "Pending Revision": 1,
     "For Approval": 2,
     Approved: 3,
     Completed: 3,
@@ -866,17 +867,19 @@ export function SignatoryProgress({ status }: { status: string }) {
           const isPassed = i < stepIndex;
           const isCurrent = i === stepIndex;
 
+          const nodeBg = isPassed
+            ? "bg-[var(--primary)] text-white shadow-2xs"
+            : isCurrent
+            ? isRevision
+              ? "bg-amber-500 text-white ring-3 ring-amber-400/30 ring-offset-2 ring-offset-[var(--card)] shadow-xs"
+              : "bg-[var(--primary)] text-white ring-3 ring-[var(--primary)]/25 ring-offset-2 ring-offset-[var(--card)] shadow-xs"
+            : "bg-[var(--card)] text-[var(--muted-foreground)] border-2 border-[var(--border)]";
+
           return (
             <div key={step.label} className="relative z-10 flex flex-col items-center flex-1 min-w-0 px-0.5 text-center">
               {/* Circle node */}
               <div
-                className={`w-8 h-8 rounded-full text-xs flex items-center justify-center font-bold transition-all ${
-                  isPassed
-                    ? "bg-[var(--primary)] text-white shadow-2xs"
-                    : isCurrent
-                    ? "bg-[var(--primary)] text-white ring-3 ring-[var(--primary)]/25 ring-offset-2 ring-offset-[var(--card)] shadow-xs"
-                    : "bg-[var(--card)] text-[var(--muted-foreground)] border-2 border-[var(--border)]"
-                }`}
+                className={`w-8 h-8 rounded-full text-xs flex items-center justify-center font-bold transition-all ${nodeBg}`}
               >
                 {isPassed ? "✓" : i + 1}
               </div>
@@ -885,14 +888,20 @@ export function SignatoryProgress({ status }: { status: string }) {
               <div className="flex flex-col items-center gap-0.5 mt-2 w-full">
                 <span
                   className={`text-[11px] font-bold tracking-tight leading-tight truncate max-w-full ${
-                    isPassed || isCurrent ? "text-[var(--foreground)]" : "text-[var(--muted-foreground)]"
+                    isPassed || isCurrent
+                      ? isRevision && isCurrent
+                        ? "text-amber-600 font-extrabold"
+                        : "text-[var(--foreground)]"
+                      : "text-[var(--muted-foreground)]"
                   }`}
                   title={step.label}
                 >
                   {step.label}
                 </span>
                 <span
-                  className="text-[9px] font-mono text-[var(--muted-foreground)] leading-tight truncate max-w-full hidden sm:block"
+                  className={`text-[9px] font-mono leading-tight truncate max-w-full hidden sm:block ${
+                    isRevision && isCurrent ? "text-amber-600 font-bold" : "text-[var(--muted-foreground)]"
+                  }`}
                   title={step.sub}
                 >
                   {step.sub}

@@ -182,6 +182,14 @@ function ToastContainer({
 
         const animationClass = isExiting ? "animate-toast-out" : "animate-toast-in";
 
+        const actionColor = isSuccess
+          ? "text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 dark:hover:text-emerald-200 font-extrabold"
+          : isWarning
+          ? "text-amber-800 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 font-extrabold"
+          : isError
+          ? "text-rose-700 dark:text-rose-300 hover:text-rose-800 dark:hover:text-rose-200 font-extrabold"
+          : "text-sky-700 dark:text-sky-300 hover:text-sky-800 dark:hover:text-sky-200 font-extrabold";
+
         return (
           <div
             key={t.id}
@@ -202,7 +210,7 @@ function ToastContainer({
                     t.action?.onClick();
                     onRemove(t.id);
                   }}
-                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold underline underline-offset-2 hover:opacity-100 transition-opacity cursor-pointer text-[var(--primary)]"
+                  className={`mt-1.5 inline-flex items-center gap-1 text-[11px] underline underline-offset-2 hover:opacity-100 transition-colors cursor-pointer ${actionColor}`}
                 >
                   {t.action.label} →
                 </button>

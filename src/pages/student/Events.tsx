@@ -7,7 +7,7 @@ import { Button, Dialog, Input, Textarea, Select, Tabs, Card, CardHeader, CardBo
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
   ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, ExternalLink, ArrowRight, MessageSquareQuote,
-  Wallet, CreditCard, Coins,
+  Wallet, CreditCard, Coins, X,
 } from "lucide-react";
 import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, statusColors, eventTypes, expenditureCategories,
@@ -201,6 +201,7 @@ export default function StudentEvents() {
       // 1. Upload APF to Supabase Storage if file object is present
       if (apfFile) {
         const apfRes = await uploadEventAttachment({
+          organizationId: org?.id,
           organizationName: orgName,
           eventId: id,
           eventName: draft.name,
@@ -215,6 +216,7 @@ export default function StudentEvents() {
       // 2. Upload Appendices to Supabase Storage if file objects are present
       if (appendixFiles.length > 0) {
         const appRes = await uploadEventAppendices({
+          organizationId: org?.id,
           organizationName: orgName,
           eventId: id,
           eventName: draft.name,
@@ -256,6 +258,7 @@ export default function StudentEvents() {
       // 1. Upload new APF if changed
       if (editApfFile) {
         const apfRes = await uploadEventAttachment({
+          organizationId: org?.id,
           organizationName: orgName,
           eventId: editEvent.id,
           eventName: editEvent.name,
@@ -268,16 +271,20 @@ export default function StudentEvents() {
       }
 
       // 2. Upload new Appendices if added
+      const newFileNames = new Set(editAppendixFiles.map((f) => f.name));
+      const existingAppendices = (editEvent.appendices || []).filter((a) => !newFileNames.has(a));
+
       if (editAppendixFiles.length > 0) {
         const appRes = await uploadEventAppendices({
+          organizationId: org?.id,
           organizationName: orgName,
           eventId: editEvent.id,
           eventName: editEvent.name,
           files: editAppendixFiles,
         });
-        if (appRes.paths.length > 0) {
-          finalAppendices = [...finalAppendices, ...appRes.paths];
-        }
+        finalAppendices = [...existingAppendices, ...appRes.paths];
+      } else {
+        finalAppendices = existingAppendices;
       }
 
       updateEvent(editEvent.id, {
@@ -482,12 +489,19 @@ export default function StudentEvents() {
               <h3 className="font-bold text-[var(--foreground)] leading-snug">{e.name}</h3>
               <p className="text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)} · {e.location}</p>
               <p className="text-sm font-mono text-[var(--primary)] font-extrabold">{formatCurrency(e.proposedBudget)}</p>
-              {e.status === "Pending Revision" && e.adviserFeedback && (
+              {e.status === "Pending Revision" && (e.deanFeedback || e.adviserFeedback) && (
                 <div className="flex gap-2 bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-800">
-                  <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-                  <span className="line-clamp-2 leading-relaxed" title={e.adviserFeedback}>
-                    {e.adviserFeedback.length > 100 ? `${e.adviserFeedback.slice(0, 100)}...` : e.adviserFeedback}
-                  </span>
+                  <AlertCircle size={14} className="flex-shrink-0 mt-0.5 text-orange-600" />
+                  <div className="min-w-0">
+                    <span className="font-bold mr-1">
+                      {e.deanFeedback ? "College Dean Feedback:" : "Faculty Adviser Feedback:"}
+                    </span>
+                    <span className="line-clamp-2 leading-relaxed" title={e.deanFeedback || e.adviserFeedback}>
+                      {(e.deanFeedback || e.adviserFeedback)!.length > 100
+                        ? `${(e.deanFeedback || e.adviserFeedback)!.slice(0, 100)}...`
+                        : (e.deanFeedback || e.adviserFeedback)}
+                    </span>
+                  </div>
                 </div>
               )}
               {/* Right-aligned action buttons in exact sequence: [Delete] [Edit] [View] [Submit] */}
@@ -758,15 +772,17 @@ export default function StudentEvents() {
                       <span className="font-bold truncate max-w-[260px]">{draft.apfUrl.replace(/^.*[\\/]/, "")}</span>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setDraft((d) => ({ ...d, apfUrl: "" }));
                           setApfFile(null);
                           if (apfInputRef.current) apfInputRef.current.value = "";
                         }}
-                        className="text-emerald-700 hover:text-red-600 ml-1 p-0.5 cursor-pointer font-bold"
+                        className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
                         title="Remove file"
                       >
-                        ✕
+                        <X size={14} />
                       </button>
                     </div>
                   ) : (
@@ -813,14 +829,17 @@ export default function StudentEvents() {
                           <span className="truncate max-w-[200px]">{file.replace(/^.*[\\/]/, "")}</span>
                           <button
                             type="button"
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               setDraft((d) => ({ ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) }));
                               setAppendixFiles((prev) => prev.filter((_, i) => i !== idx));
+                              if (appendicesInputRef.current) appendicesInputRef.current.value = "";
                             }}
-                            className="text-[var(--muted-foreground)] hover:text-red-600 cursor-pointer ml-1"
+                            className="text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition cursor-pointer ml-1 flex items-center justify-center"
                             title="Remove attachment"
                           >
-                            ✕
+                            <X size={13} />
                           </button>
                         </span>
                       ))}
@@ -917,13 +936,26 @@ export default function StudentEvents() {
 
             <div className="p-6">
               {/* If pending revision, show feedback alert banner */}
-              {editEvent.status === "Pending Revision" && editEvent.adviserFeedback && (
-                <div className="mb-4 flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-3.5 text-xs text-orange-800">
-                  <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
-                  <div>
-                    <p className="font-bold text-orange-900">Faculty Adviser Feedback</p>
-                    <p className="mt-0.5 leading-relaxed">{editEvent.adviserFeedback}</p>
-                  </div>
+              {editEvent.status === "Pending Revision" && (editEvent.deanFeedback || editEvent.adviserFeedback) && (
+                <div className="mb-4 flex flex-col gap-2.5">
+                  {editEvent.deanFeedback && (
+                    <div className="flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-3.5 text-xs text-orange-800 shadow-2xs">
+                      <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-orange-950">College Dean's Feedback</p>
+                        <p className="mt-0.5 leading-relaxed">{editEvent.deanFeedback}</p>
+                      </div>
+                    </div>
+                  )}
+                  {editEvent.adviserFeedback && (
+                    <div className="flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-3.5 text-xs text-orange-800 shadow-2xs">
+                      <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-orange-950">Faculty Adviser's Feedback</p>
+                        <p className="mt-0.5 leading-relaxed">{editEvent.adviserFeedback}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1088,15 +1120,17 @@ export default function StudentEvents() {
                         <span className="font-bold truncate max-w-[260px]">{editEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
                             setEditEvent((d) => (d ? { ...d, apfUrl: "" } : null));
                             setEditApfFile(null);
                             if (editApfInputRef.current) editApfInputRef.current.value = "";
                           }}
-                          className="text-emerald-700 hover:text-red-600 ml-1 p-0.5 cursor-pointer font-bold"
+                          className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
                           title="Remove file"
                         >
-                          ✕
+                          <X size={14} />
                         </button>
                       </div>
                     ) : (
@@ -1143,14 +1177,18 @@ export default function StudentEvents() {
                             <span className="truncate max-w-[200px]">{file.replace(/^.*[\\/]/, "")}</span>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const removedItem = file;
                                 setEditEvent((d) => (d ? { ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) } : null));
-                                setEditAppendixFiles((prev) => prev.filter((_, i) => i !== idx));
+                                setEditAppendixFiles((prev) => prev.filter((f) => f.name !== removedItem && !removedItem.endsWith(f.name)));
+                                if (editAppendicesInputRef.current) editAppendicesInputRef.current.value = "";
                               }}
-                              className="text-[var(--muted-foreground)] hover:text-red-600 cursor-pointer ml-1"
+                              className="text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition cursor-pointer ml-1 flex items-center justify-center"
                               title="Remove attachment"
                             >
-                              ✕
+                              <X size={13} />
                             </button>
                           </span>
                         ))}
@@ -1276,11 +1314,17 @@ export default function StudentEvents() {
                       <p className="font-medium">{viewEvent.location || "—"}</p>
                     )}
                   </div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Requisites</p><p>{viewEvent.requisites || "—"}</p></div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p><p>{viewEvent.requisites || "—"}</p></div>
+                  {viewEvent.deanFeedback && (
+                    <div className="sm:col-span-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
+                      <p className="text-xs font-mono font-bold text-orange-800 mb-1">College Dean's Feedback</p>
+                      <p className="text-sm text-orange-900 leading-relaxed">{viewEvent.deanFeedback}</p>
+                    </div>
+                  )}
                   {viewEvent.adviserFeedback && (
-                    <div className="sm:col-span-2 bg-orange-50 border border-orange-200 rounded-lg p-3">
-                      <p className="text-xs font-mono text-orange-600 mb-1">Adviser Feedback</p>
-                      <p className="text-sm text-orange-700">{viewEvent.adviserFeedback}</p>
+                    <div className="sm:col-span-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
+                      <p className="text-xs font-mono font-bold text-orange-800 mb-1">Faculty Adviser's Feedback</p>
+                      <p className="text-sm text-orange-900 leading-relaxed">{viewEvent.adviserFeedback}</p>
                     </div>
                   )}
                 </div>
@@ -1371,14 +1415,35 @@ export default function StudentEvents() {
                     </div>
                   )}
 
-                  {/* Dean Feedback / Executive Approval Notes */}
+                  {/* Dean Feedback / Executive Notes */}
                   {viewEvent.deanFeedback && (
-                    <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4">
+                    <div
+                      className={`border rounded-2xl p-4 ${
+                        viewEvent.status === "Pending Revision"
+                          ? "bg-orange-50/80 border-orange-200 text-orange-800"
+                          : "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                      }`}
+                    >
                       <div className="flex items-center gap-2 mb-1.5">
-                        <MessageSquareQuote size={15} className="text-emerald-600" />
-                        <p className="text-xs font-mono font-bold text-emerald-800">Dean's Feedback</p>
+                        <MessageSquareQuote
+                          size={15}
+                          className={
+                            viewEvent.status === "Pending Revision"
+                              ? "text-orange-600"
+                              : "text-emerald-600"
+                          }
+                        />
+                        <p
+                          className={`text-xs font-mono font-bold ${
+                            viewEvent.status === "Pending Revision"
+                              ? "text-orange-800"
+                              : "text-emerald-800"
+                          }`}
+                        >
+                          College Dean's Feedback
+                        </p>
                       </div>
-                      <p className="text-sm text-emerald-900 leading-relaxed pl-5 whitespace-pre-wrap">{viewEvent.deanFeedback}</p>
+                      <p className="text-sm leading-relaxed pl-5 whitespace-pre-wrap">{viewEvent.deanFeedback}</p>
                     </div>
                   )}
 

@@ -11,28 +11,44 @@ INSERT INTO storage.buckets (id, name, public) VALUES
   ('reports', 'reports', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
--- 2. Create Storage Security Policies (Public Read & Write Access for App Functions)
+-- 2. Create Storage Security Policies (Public Read & Authenticated/App Write Access)
 DO $$
 BEGIN
   -- attachments bucket (APF, Appendices, Clearance, Liquidation)
   DROP POLICY IF EXISTS "Allow public access for attachments" ON storage.objects;
-  CREATE POLICY "Allow public access for attachments" ON storage.objects
+  DROP POLICY IF EXISTS "Allow public read for attachments" ON storage.objects;
+  DROP POLICY IF EXISTS "Allow authenticated write for attachments" ON storage.objects;
+  
+  CREATE POLICY "Allow public read for attachments" ON storage.objects
+    FOR SELECT USING (bucket_id = 'attachments');
+  CREATE POLICY "Allow authenticated write for attachments" ON storage.objects
     FOR ALL USING (bucket_id = 'attachments') WITH CHECK (bucket_id = 'attachments');
 
   -- media bucket (User Avatars and Profile Images)
   DROP POLICY IF EXISTS "Allow public access for media" ON storage.objects;
-  CREATE POLICY "Allow public access for media" ON storage.objects
+  DROP POLICY IF EXISTS "Allow public read for media" ON storage.objects;
+  DROP POLICY IF EXISTS "Allow authenticated write for media" ON storage.objects;
+  
+  CREATE POLICY "Allow public read for media" ON storage.objects
+    FOR SELECT USING (bucket_id = 'media');
+  CREATE POLICY "Allow authenticated write for media" ON storage.objects
     FOR ALL USING (bucket_id = 'media') WITH CHECK (bucket_id = 'media');
 
   -- reports bucket (System-Generated Directorate & Financial Reports)
   DROP POLICY IF EXISTS "Allow public access for reports" ON storage.objects;
-  CREATE POLICY "Allow public access for reports" ON storage.objects
+  DROP POLICY IF EXISTS "Allow public read for reports" ON storage.objects;
+  DROP POLICY IF EXISTS "Allow authenticated write for reports" ON storage.objects;
+  
+  CREATE POLICY "Allow public read for reports" ON storage.objects
+    FOR SELECT USING (bucket_id = 'reports');
+  CREATE POLICY "Allow authenticated write for reports" ON storage.objects
     FOR ALL USING (bucket_id = 'reports') WITH CHECK (bucket_id = 'reports');
 
-  -- team_images bucket (Landing Page Developer Images)
+  -- team_images bucket (Landing Page Developer Images - Read Only for Public)
   DROP POLICY IF EXISTS "Allow public access for team_images" ON storage.objects;
-  CREATE POLICY "Allow public access for team_images" ON storage.objects
-    FOR ALL USING (bucket_id = 'team_images') WITH CHECK (bucket_id = 'team_images');
+  DROP POLICY IF EXISTS "Allow public read for team_images" ON storage.objects;
+  CREATE POLICY "Allow public read for team_images" ON storage.objects
+    FOR SELECT USING (bucket_id = 'team_images');
 END $$;
 
 -- 3. Create Exported Reports Tracking Table

@@ -21,6 +21,16 @@ export interface LiquidationPdfOptions {
 }
 
 /**
+ * Formats a currency number with 2-decimal precision for financial PDF documents
+ */
+export function formatPdfCurrency(amount: number): string {
+  return `PHP ${Number(amount || 0).toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+/**
  * Opens a PDF Blob in a new tab or triggers direct download if popup is blocked
  */
 export function openPdfBlobInNewTab(pdfBlob: Blob, fileName: string) {
@@ -270,7 +280,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.text("PROPOSED ALLOCATED BUDGET", midX + 4, gridY + 32.5);
   doc.setFontSize(9);
   doc.setTextColor(15, 118, 110);
-  doc.text(`PHP ${event.proposedBudget.toLocaleString()}`, midX + 4, gridY + 38);
+  doc.text(formatPdfCurrency(event.proposedBudget), midX + 4, gridY + 38);
 
   // ── 4. SCOPE & OBJECTIVES SUMMARY (GENEROUS SPACING & LINE HEIGHT) ─
   const descHeaderY = gridY + gridH + 8;
@@ -561,7 +571,7 @@ export function generateLiquidationPdfBlob(
   doc.text("APPROVED BUDGET", margin + 3.5 + colW, kpiY + 16.5);
   doc.setFontSize(8);
   doc.setTextColor(15, 118, 110);
-  doc.text(`PHP ${event.proposedBudget.toLocaleString()}`, margin + 3.5 + colW, kpiY + 20.8);
+  doc.text(formatPdfCurrency(event.proposedBudget), margin + 3.5 + colW, kpiY + 20.8);
 
   // Col 3: Total Disbursed
   doc.setFontSize(5.5);
@@ -569,7 +579,7 @@ export function generateLiquidationPdfBlob(
   doc.text("TOTAL DISBURSED", margin + 3.5 + colW * 2, kpiY + 16.5);
   doc.setFontSize(8);
   doc.setTextColor(15, 23, 42);
-  doc.text(`PHP ${totalDisbursed.toLocaleString()}`, margin + 3.5 + colW * 2, kpiY + 20.8);
+  doc.text(formatPdfCurrency(totalDisbursed), margin + 3.5 + colW * 2, kpiY + 20.8);
 
   // Col 4: Variance
   doc.setFontSize(5.5);
@@ -577,7 +587,7 @@ export function generateLiquidationPdfBlob(
   doc.text(`VARIANCE (${varianceLabel})`, margin + 3.5 + colW * 3, kpiY + 16.5);
   doc.setFontSize(8);
   doc.setTextColor(remaining >= 0 ? 21 : 185, remaining >= 0 ? 128 : 28, remaining >= 0 ? 61 : 28);
-  doc.text(`PHP ${Math.abs(remaining).toLocaleString()}`, margin + 3.5 + colW * 3, kpiY + 20.8);
+  doc.text(formatPdfCurrency(Math.abs(remaining)), margin + 3.5 + colW * 3, kpiY + 20.8);
 
   // ── 3. ITEMIZED FINANCIAL STATEMENT TABLE ───────────────────────
   const txnTableData = activeTxns.map((t, idx) => {
@@ -588,7 +598,7 @@ export function generateLiquidationPdfBlob(
       idx + 1,
       cleanDesc,
       catName,
-      `PHP ${t.amount.toLocaleString()}`,
+      formatPdfCurrency(t.amount),
       t.status,
     ];
   });
@@ -597,7 +607,7 @@ export function generateLiquidationPdfBlob(
     "",
     "TOTAL EXPENDITURES:",
     "",
-    `PHP ${totalDisbursed.toLocaleString()}`,
+    formatPdfCurrency(totalDisbursed),
     "100% RECONCILED",
   ]);
 
@@ -661,7 +671,7 @@ export function generateLiquidationPdfBlob(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
   doc.setTextColor(15, 118, 110);
-  doc.text(`PHP ${remaining.toLocaleString()}`, pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
+  doc.text(formatPdfCurrency(remaining), pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
 
   reconY += 9.5;
 
@@ -680,7 +690,7 @@ export function generateLiquidationPdfBlob(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(15, 118, 110);
-    doc.text(`PHP ${revenue.toLocaleString()}`, pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
+    doc.text(formatPdfCurrency(revenue), pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
 
     reconY += 9.5;
 
@@ -696,7 +706,7 @@ export function generateLiquidationPdfBlob(
 
     doc.setFontSize(8.5);
     doc.setTextColor(4, 120, 87);
-    doc.text(`PHP ${netSurplus.toLocaleString()}`, pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
+    doc.text(formatPdfCurrency(netSurplus), pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
 
     reconY += 9.5;
   }

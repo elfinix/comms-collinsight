@@ -17,7 +17,24 @@ export default function AdminOrganizations() {
   const [deleteConfirm, setDeleteConfirm] = useState<Organization | null>(null);
 
   const activeDepartments = departments.filter((d) => !d.deleted);
-  const advisers = users.filter((u) => u.role === "adviser");
+  
+  // Advisers not assigned to any organization yet (for Add Organization)
+  const unassignedAdvisers = users.filter(
+    (u) =>
+      u.role === "adviser" &&
+      !u.deleted &&
+      !u.organizationId &&
+      !organizations.some((o) => o.adviserId === u.id && !o.deleted)
+  );
+
+  // Advisers available for editing an existing organization (unassigned + current org's adviser)
+  const availableAdvisersForEdit = users.filter(
+    (u) =>
+      u.role === "adviser" &&
+      !u.deleted &&
+      (!u.organizationId || u.organizationId === editOrg?.id || editOrg?.adviserId === u.id) &&
+      !organizations.some((o) => o.adviserId === u.id && o.id !== editOrg?.id && !o.deleted)
+  );
 
   const [form, setForm] = useState({
     name: "",
@@ -87,9 +104,13 @@ export default function AdminOrganizations() {
 
   function handleEdit() {
     if (!editOrg || !editOrg.name || !editOrg.code) return;
+    const oldOrg = organizations.find((o) => o.id === editOrg.id);
     updateOrganization(editOrg.id, editOrg);
 
     // Sync adviser's organization assignment
+    if (oldOrg?.adviserId && oldOrg.adviserId !== editOrg.adviserId) {
+      updateUser(oldOrg.adviserId, { organizationId: undefined });
+    }
     if (editOrg.adviserId) {
       updateUser(editOrg.adviserId, { organizationId: editOrg.id });
     }
@@ -289,8 +310,14 @@ export default function AdminOrganizations() {
                 value={form.adviserId}
                 onChange={(e) => setForm((p) => ({ ...p, adviserId: e.target.value }))}
                 options={[
-                  { value: "", label: "— Unassigned / Select Adviser —" },
-                  ...advisers.map((a) => ({
+                  {
+                    value: "",
+                    label:
+                      unassignedAdvisers.length === 0
+                        ? "— No unassigned faculty advisers available —"
+                        : "— Unassigned / Select Adviser —",
+                  },
+                  ...unassignedAdvisers.map((a) => ({
                     value: a.id,
                     label: `${a.firstName} ${a.lastName}${a.suffix ? ", " + a.suffix : ""} (${a.email})`,
                   })),
@@ -337,16 +364,14 @@ export default function AdminOrganizations() {
                 </span>
 
                 {/* Preset Palette Swatches */}
-                <div className="flex items-center gap-1.5 flex-wrap pl-3 border-l border-[var(--border)]">
-                  {["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981", "#e11d48", "#6366f1", "#f97316", "#0f172a"].map((c) => (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {["#0d9488", "#2563eb", "#7c3aed", "#d97706", "#dc2626", "#059669", "#db2777", "#475569"].map((c) => (
                     <button
-                      type="button"
                       key={c}
+                      type="button"
                       onClick={() => setForm((p) => ({ ...p, logoColor: c }))}
-                      className={`w-6 h-6 rounded-lg transition-transform hover:scale-110 cursor-pointer shadow-2xs ${
-                        form.logoColor?.toLowerCase() === c.toLowerCase()
-                          ? "ring-2 ring-[var(--primary)] ring-offset-1 scale-110 border-2 border-white"
-                          : "border border-black/10"
+                      className={`w-6 h-6 rounded-lg transition-transform hover:scale-110 cursor-pointer border ${
+                        form.logoColor === c ? "ring-2 ring-[var(--primary)] scale-110 shadow-xs" : "border-black/10"
                       }`}
                       style={{ backgroundColor: c }}
                       title={c}
@@ -356,7 +381,8 @@ export default function AdminOrganizations() {
               </div>
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+
+          <div className="flex justify-end gap-2 px-6 pb-6 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowAdd(false)} className="gap-1.5 text-xs">
               <X size={14} /> Cancel
             </Button>
@@ -401,10 +427,15 @@ export default function AdminOrganizations() {
                   onChange={(e) => setEditOrg((p) => p && { ...p, adviserId: e.target.value })}
                   options={[
                     { value: "", label: "— Unassigned / Select Adviser —" },
-                    ...advisers.map((a) => ({
-                      value: a.id,
-                      label: `${a.firstName} ${a.lastName}${a.suffix ? ", " + a.suffix : ""} (${a.email})`,
-                    })),
+                    ...availableAdvisersForEdit.map((a) => {
+                      const isCurrent = a.id === editOrg.adviserId;
+                      return {
+                        value: a.id,
+                        label: `${a.firstName} ${a.lastName}${a.suffix ? ", " + a.suffix : ""} (${a.email})${
+                          isCurrent ? " — (Currently Appointed)" : ""
+                        }`,
+                      };
+                    }),
                   ]}
                 />
               </div>

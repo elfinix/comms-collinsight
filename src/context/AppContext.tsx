@@ -482,15 +482,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
         targetEvt = e;
         const updates: Partial<Event> = { status };
         if (feedback) {
-          if (status === "Pending Revision") updates.adviserFeedback = feedback;
+          if (status === "Pending Revision") {
+            if (e.status === "For Approval") {
+              updates.deanFeedback = feedback;
+            } else {
+              updates.adviserFeedback = feedback;
+            }
+          } else if (status === "For Approval") {
+            updates.adviserFeedback = feedback;
+          } else if (status === "Approved") {
+            updates.deanFeedback = feedback;
+          }
         }
         return { ...e, ...updates };
       })
     );
 
     const eventUpdates: Partial<Event> = { status };
-    if (feedback && status === "Pending Revision") {
-      eventUpdates.adviserFeedback = feedback;
+    if (feedback) {
+      if (status === "Pending Revision") {
+        if (targetEvt?.status === "For Approval") {
+          eventUpdates.deanFeedback = feedback;
+        } else {
+          eventUpdates.adviserFeedback = feedback;
+        }
+      } else if (status === "For Approval") {
+        eventUpdates.adviserFeedback = feedback;
+      } else if (status === "Approved") {
+        eventUpdates.deanFeedback = feedback;
+      }
     }
     supabaseApi.updateEvent(eventId, eventUpdates).catch((err) =>
       console.warn("Supabase setEventStatus error:", err)
