@@ -69,7 +69,7 @@ export default function AdminDashboard() {
         <StatCard
           label="Registered Users"
           value={users.length}
-          sub="Students, Advisers & Admins"
+          sub="Students, Advisers, & Admins"
           icon={<Users size={18} />}
           color="bg-[var(--primary)] text-white"
         />
@@ -83,7 +83,7 @@ export default function AdminDashboard() {
         <StatCard
           label="Academic Depts"
           value={departments.length}
-          sub="Information Technology & Engineering"
+          sub="IT & Engineering"
           icon={<Landmark size={18} />}
           color="bg-purple-600 text-white"
         />

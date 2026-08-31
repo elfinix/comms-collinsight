@@ -8,7 +8,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 export function Button({ variant = "primary", size = "md", className = "", children, ...props }: ButtonProps) {
-  const base = "inline-flex items-center gap-2 font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[var(--ring)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
+  const base = "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[var(--ring)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
   const sizes = { sm: "px-3 py-1.5 text-sm rounded-md", md: "px-4 py-2 text-sm rounded-lg", lg: "px-6 py-2.5 text-base rounded-lg" };
   const variants = {
     primary: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[#0f766e] shadow-sm",
@@ -504,9 +504,11 @@ interface DialogProps {
   title?: string;
   children: ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  className?: string;
+  zIndex?: string;
 }
 
-export function Dialog({ open, onClose, title, children, size = "md" }: DialogProps) {
+export function Dialog({ open, onClose, title, children, size = "md", className = "", zIndex = "z-50" }: DialogProps) {
   const widths = { sm: "max-w-sm", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl", "2xl": "max-w-5xl" };
   useEffect(() => {
     if (open) document.body.style.overflow = "hidden";
@@ -515,18 +517,18 @@ export function Dialog({ open, onClose, title, children, size = "md" }: DialogPr
   }, [open]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
-      <div className={`relative bg-white border border-[var(--border)] rounded-2xl shadow-2xl w-full ${widths[size]} max-h-[90vh] flex flex-col z-10 overflow-hidden text-[var(--foreground)]`}>
+    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-4`}>
+      <div className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity" onClick={onClose} />
+      <div className={`relative bg-white border border-[var(--border)] rounded-2xl shadow-2xl w-full ${widths[size]} max-h-[90vh] flex flex-col z-10 overflow-hidden text-[var(--foreground)] ${className}`}>
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--muted)]/30">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--muted)]/30 flex-shrink-0">
             <h2 className="text-lg font-bold text-[var(--foreground)]">{title}</h2>
             <button onClick={onClose} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition p-1.5 rounded-lg hover:bg-[var(--muted)] cursor-pointer">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
         )}
-        <div className="overflow-y-auto flex-1 bg-white">{children}</div>
+        <div className="overflow-y-auto flex-1 flex flex-col min-h-0">{children}</div>
       </div>
     </div>
   );

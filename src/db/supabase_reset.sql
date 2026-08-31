@@ -28,6 +28,9 @@ TRUNCATE TABLE
   public.departments
 RESTART IDENTITY CASCADE;
 
+-- Ensure settings column exists on public.users
+ALTER TABLE IF EXISTS public.users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{"theme":"light","dataDensity":"comfortable","tableDensity":"normal","defaultView":"list"}'::jsonb;
+
 -- Re-establish FK on organizations
 ALTER TABLE public.organizations
   ADD CONSTRAINT fk_org_adviser
@@ -69,6 +72,7 @@ INSERT INTO public.users (id, first_name, middle_name, last_name, suffix, email,
   -- Student Officers: CES
   ('51000000-0000-0000-0000-000000000005', 'Patricia', 'Katrina', 'Ramos', '', 'pramos@student.cite.edu.ph', 'ramos_112233', 'student', 'President', 'female', '01000000-0000-0000-0000-000000000002', '4th Year', '2021-08-15', false),
   ('51000000-0000-0000-0000-000000000006', 'Joshua', 'Vicente', 'Ocampo', '', 'jocampo@student.cite.edu.ph', 'ocampo_445566', 'student', 'Vice President', 'male', '01000000-0000-0000-0000-000000000002', '3rd Year', '2022-08-15', false),
+  ('51000000-0000-0000-0000-000000000009', 'Samantha', 'Clarisse', 'Dela Cruz', '', 'sdelacruz@student.cite.edu.ph', 'delacruz_554433', 'student', 'Secretary', 'female', '01000000-0000-0000-0000-000000000002', '2nd Year', '2023-08-15', false),
   -- Student Officers: IEIC
   ('51000000-0000-0000-0000-000000000007', 'Mark', 'Laurence', 'Tan', '', 'mtan@student.cite.edu.ph', 'tan_778899', 'student', 'President', 'male', '01000000-0000-0000-0000-000000000003', '3rd Year', '2022-08-15', false),
   ('51000000-0000-0000-0000-000000000008', 'Andrea', 'Grace', 'Perez', '', 'aperez@student.cite.edu.ph', 'perez_998877', 'student', 'Vice President', 'female', '01000000-0000-0000-0000-000000000003', '2nd Year', '2023-08-15', false);
@@ -86,6 +90,7 @@ INSERT INTO public.organization_members (id, organization_id, user_id, position,
   ('m1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000004', 'Treasurer', 'officer', true),
   ('m1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000005', 'President', 'officer', true),
   ('m1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000006', 'Vice President', 'officer', true),
+  ('m1000000-0000-0000-0000-000000000009', '01000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000009', 'Secretary', 'officer', true),
   ('m1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', '51000000-0000-0000-0000-000000000007', 'President', 'officer', true),
   ('m1000000-0000-0000-0000-000000000008', '01000000-0000-0000-0000-000000000003', '51000000-0000-0000-0000-000000000008', 'Vice President', 'officer', true);
 
@@ -234,13 +239,62 @@ INSERT INTO public.transactions (id, event_id, description, category_id, amount,
 
 -- 10. Audit Trail
 INSERT INTO public.audit_trail (id, user_id, action, details, timestamp, event_id, organization_id, actor_role, status_from, status_to, remarks) VALUES
+  -- Event 1: Cloud Computing & DevOps Workshop 2026 (Approved)
   ('81000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''Cloud Computing & DevOps Workshop 2026''', '2026-08-15T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
   ('81000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cloud Computing & DevOps Workshop 2026'' to Adviser', '2026-08-15T04:30:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', 'Strong technical relevance for 3rd and 4th-year students.'),
-  ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026''', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', 'Approved. Ensure virtual lab guidelines are maintained.'),
-  ('81000000-0000-0000-0000-000000000005', '51000000-0000-0000-0000-000000000001', 'Recorded Expenditure', 'Disbursed ₱2,500.00 for ''AWS Cloud Lab Credits & Domain Voucher Pack''', '2026-08-18T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
-  ('81000000-0000-0000-0000-000000000006', '51000000-0000-0000-0000-000000000001', 'Event Closed', 'Finalized digital liquidation and closed ''ITSG Midyear General Assembly & Team Building''', '2026-08-25T07:30:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Completed', 'Closed', 'Surplus of ₱1,200.00 returned to Guild Treasury.'),
-  ('81000000-0000-0000-0000-000000000007', 'ad100000-0000-0000-0000-000000000002', 'Requested Revision', 'Requested revisions on ''Robotics & Automation Invitational 2026''', '2026-08-23T03:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review', 'Pending Revision', 'Please adjust the trophy expenditure and clarify external judge compensation.');
+  ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', '[Adviser Remarks] Strong technical relevance for 3rd and 4th-year students.'),
+  ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026''', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', '[Dean Remarks] Approved. Ensure virtual lab guidelines are maintained.'),
+  ('81000000-0000-0000-0000-000000000005', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,500.00 for ''AWS Cloud Lab Credits & Domain Voucher Pack''', '2026-08-18T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
+
+  -- Event 2: Web Development Bootcamp (For Approval)
+  ('81000000-0000-0000-0000-000000000010', '51000000-0000-0000-0000-000000000002', 'Created Event', 'Created proposal for ''Web Development Bootcamp: React & Next.js''', '2026-08-20T01:00:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
+  ('81000000-0000-0000-0000-000000000011', '51000000-0000-0000-0000-000000000002', 'Submitted for Review', 'Submitted ''Web Development Bootcamp: React & Next.js'' to Adviser', '2026-08-20T03:30:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
+  ('81000000-0000-0000-0000-000000000012', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Web Development Bootcamp: React & Next.js'' to College Dean', '2026-08-21T02:00:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', '[Adviser Remarks] Endorsed. Great initiative for cross-year knowledge transfer.'),
+
+  -- Event 3: Cybersecurity Awareness 101 (For Review)
+  ('81000000-0000-0000-0000-000000000013', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''Cybersecurity Awareness & Ethical Hacking 101''', '2026-08-25T04:00:00Z', 'f1000000-0000-0000-0000-000000000003', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
+  ('81000000-0000-0000-0000-000000000014', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cybersecurity Awareness & Ethical Hacking 101'' to Adviser', '2026-08-25T06:00:00Z', 'f1000000-0000-0000-0000-000000000003', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
+
+  -- Event 4: ITSG Midyear General Assembly (Closed)
+  ('81000000-0000-0000-0000-000000000015', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''ITSG Midyear General Assembly & Team Building''', '2026-08-01T01:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
+  ('81000000-0000-0000-0000-000000000016', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''ITSG Midyear General Assembly & Team Building'' to Adviser', '2026-08-01T03:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
+  ('81000000-0000-0000-0000-000000000017', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''ITSG Midyear General Assembly & Team Building'' to College Dean', '2026-08-02T02:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', '[Adviser Remarks] Endorsed for General Assembly scheduling.'),
+  ('81000000-0000-0000-0000-000000000018', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''ITSG Midyear General Assembly & Team Building''', '2026-08-03T05:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', '[Dean Remarks] Approved for Student Activity Center venue.'),
+  ('81000000-0000-0000-0000-000000000019', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,800.00 for ''Assembly Catering & Packed Lunches''', '2026-08-22T04:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
+  ('81000000-0000-0000-0000-000000000006', '51000000-0000-0000-0000-000000000001', 'Event Closed', 'Finalized digital liquidation and closed ''ITSG Midyear General Assembly & Team Building''', '2026-08-25T07:30:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Completed', 'Closed', '[Liquidation] Surplus of ₱1,200.00 returned to Guild Treasury.'),
+
+  -- Event 5: IoT & Embedded Systems Workshop (Approved)
+  ('81000000-0000-0000-0000-000000000021', '51000000-0000-0000-0000-000000000005', 'Created Event', 'Created proposal for ''IoT & Embedded Systems Prototyping Workshop''', '2026-08-18T01:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', NULL, 'Created', NULL),
+  ('81000000-0000-0000-0000-000000000022', '51000000-0000-0000-0000-000000000005', 'Submitted for Review', 'Submitted ''IoT & Embedded Systems Prototyping Workshop'' to Adviser', '2026-08-18T05:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', 'Created', 'For Review', NULL),
+  ('81000000-0000-0000-0000-000000000023', 'ad100000-0000-0000-0000-000000000002', 'Endorsed Proposal', 'Endorsed ''IoT & Embedded Systems Prototyping Workshop'' to College Dean', '2026-08-19T02:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review', 'For Approval', '[Adviser Remarks] Well planned hardware workshop.'),
+  ('81000000-0000-0000-0000-000000000024', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''IoT & Embedded Systems Prototyping Workshop''', '2026-08-20T04:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'dean', 'For Approval', 'Approved', '[Dean Remarks] Approved. Observe electrical safety guidelines.'),
+  ('81000000-0000-0000-0000-000000000025', '51000000-0000-0000-0000-000000000005', 'Disbursed Expense', 'Disbursed ₱4,500.00 for ''ESP32 Development Boards''', '2026-08-26T03:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', NULL, NULL, NULL),
+
+  -- Event 6: Robotics & Automation (Pending Revision)
+  ('81000000-0000-0000-0000-000000000027', '51000000-0000-0000-0000-000000000006', 'Created Event', 'Created proposal for ''Robotics & Automation Invitational 2026''', '2026-08-22T06:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'student', NULL, 'Created', NULL),
+  ('81000000-0000-0000-0000-000000000028', '51000000-0000-0000-0000-000000000006', 'Submitted for Review', 'Submitted ''Robotics & Automation Invitational 2026'' to Adviser', '2026-08-22T08:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'student', 'Created', 'For Review', NULL),
+  ('81000000-0000-0000-0000-000000000007', 'ad100000-0000-0000-0000-000000000002', 'Requested Revision', 'Requested revisions on ''Robotics & Automation Invitational 2026''', '2026-08-23T03:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review', 'Pending Revision', '[Adviser Remarks] Please adjust the trophy expenditure and clarify external judge compensation.'),
+
+  -- Event 7: Lean Six Sigma Seminar (Approved)
+  ('81000000-0000-0000-0000-000000000029', '51000000-0000-0000-0000-000000000007', 'Created Event', 'Created proposal for ''Lean Six Sigma & Process Optimization Seminar''', '2026-08-10T02:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', NULL, 'Created', NULL),
+  ('81000000-0000-0000-0000-000000000030', '51000000-0000-0000-0000-000000000007', 'Submitted for Review', 'Submitted ''Lean Six Sigma & Process Optimization Seminar'' to Adviser', '2026-08-10T04:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', 'Created', 'For Review', NULL),
+  ('81000000-0000-0000-0000-000000000031', 'ad100000-0000-0000-0000-000000000003', 'Endorsed Proposal', 'Endorsed ''Lean Six Sigma & Process Optimization Seminar'' to College Dean', '2026-08-11T03:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'adviser', 'For Review', 'For Approval', '[Adviser Remarks] Highly recommended for industrial engineering accreditation.'),
+  ('81000000-0000-0000-0000-000000000032', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Lean Six Sigma & Process Optimization Seminar''', '2026-08-12T05:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'dean', 'For Approval', 'Approved', '[Dean Remarks] Approved for professional development credit.'),
+  ('81000000-0000-0000-0000-000000000033', '51000000-0000-0000-0000-000000000007', 'Disbursed Expense', 'Disbursed ₱4,000.00 for ''Guest Speaker Honorarium''', '2026-08-29T02:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', NULL, NULL, NULL),
+
+  -- Event 8: Supply Chain & Logistics Case Competition (Created)
+  ('81000000-0000-0000-0000-000000000034', '51000000-0000-0000-0000-000000000008', 'Created Event', 'Created proposal for ''Supply Chain & Logistics Case Competition''', '2026-08-28T02:00:00Z', 'f1000000-0000-0000-0000-000000000008', '01000000-0000-0000-0000-000000000003', 'student', NULL, 'Created', NULL)
+ON CONFLICT (id) DO UPDATE SET
+  user_id = EXCLUDED.user_id,
+  action = EXCLUDED.action,
+  details = EXCLUDED.details,
+  timestamp = EXCLUDED.timestamp,
+  event_id = EXCLUDED.event_id,
+  organization_id = EXCLUDED.organization_id,
+  actor_role = EXCLUDED.actor_role,
+  status_from = EXCLUDED.status_from,
+  status_to = EXCLUDED.status_to,
+  remarks = EXCLUDED.remarks;
 
 -- 11. Exported Reports
 CREATE TABLE IF NOT EXISTS public.exported_reports (

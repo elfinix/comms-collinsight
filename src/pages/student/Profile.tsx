@@ -8,6 +8,7 @@ import {
   Trash2, CheckCircle, AlertCircle, ShieldCheck, Sliders, Lock, Sparkles, Layers, LayoutGrid, List
 } from "lucide-react";
 import { formatDate, Gender } from "../../services/mockData";
+import { uploadUserMedia } from "../../services/storageService";
 
 function formatMiddleInitial(middleName?: string): string {
   if (!middleName || !middleName.trim()) return "";
@@ -59,10 +60,10 @@ export default function StudentProfile() {
 
   if (!currentUser) return null;
 
-  // Handle Avatar Upload
-  function handleAvatarFileChange(e: ChangeEvent<HTMLInputElement>) {
+  // Handle Avatar Upload with Supabase media/ Bucket Persistence
+  async function handleAvatarFileChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !currentUser) return;
 
     if (!file.type.startsWith("image/")) {
       alert("Please upload a valid image file (JPG, PNG, WebP).");
@@ -74,16 +75,25 @@ export default function StudentProfile() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      setAvatar(result);
-      // Immediately update auth & app user avatars
-      updateCurrentUser({ avatar: result });
-      updateUser(currentUser!.id, { avatar: result });
-      toast.success("Avatar Uploaded", "Your profile avatar has been updated.");
-    };
-    reader.readAsDataURL(file);
+    // 1. Instant local preview
+    const localUrl = URL.createObjectURL(file);
+    setAvatar(localUrl);
+
+    // 2. Upload to Supabase media/ bucket
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `avatar_${Date.now()}.${ext}`;
+    const uploadRes = await uploadUserMedia({
+      organizationName: org?.name || "Administration",
+      userId: currentUser.id,
+      file,
+      fileName,
+    });
+
+    const finalUrl = uploadRes.publicUrl || localUrl;
+    setAvatar(finalUrl);
+    updateCurrentUser({ avatar: finalUrl });
+    updateUser(currentUser.id, { avatar: finalUrl });
+    toast.success("Avatar Uploaded", "Your profile avatar has been uploaded successfully.");
   }
 
   function handleRemoveAvatar() {
@@ -191,11 +201,25 @@ export default function StudentProfile() {
     setTimeout(() => setPasswordSuccess(false), 3500);
   }
 
+  // Persist User Preference to Database & Context
+  function persistUserSetting(newPartialSettings: any) {
+    if (!currentUser) return;
+    const currentSettings = currentUser.settings || {};
+    const updatedSettings = { ...currentSettings, ...newPartialSettings };
+    updateCurrentUser({ settings: updatedSettings });
+    updateUser(currentUser.id, { settings: updatedSettings });
+  }
+
   // Handle Reset Preferences
   function handleResetPreferences() {
     setDataDensity(10);
     setDefaultView("grid");
     setTableDensity("comfortable");
+    persistUserSetting({
+      dataDensity: "comfortable",
+      defaultView: "grid",
+      tableDensity: "comfortable",
+    });
     setPrefSuccess(true);
     toast.info("Preferences Reset", "Display and density defaults restored.");
     setTimeout(() => setPrefSuccess(false), 2500);
@@ -553,7 +577,11 @@ export default function StudentProfile() {
             <div className="w-full sm:w-56 flex-shrink-0">
               <Select
                 value={String(dataDensity)}
-                onChange={(e) => setDataDensity(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setDataDensity(val);
+                  persistUserSetting({ dataDensity: val === 10 ? "comfortable" : "compact" });
+                }}
                 options={[
                   { value: "5", label: "5 rows per page" },
                   { value: "10", label: "10 rows (Default)" },
@@ -577,7 +605,10 @@ export default function StudentProfile() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setDefaultView("grid")}
+                onClick={() => {
+                  setDefaultView("grid");
+                  persistUserSetting({ defaultView: "grid" });
+                }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition shadow-2xs cursor-pointer border flex items-center gap-1.5 ${
                   defaultView === "grid"
                     ? "border-[var(--primary)] bg-[var(--primary)] text-white font-bold"
@@ -588,7 +619,10 @@ export default function StudentProfile() {
               </button>
               <button
                 type="button"
-                onClick={() => setDefaultView("list")}
+                onClick={() => {
+                  setDefaultView("list");
+                  persistUserSetting({ defaultView: "list" });
+                }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition shadow-2xs cursor-pointer border flex items-center gap-1.5 ${
                   defaultView === "list"
                     ? "border-[var(--primary)] bg-[var(--primary)] text-white font-bold"
@@ -613,7 +647,10 @@ export default function StudentProfile() {
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setTableDensity("comfortable")}
+                onClick={() => {
+                  setTableDensity("comfortable");
+                  persistUserSetting({ tableDensity: "comfortable" });
+                }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition shadow-2xs cursor-pointer border ${
                   tableDensity === "comfortable"
                     ? "border-[var(--primary)] bg-[var(--primary)] text-white font-bold"
@@ -624,7 +661,10 @@ export default function StudentProfile() {
               </button>
               <button
                 type="button"
-                onClick={() => setTableDensity("compact")}
+                onClick={() => {
+                  setTableDensity("compact");
+                  persistUserSetting({ tableDensity: "compact" });
+                }}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition shadow-2xs cursor-pointer border ${
                   tableDensity === "compact"
                     ? "border-[var(--primary)] bg-[var(--primary)] text-white font-bold"

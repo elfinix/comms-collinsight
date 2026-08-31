@@ -320,7 +320,7 @@ export default function AdminReports() {
       setPreviewPdfUrl(blobUrl);
       setIsExporting(false);
 
-      toast.success("System Activity Report Generated", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
+      toast.success("System Activity Report Generated", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
       setIsExporting(false);
@@ -353,14 +353,21 @@ export default function AdminReports() {
           <CardHeader title="System Activity (Last 7 Days)" subtitle="Audit trail volume per day" />
           <CardBody>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={activityByDay}>
-                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
-                  <Bar dataKey="actions" name="Actions Logged" fill="#0d9488" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {activityByDay.every((d) => d.actions === 0) ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                  <p className="text-xs font-semibold text-[var(--foreground)]">No audit activity logged</p>
+                  <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">User interactions in the past 7 days will show here.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={activityByDay}>
+                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
+                    <Bar dataKey="actions" name="Actions Logged" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardBody>
         </Card>
@@ -368,15 +375,22 @@ export default function AdminReports() {
           <CardHeader title="Events per Organization" subtitle="Comparison of proposal frequency" />
           <CardBody>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={orgData}>
-                  <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
-                  <YAxis stroke="var(--muted-foreground)" fontSize={11} />
-                  <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
-                  <Bar dataKey="users" fill="#0d9488" radius={[4, 4, 0, 0]} name="Users" />
-                  <Bar dataKey="events" fill="#0284c7" radius={[4, 4, 0, 0]} name="Events" />
-                </BarChart>
-              </ResponsiveContainer>
+              {orgData.every((d) => d.users === 0 && d.events === 0) ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                  <p className="text-xs font-semibold text-[var(--foreground)]">No organizational metrics</p>
+                  <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Organization participation comparison will render here.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={orgData}>
+                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
+                    <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                    <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
+                    <Bar dataKey="users" fill="#0d9488" radius={[4, 4, 0, 0]} name="Users" />
+                    <Bar dataKey="events" fill="#0284c7" radius={[4, 4, 0, 0]} name="Events" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardBody>
         </Card>
@@ -419,7 +433,7 @@ export default function AdminReports() {
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-emerald-600 flex-shrink-0" />
                 <span>
-                  Report <strong>{currentDocRef}</strong> has been compiled as a genuine Vector PDF and archived to Supabase Storage (<code>reports/Administration/</code>).
+                  Report <strong>{currentDocRef}</strong> has been compiled as a genuine PDF and archived to Supabase Storage (<code>reports/Administration/</code>).
                 </span>
               </div>
               {currentFileUrl && (

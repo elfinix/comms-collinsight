@@ -421,7 +421,7 @@ export default function DeanReports() {
         document.body.removeChild(a);
       }
 
-      toast.success("Directorate Report Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
+      toast.success("Directorate Report Exported", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
       toast.error("Export Failed", "Could not compile Directorate Report.");

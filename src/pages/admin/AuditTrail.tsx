@@ -8,7 +8,7 @@ import {
   ScrollText, FileText, ArrowRight, Activity, Building2, CheckCircle,
   ChevronDown, Loader2, Printer
 } from "lucide-react";
-import { formatDateTime, getActionBadgeClass, Event } from "../../services/mockData";
+import { formatDateTime, getActionBadgeClass, Event, statusColors } from "../../services/mockData";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -465,7 +465,7 @@ export default function AdminAuditTrail() {
         document.body.removeChild(a);
       }
 
-      toast.success("Audit Log Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) created with authentic visual styling.`);
+      toast.success("Audit Log Exported", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) created with authentic visual styling.`);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
       toast.error("Export Failed", "Could not compile PDF document.");
@@ -591,7 +591,7 @@ export default function AdminAuditTrail() {
                             <p className="text-xs font-medium text-[var(--foreground)] leading-snug">
                               {evt.name}
                             </p>
-                            <span className="inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--muted)] text-[var(--muted-foreground)] border border-[var(--border)]">
+                            <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${statusColors[evt.status] || "bg-slate-100 text-slate-700 border-slate-300"}`}>
                               {evt.status}
                             </span>
                           </div>

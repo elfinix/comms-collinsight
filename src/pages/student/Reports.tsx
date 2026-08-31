@@ -6,7 +6,7 @@ import { Card, CardHeader, CardBody, Button, StatCard } from "../../components/u
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import {
   FileDown, BarChart2, Calendar, Wallet, CreditCard,
-  ChevronDown, ArrowUpDown, ArrowUpNarrowWide, ArrowDownWideNarrow, Filter
+  ChevronDown, ArrowUpDown, ArrowUpNarrowWide, ArrowDownWideNarrow, Filter, TrendingUp
 } from "lucide-react";
 import { formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById, getCategoryById } from "../../services/mockData";
 import { uploadGeneratedReport } from "../../services/storageService";
@@ -539,7 +539,7 @@ export default function StudentReports() {
           doc.setFontSize(6.5);
           doc.setFont("helvetica", "normal");
           doc.setTextColor(100, 116, 139);
-          doc.text(`Finance Officer, ${orgCode}`, margin + 2, pageHeight - 14);
+          doc.text(`Student Officer, ${orgCode}`, margin + 2, pageHeight - 14);
 
           // Signatory 2: Adviser
           doc.setFontSize(6.5);
@@ -612,7 +612,7 @@ export default function StudentReports() {
         document.body.removeChild(a);
       }
 
-      toast.success("Organization Report Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
+      toast.success("Organization Report Exported", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
     } catch (err: any) {
       console.error("PDF generation failed:", err);
       toast.error("Export Failed", "Could not compile Organization Report.");
@@ -642,33 +642,49 @@ export default function StudentReports() {
         <Card>
           <CardHeader><h2 className="font-semibold">Events per Month</h2></CardHeader>
           <CardBody>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={monthlyData}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="events" name="Events" fill="#0d9488" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {monthlyData.every((m) => m.events === 0) ? (
+              <div className="h-[200px] flex flex-col items-center justify-center text-center p-4">
+                <Calendar size={28} className="text-[var(--muted-foreground)] opacity-40 mb-1.5" />
+                <p className="text-xs font-semibold text-[var(--foreground)]">No monthly event data</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">No initiatives recorded for the academic year.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={monthlyData}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="events" name="Events" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
         <Card>
           <CardHeader><h2 className="font-semibold">Budget vs. Spending Trend</h2></CardHeader>
           <CardBody>
-            <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={approvedEvents.map((e) => ({
-                name: e.name.split(" ")[0],
-                budget: e.proposedBudget,
-                spent: transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0),
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="name" tick={{ fontSize: 9 }} />
-                <YAxis tick={{ fontSize: 9 }} />
-                <Tooltip formatter={(v: any) => formatCurrency(v)} />
-                <Line type="monotone" dataKey="budget" stroke="#0d9488" strokeWidth={2} dot={false} name="Budget" />
-                <Line type="monotone" dataKey="spent" stroke="#f59e0b" strokeWidth={2} dot={false} name="Spent" />
-              </LineChart>
-            </ResponsiveContainer>
+            {approvedEvents.length === 0 ? (
+              <div className="h-[200px] flex flex-col items-center justify-center text-center p-4">
+                <TrendingUp size={28} className="text-[var(--muted-foreground)] opacity-40 mb-1.5" />
+                <p className="text-xs font-semibold text-[var(--foreground)]">No trend data available</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Approved events and disbursement trends will plot here.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={approvedEvents.map((e) => ({
+                  name: e.name.split(" ")[0],
+                  budget: e.proposedBudget,
+                  spent: transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0),
+                }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 9 }} />
+                  <YAxis tick={{ fontSize: 9 }} />
+                  <Tooltip formatter={(v: any) => formatCurrency(v)} />
+                  <Line type="monotone" dataKey="budget" stroke="#0d9488" strokeWidth={2} dot={false} name="Budget" />
+                  <Line type="monotone" dataKey="spent" stroke="#f59e0b" strokeWidth={2} dot={false} name="Spent" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
       </div>

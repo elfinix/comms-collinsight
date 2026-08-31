@@ -178,8 +178,10 @@ export default function AdminConfigurations() {
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[var(--foreground)] truncate">{et.name}</p>
                         <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-1 pr-1">
-                          {et.description || (
-                            <span className="italic">No description provided</span>
+                          {et.description?.trim() ? (
+                            et.description
+                          ) : (
+                            <span className="italic opacity-70">No description provided</span>
                           )}
                         </p>
                       </div>
@@ -277,8 +279,10 @@ export default function AdminConfigurations() {
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[var(--foreground)] truncate">{cat.name}</p>
                         <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-1 pr-1">
-                          {cat.description || (
-                            <span className="italic">No description provided</span>
+                          {cat.description?.trim() ? (
+                            cat.description
+                          ) : (
+                            <span className="italic opacity-70">No description provided</span>
                           )}
                         </p>
                       </div>

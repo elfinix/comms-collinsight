@@ -26,6 +26,12 @@ export interface User {
   yearLevel?: string;
   memberSince: string;
   avatar?: string;
+  settings?: {
+    theme?: "light" | "dark" | "system";
+    dataDensity?: "compact" | "comfortable";
+    tableDensity?: "compact" | "normal" | "spacious";
+    defaultView?: "list" | "card" | "board" | "timeline";
+  };
   deleted?: boolean;
 }
 
@@ -343,6 +349,81 @@ export const users: User[] = [
     organizationId: "org-1",
     yearLevel: "3rd Year",
     memberSince: "2022-08-15",
+  },
+  {
+    id: "user-stu-5",
+    firstName: "Patricia",
+    middleName: "Katrina",
+    lastName: "Ramos",
+    suffix: "",
+    email: "pramos@student.cite.edu.ph",
+    password: "ramos_112233",
+    role: "student",
+    position: "President",
+    gender: "female",
+    organizationId: "org-2",
+    yearLevel: "4th Year",
+    memberSince: "2021-08-15",
+  },
+  {
+    id: "user-stu-6",
+    firstName: "Joshua",
+    middleName: "Vicente",
+    lastName: "Ocampo",
+    suffix: "",
+    email: "jocampo@student.cite.edu.ph",
+    password: "ocampo_445566",
+    role: "student",
+    position: "Vice President",
+    gender: "male",
+    organizationId: "org-2",
+    yearLevel: "3rd Year",
+    memberSince: "2022-08-15",
+  },
+  {
+    id: "user-stu-7",
+    firstName: "Samantha",
+    middleName: "Clarisse",
+    lastName: "Dela Cruz",
+    suffix: "",
+    email: "sdelacruz@student.cite.edu.ph",
+    password: "delacruz_554433",
+    role: "student",
+    position: "Secretary",
+    gender: "female",
+    organizationId: "org-2",
+    yearLevel: "2nd Year",
+    memberSince: "2023-08-15",
+  },
+  {
+    id: "user-stu-8",
+    firstName: "Mark",
+    middleName: "Laurence",
+    lastName: "Tan",
+    suffix: "",
+    email: "mtan@student.cite.edu.ph",
+    password: "tan_778899",
+    role: "student",
+    position: "President",
+    gender: "male",
+    organizationId: "org-3",
+    yearLevel: "3rd Year",
+    memberSince: "2022-08-15",
+  },
+  {
+    id: "user-stu-9",
+    firstName: "Andrea",
+    middleName: "Grace",
+    lastName: "Perez",
+    suffix: "",
+    email: "aperez@student.cite.edu.ph",
+    password: "perez_998877",
+    role: "student",
+    position: "Vice President",
+    gender: "female",
+    organizationId: "org-3",
+    yearLevel: "2nd Year",
+    memberSince: "2023-08-15",
   },
 ];
 
@@ -834,13 +915,13 @@ export function formatDateTime(dateStr: string): string {
 }
 
 export const statusColors: Record<EventStatus, string> = {
-  Created: "bg-slate-50 text-slate-600 border border-slate-200 font-medium",
-  "For Review": "bg-amber-50 text-amber-700 border border-amber-200 font-medium",
-  "For Approval": "bg-blue-50 text-blue-700 border border-blue-200 font-medium",
-  "Pending Revision": "bg-orange-50 text-orange-700 border border-orange-200 font-medium",
-  Approved: "bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium",
-  Completed: "bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium",
-  Closed: "bg-gray-50 text-gray-600 border border-gray-200 font-medium",
+  Created: "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
+  "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
+  "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
+  "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
+  Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  Completed: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  Closed: "bg-gray-100 text-gray-700 border border-gray-300 font-medium",
 };
 
 export function isWebUrl(str?: string): boolean {
@@ -882,34 +963,37 @@ export function resolvePdfUrl(url?: string, fallbackType: "apf" | "clearance" | 
 
 export function getActionBadgeClass(action: string): string {
   const act = action.toLowerCase();
-  if (act.includes("executive approval") || (act.includes("executive") && act.includes("approv"))) {
-    return "bg-emerald-600 text-white border-emerald-700 font-bold shadow-2xs";
+  if (act.includes("executive approval") || act.includes("executive approved")) {
+    return "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
   }
-  if (act.includes("approve") || act.includes("endors") || act.includes("executive")) {
-    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+  if (act.includes("endorsed") || act.includes("endors")) {
+    return "bg-blue-100 text-blue-800 border-blue-300 font-bold";
+  }
+  if (act.includes("approved") || act.includes("approv")) {
+    return "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
   }
   if (act.includes("revision") || act.includes("change") || act.includes("reject")) {
-    return "bg-rose-50 text-rose-800 border-rose-200";
+    return "bg-orange-100 text-orange-800 border-orange-300 font-bold";
   }
   if (act.includes("delete") || act.includes("removed")) {
-    return "bg-red-50 text-red-800 border-red-200";
+    return "bg-rose-100 text-rose-800 border-rose-300 font-bold";
   }
   if (act.includes("modified") || act.includes("edit") || act.includes("update")) {
-    return "bg-amber-50 text-amber-800 border-amber-200";
+    return "bg-amber-100 text-amber-800 border-amber-300 font-bold";
   }
   if (act.includes("submit") || act.includes("for review")) {
-    return "bg-blue-50 text-blue-800 border-blue-200";
+    return "bg-amber-100 text-amber-800 border-amber-300 font-bold";
   }
   if (act.includes("disburs") || act.includes("expense") || act.includes("transaction")) {
-    return "bg-emerald-50 text-emerald-800 border-emerald-200";
+    return "bg-purple-100 text-purple-800 border-purple-300 font-bold";
   }
   if (act.includes("completed") || act.includes("closed") || act.includes("closure")) {
-    return "bg-slate-100 text-slate-700 border-slate-200";
+    return "bg-slate-100 text-slate-700 border-slate-300 font-bold";
   }
   if (act.includes("create")) {
-    return "bg-slate-100 text-slate-700 border-slate-200";
+    return "bg-slate-100 text-slate-700 border-slate-300 font-bold";
   }
-  return "bg-slate-100 text-slate-700 border-slate-200";
+  return "bg-slate-100 text-slate-700 border-slate-300 font-bold";
 }
 
 export function printClearanceDocument(event: Event, organizationName?: string, eventTypeName?: string) {

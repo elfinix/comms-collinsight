@@ -58,6 +58,7 @@ export function mapUserFromDb(row: any): User {
     yearLevel: row.year_level || undefined,
     memberSince: row.member_since || "2023-01-01",
     avatar: row.avatar || undefined,
+    settings: row.settings || undefined,
     deleted: row.deleted ?? false,
   };
 }
@@ -328,6 +329,7 @@ export const supabaseApi = {
       year_level: user.yearLevel || "3rd Year",
       member_since: user.memberSince || "2023-01-01",
       avatar: user.avatar || null,
+      settings: user.settings || null,
       deleted: user.deleted || false,
     };
     return supabase.from("users").upsert(dbPayload).select();
@@ -347,6 +349,7 @@ export const supabaseApi = {
     if (updates.organizationId !== undefined) dbPayload.organization_id = updates.organizationId || null;
     if (updates.yearLevel !== undefined) dbPayload.year_level = updates.yearLevel;
     if (updates.avatar !== undefined) dbPayload.avatar = updates.avatar || null;
+    if (updates.settings !== undefined) dbPayload.settings = updates.settings;
     if (updates.deleted !== undefined) dbPayload.deleted = updates.deleted;
 
     return supabase.from("users").update(dbPayload).eq("id", id).select();

@@ -132,77 +132,93 @@ export default function DeanDashboard() {
         <Card>
           <CardHeader title="Events per Student Organization" subtitle="Initiatives distribution across academic bodies" />
           <CardBody>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip
-                  wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const item = payload[0].payload;
-                      return (
-                        <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-1.5 min-w-[160px] z-50">
-                          <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1">
-                            {item.fullName || item.name}
-                          </p>
-                          <div className="flex items-center justify-between gap-3 font-mono text-slate-700">
-                            <span className="font-sans font-medium text-xs">Events:</span>
-                            <span className="font-bold text-teal-900">{item.events}</span>
+            {orgData.every((d) => d.events === 0) ? (
+              <div className="h-[210px] flex flex-col items-center justify-center text-center p-4">
+                <Calendar size={32} className="text-[var(--muted-foreground)] opacity-40 mb-2" />
+                <p className="text-xs font-semibold text-[var(--foreground)]">No organizational event activity</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Events scheduled across recognized guilds will display here.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip
+                    wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const item = payload[0].payload;
+                        return (
+                          <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-1.5 min-w-[160px] z-50">
+                            <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1">
+                              {item.fullName || item.name}
+                            </p>
+                            <div className="flex items-center justify-between gap-3 font-mono text-slate-700">
+                              <span className="font-sans font-medium text-xs">Events:</span>
+                              <span className="font-bold text-teal-900">{item.events}</span>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="events" fill="#0a6b64" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="events" fill="#0a6b64" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader title="Allocated Budget vs. Disbursed Spending" subtitle="Fund compliance comparison by guild" />
           <CardBody>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
-                <Tooltip
-                  wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const item = payload[0].payload;
-                      return (
-                        <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-2 min-w-[200px] z-50">
-                          <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1.5">
-                            {item.fullName || item.name}
-                          </p>
-                          <div className="space-y-1.5 font-mono">
-                            <div className="flex items-center justify-between gap-3 text-slate-700">
-                              <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
-                              </span>
-                              <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-3 text-slate-700">
-                              <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
-                              </span>
-                              <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+            {orgData.every((d) => d.budget === 0 && d.spent === 0) ? (
+              <div className="h-[210px] flex flex-col items-center justify-center text-center p-4">
+                <Wallet size={32} className="text-[var(--muted-foreground)] opacity-40 mb-2" />
+                <p className="text-xs font-semibold text-[var(--foreground)]">No organizational financial records</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Budget allocations and disbursement metrics will display here.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={orgData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
+                  <Tooltip
+                    wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const item = payload[0].payload;
+                        return (
+                          <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-2 min-w-[200px] z-50">
+                            <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1.5">
+                              {item.fullName || item.name}
+                            </p>
+                            <div className="space-y-1.5 font-mono">
+                              <div className="flex items-center justify-between gap-3 text-slate-700">
+                                <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
+                                </span>
+                                <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 text-slate-700">
+                                <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
+                                </span>
+                                <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="budget" fill="#bfe3dd" radius={[6, 6, 0, 0]} name="Budget" />
-                <Bar dataKey="spent" fill="#0a6b64" radius={[6, 6, 0, 0]} name="Spent" />
-              </BarChart>
-            </ResponsiveContainer>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="budget" fill="#bfe3dd" radius={[6, 6, 0, 0]} name="Budget" />
+                  <Bar dataKey="spent" fill="#0a6b64" radius={[6, 6, 0, 0]} name="Spent" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
       </div>

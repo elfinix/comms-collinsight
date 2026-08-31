@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card, UserAvatar } from "../../components/ui";
-import { Plus, Pencil, Trash2, Search, Users, Save, X, Building2, KeyRound, Copy, Check, RefreshCw, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown, Layers, Filter } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Users, Save, X, Building2, KeyRound, Copy, Check, RefreshCw, RotateCcw, Eye, EyeOff, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown, Layers, Filter } from "lucide-react";
 import { User } from "../../services/mockData";
 
 const ROLES = [
@@ -37,7 +37,7 @@ function emptyUser(): Omit<User, "id"> {
     lastName: "",
     suffix: "",
     email: "",
-    password: "",
+    password: `user_${Math.floor(100000 + Math.random() * 900000)}`,
     role: "student",
     position: "President",
     gender: "male",
@@ -57,6 +57,7 @@ export default function AdminUsers() {
   const [sortKey, setSortKey] = useState<"lastName" | "firstName" | "role" | "memberSince">("lastName");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showAdd, setShowAdd] = useState(false);
+  const [showAddPassword, setShowAddPassword] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<User | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
@@ -167,7 +168,14 @@ export default function AdminUsers() {
   }
 
   function handleAdd() {
-    if (!form.firstName || !form.lastName || !form.email) return;
+    if (!form.firstName || !form.lastName || !form.email) {
+      toast.error("Required Fields Missing", "First name, last name, and email are required.");
+      return;
+    }
+    if (form.role === "student" && !form.organizationId) {
+      toast.error("Organization Required", "Student accounts must be assigned to an organization.");
+      return;
+    }
     const newUserId = crypto.randomUUID();
     const userPayload: User = {
       ...form,
@@ -190,7 +198,14 @@ export default function AdminUsers() {
   }
 
   function handleEditSave() {
-    if (!editUser || !editUser.firstName || !editUser.lastName || !editUser.email) return;
+    if (!editUser || !editUser.firstName || !editUser.lastName || !editUser.email) {
+      toast.error("Required Fields Missing", "First name, last name, and email are required.");
+      return;
+    }
+    if (editUser.role === "student" && !editUser.organizationId) {
+      toast.error("Organization Required", "Student accounts must be assigned to an organization.");
+      return;
+    }
     const updatedPayload = {
       ...editUser,
       position: editUser.role === "adviser" ? "Faculty Adviser" : editUser.position,
@@ -550,7 +565,19 @@ export default function AdminUsers() {
                   <Input
                     label="Last Name *"
                     value={ctx.user.lastName}
-                    onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, lastName: e.target.value }))}
+                    onChange={(e: any) => {
+                      const newLast = e.target.value;
+                      ctx.setUser((p: any) => {
+                        const updated = { ...p, lastName: newLast };
+                        if (ctx.isNew) {
+                          const base = newLast.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
+                          const existingSuffix = p.password?.includes("_") ? p.password.split("_")[1] : null;
+                          const suffix = existingSuffix && existingSuffix.length === 6 ? existingSuffix : Math.floor(100000 + Math.random() * 900000);
+                          updated.password = `${base}_${suffix}`;
+                        }
+                        return updated;
+                      });
+                    }}
                   />
                   <Input
                     label="Suffix"
@@ -564,13 +591,67 @@ export default function AdminUsers() {
                     value={ctx.user.email}
                     onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, email: e.target.value }))}
                   />
-                  <Input
-                    label="Password"
-                    type="password"
-                    value={ctx.user.password}
-                    onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, password: e.target.value }))}
-                    placeholder="Leave blank for auto-generated password"
-                  />
+
+                  {/* Auto-generated Password Control */}
+                  <div>
+                    <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+                      {ctx.isNew ? "Initial Account Password (Auto-Generated)" : "Account Password"}
+                    </label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showAddPassword ? "text" : "password"}
+                        readOnly={ctx.isNew}
+                        value={ctx.user.password || (ctx.isNew ? `${(ctx.user.lastName.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "user")}_${Math.floor(100000 + Math.random() * 900000)}` : "")}
+                        onChange={(e) => {
+                          if (!ctx.isNew) {
+                            ctx.setUser((p: any) => ({ ...p, password: e.target.value }));
+                          }
+                        }}
+                        className={`w-full px-3 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--muted)]/40 text-[var(--foreground)] font-mono focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs pr-20`}
+                        placeholder="Auto-generated password"
+                      />
+                      <div className="absolute right-1.5 flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowAddPassword((s) => !s)}
+                          className="p-1 rounded-lg hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition cursor-pointer"
+                          title={showAddPassword ? "Hide Password" : "Show Password"}
+                        >
+                          {showAddPassword ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                        {ctx.isNew && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const base = ctx.user.lastName.trim().toLowerCase().replace(/[^a-z0-9]/g, "") || "user";
+                                const newSuffix = Math.floor(100000 + Math.random() * 900000);
+                                ctx.setUser((p: any) => ({ ...p, password: `${base}_${newSuffix}` }));
+                                toast.info("New Password Generated", "Updated 6-digit random credential suffix.");
+                              }}
+                              className="p-1 rounded-lg hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition cursor-pointer"
+                              title="Regenerate Random Password"
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (ctx.user.password) {
+                                  navigator.clipboard.writeText(ctx.user.password);
+                                  toast.success("Password Copied", "Initial credential copied to clipboard.");
+                                }
+                              }}
+                              className="p-1 rounded-lg hover:bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition cursor-pointer"
+                              title="Copy Password"
+                            >
+                              <Copy size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   <div>
                     <Select
                       label="System Role *"
@@ -632,6 +713,11 @@ export default function AdminUsers() {
                               * Only organizations without an appointed adviser are available.
                             </p>
                           )}
+                          {ctx.user.role === "student" && !ctx.user.organizationId && (
+                            <p className="text-[10px] text-amber-700 dark:text-amber-600 font-medium mt-1">
+                              * Please assign an organization before saving this student account.
+                            </p>
+                          )}
                         </div>
 
                         {ctx.user.role === "student" && (
@@ -652,15 +738,15 @@ export default function AdminUsers() {
                               }}
                               options={[
                                 ...STUDENT_OFFICER_POSITIONS.map((pos) => ({ value: pos, label: pos })),
-                                { value: "Custom", label: "— Custom Position Title —" },
+                                { value: "Custom", label: "Custom Title..." },
                               ]}
                             />
-                            {(!STUDENT_OFFICER_POSITIONS.includes(ctx.user.position) || ctx.user.position === "") && (
+                            {!STUDENT_OFFICER_POSITIONS.includes(ctx.user.position) && (
                               <div className="mt-2">
                                 <Input
                                   value={ctx.user.position || ""}
                                   onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, position: e.target.value }))}
-                                  placeholder="Type custom position title..."
+                                  placeholder="Enter custom executive title..."
                                 />
                               </div>
                             )}
@@ -672,7 +758,7 @@ export default function AdminUsers() {
 
                   <div className="sm:col-span-2">
                     <Select
-                      label="Year / Academic Level"
+                      label={ctx.user.role === "student" ? "Academic Year Level" : "Institutional Classification"}
                       value={ctx.user.yearLevel ?? (ctx.user.role === "student" ? "1st Year" : "Faculty/Staff")}
                       onChange={(e: any) => ctx.setUser((p: any) => ({ ...p, yearLevel: e.target.value }))}
                       options={
@@ -699,7 +785,12 @@ export default function AdminUsers() {
                   </Button>
                   <Button
                     onClick={ctx.onSave}
-                    disabled={!ctx.user.firstName.trim() || !ctx.user.lastName.trim() || !ctx.user.email.trim()}
+                    disabled={
+                      !ctx.user.firstName.trim() ||
+                      !ctx.user.lastName.trim() ||
+                      !ctx.user.email.trim() ||
+                      (ctx.user.role === "student" && !ctx.user.organizationId)
+                    }
                     className="gap-1.5 text-xs font-bold"
                   >
                     {ctx.isNew ? (

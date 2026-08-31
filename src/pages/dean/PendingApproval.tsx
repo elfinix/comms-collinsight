@@ -11,7 +11,7 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanPendingApproval() {
-  const { events, organizations, users, setEventStatus, updateEvent, defaultView } = useApp();
+  const { events, organizations, users, eventTypes, setEventStatus, updateEvent, defaultView } = useApp();
   const { toast } = useToast();
   const pending = events.filter((e) => e.status === "For Approval");
 
@@ -29,7 +29,8 @@ export default function DeanPendingApproval() {
 
   async function handleApprove() {
     if (!viewEvent) return;
-    setEventStatus(viewEvent.id, "Approved");
+    const trimmed = feedback.trim();
+    setEventStatus(viewEvent.id, "Approved", trimmed || undefined);
 
     const org = organizations.find((o) => o.id === viewEvent.organizationId);
     const orgName = org?.name || org?.code || "Organization";
@@ -50,6 +51,7 @@ export default function DeanPendingApproval() {
       await uploadEventAttachment({
         organizationName: orgName,
         eventId: viewEvent.id,
+        eventName: viewEvent.name,
         category: "Clearance",
         file: pdfBlob,
         fileName: clearanceDocName,
@@ -58,17 +60,48 @@ export default function DeanPendingApproval() {
       console.warn("Storage upload notice:", e);
     }
 
-    if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Dean's Remarks: ${feedback}`] });
-    toast.success("Executive Approval Granted", `'${viewEvent.name}' officially approved by the College Dean.`);
+    const updatedRemarks = trimmed
+      ? [...(viewEvent.remarks ?? []), `[Dean Remarks] ${trimmed}`]
+      : viewEvent.remarks;
+    const targetEvent = { ...viewEvent, status: "Approved" as const, remarks: updatedRemarks, deanFeedback: trimmed || undefined };
+    updateEvent(viewEvent.id, {
+      remarks: updatedRemarks,
+      deanFeedback: trimmed || undefined,
+    });
+    toast.success("Executive Approval Granted", `'${viewEvent.name}' officially approved by the College Dean.`, {
+      action: {
+        label: "Click here to view event details",
+        onClick: () => {
+          setViewEvent(targetEvent);
+          setViewTab("details");
+        },
+      },
+    });
     setViewEvent(null);
     setFeedback("");
     setShowApproveRemarks(false);
   }
 
   function handleRequestChange() {
-    if (!viewEvent || !feedback) return;
-    setEventStatus(viewEvent.id, "Pending Revision", feedback);
-    toast.warning("Revision Requested", `'${viewEvent.name}' returned for revisions with Dean instructions.`);
+    if (!viewEvent || !feedback.trim()) return;
+    const targetEvent = { ...viewEvent, status: "Pending Revision" as const };
+    const trimmed = feedback.trim();
+    setEventStatus(viewEvent.id, "Pending Revision", trimmed);
+    const updatedRemarks = [...(viewEvent.remarks ?? []), `[Dean Remarks] Revision Requested: ${trimmed}`];
+    updateEvent(viewEvent.id, {
+      remarks: updatedRemarks,
+      deanFeedback: trimmed,
+    });
+    toast.warning("Revision Requested", `'${viewEvent.name}' returned for revisions with Dean instructions.`, {
+      icon: "check",
+      action: {
+        label: "Click here to view event details",
+        onClick: () => {
+          setViewEvent(targetEvent);
+          setViewTab("details");
+        },
+      },
+    });
     setViewEvent(null);
     setFeedback("");
     setShowRequestChange(false);
@@ -136,7 +169,14 @@ export default function DeanPendingApproval() {
                     <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
                       {e.status}
                     </span>
-                    <span className="text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">
+                    <span
+                      className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border shadow-2xs"
+                      style={{
+                        backgroundColor: `${org?.logoColor || "#0d9488"}18`,
+                        color: org?.logoColor || "#0d9488",
+                        borderColor: `${org?.logoColor || "#0d9488"}40`,
+                      }}
+                    >
                       {org?.code}
                     </span>
                   </div>
@@ -209,7 +249,16 @@ export default function DeanPendingApproval() {
                         <div className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</div>
                       </td>
                       <td className="px-4 py-3.5 text-xs font-mono text-[var(--muted-foreground)]">
-                        <span className="font-bold text-[var(--primary)]">{org?.code}</span>
+                        <span
+                          className="font-bold px-2 py-0.5 rounded-md border"
+                          style={{
+                            backgroundColor: `${org?.logoColor || "#0d9488"}18`,
+                            color: org?.logoColor || "#0d9488",
+                            borderColor: `${org?.logoColor || "#0d9488"}40`,
+                          }}
+                        >
+                          {org?.code}
+                        </span>
                       </td>
                       <td className="px-4 py-3.5 font-mono text-xs text-[var(--muted-foreground)]">
                         <div>{formatDate(e.dateStart)}</div>
@@ -244,8 +293,8 @@ export default function DeanPendingApproval() {
       {/* Review Dialog */}
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
-          <div className="flex flex-col min-h-0 flex-1">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs">
+          <div className="flex flex-col min-h-0 flex-1 h-full">
+            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs flex-shrink-0">
               <div className="flex items-center gap-3 pb-3">
                 <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
                   {viewEvent.status}
@@ -256,11 +305,11 @@ export default function DeanPendingApproval() {
               </div>
               <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
             </div>
-            <div className="p-6">
+            <div className="p-6 flex-1">
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p>{getEventTypeById(viewEvent.typeId)?.name}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p></div>
                   <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p>{viewEvent.description}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online" : viewEvent.mode}</p></div>
@@ -346,7 +395,7 @@ export default function DeanPendingApproval() {
                 />
               )}
             </div>
-            <div className="flex justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] flex-wrap gap-3">
+            <div className="flex justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] bg-white sticky bottom-0 z-10 mt-auto flex-wrap gap-3 flex-shrink-0">
               <Button variant="outline" onClick={() => setViewEvent(null)}>Close</Button>
               <div className="flex gap-2 flex-wrap">
                 {(viewTab === "details" || viewTab === "compliance") && (
@@ -371,7 +420,7 @@ export default function DeanPendingApproval() {
         </Dialog>
       )}
 
-      <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm">
+      <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
           <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance. APF and clearance will be emailed to SDS.</p>
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Optional notes..." />
@@ -384,7 +433,7 @@ export default function DeanPendingApproval() {
         </div>
       </Dialog>
 
-      <Dialog open={showRequestChange} onClose={() => setShowRequestChange(false)} title="Request Changes" size="sm">
+      <Dialog open={showRequestChange} onClose={() => setShowRequestChange(false)} title="Request Changes" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
           <Textarea label="Feedback *" rows={4} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="State required changes clearly..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">

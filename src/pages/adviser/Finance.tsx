@@ -234,42 +234,49 @@ export default function AdviserFinance() {
             </div>
           </CardHeader>
           <CardBody className="flex-1 flex flex-col justify-center p-4">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
-                <XAxis dataKey="shortName" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
-                <Tooltip
-                  wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const item = payload[0].payload;
-                      return (
-                        <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-2 min-w-[200px] z-50">
-                          <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1.5">{item.fullName}</p>
-                          <div className="space-y-1.5 font-mono">
-                            <div className="flex items-center justify-between gap-3 text-slate-600">
-                              <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
-                              </span>
-                              <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
-                            </div>
-                            <div className="flex items-center justify-between gap-3 text-slate-600">
-                              <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
-                              </span>
-                              <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+            {chartData.length === 0 || chartData.every((d) => d.budget === 0 && d.spent === 0) ? (
+              <div className="flex flex-col items-center justify-center h-[200px] text-center p-4">
+                <p className="text-xs font-semibold text-[var(--foreground)]">No event spending data</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Budget and disbursement comparisons will appear here.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
+                  <XAxis dataKey="shortName" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
+                  <Tooltip
+                    wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const item = payload[0].payload;
+                        return (
+                          <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-2 min-w-[200px] z-50">
+                            <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1.5">{item.fullName}</p>
+                            <div className="space-y-1.5 font-mono">
+                              <div className="flex items-center justify-between gap-3 text-slate-600">
+                                <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
+                                </span>
+                                <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 text-slate-600">
+                                <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
+                                </span>
+                                <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="budget" fill="#5eead4" radius={[4, 4, 0, 0]} name="Budget" />
-                <Bar dataKey="spent" fill="#0d9488" radius={[4, 4, 0, 0]} name="Spent" />
-              </BarChart>
-            </ResponsiveContainer>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="budget" fill="#5eead4" radius={[4, 4, 0, 0]} name="Budget" />
+                  <Bar dataKey="spent" fill="#0d9488" radius={[4, 4, 0, 0]} name="Spent" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
       </div>

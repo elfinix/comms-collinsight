@@ -39,19 +39,32 @@ export function getReportDateFolder(date?: Date | string): string {
 }
 
 /**
+ * Converts any event string to PascalCase for cloud folder naming
+ */
+export function toPascalCase(str: string): string {
+  if (!str || !str.trim()) return "Event";
+  return str
+    .replace(/[^a-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join("") || "Event";
+}
+
+/**
  * Builds the exact cloud storage path for event attachments
- * Pattern: {organizationName}/{eventID}/{category}/{fileName}
+ * Pattern: attachments / {orgName} / {EventNameInPascalCase} / {category} / {fileName}
  */
 export function buildAttachmentPath(
   organizationName: string,
-  eventId: string,
+  eventNameOrId: string,
   category: AttachmentCategory,
   fileName: string
 ): string {
-  const org = sanitizeStorageSegment(organizationName);
-  const evt = sanitizeStorageSegment(eventId);
+  const org = sanitizeStorageSegment(organizationName || "General");
+  const eventPascal = toPascalCase(eventNameOrId);
   const cleanFileName = sanitizeStorageSegment(fileName);
-  return `${org}/${evt}/${category}/${cleanFileName}`;
+  return `${org}/${eventPascal}/${category}/${cleanFileName}`;
 }
 
 /**
@@ -98,17 +111,20 @@ export function getPublicStorageUrl(bucket: string, path: string): string {
 
 /**
  * Uploads an event attachment (APF, Appendices, Clearance, or Liquidation)
+ * Path: attachments / {orgName} / {EventNameInPascalCase} / {category} / {fileName}
  */
 export async function uploadEventAttachment(params: {
   organizationName: string;
-  eventId: string;
+  eventId?: string;
+  eventName?: string;
   category: AttachmentCategory;
   file: File | Blob;
   fileName?: string;
 }): Promise<{ path: string; publicUrl: string; error: Error | null }> {
   try {
     const rawName = params.fileName || (params.file instanceof File ? params.file.name : "attachment.pdf");
-    const path = buildAttachmentPath(params.organizationName, params.eventId, params.category, rawName);
+    const eventIdentifier = params.eventName || params.eventId || "Event";
+    const path = buildAttachmentPath(params.organizationName, eventIdentifier, params.category, rawName);
 
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKETS.ATTACHMENTS)
@@ -136,7 +152,8 @@ export async function uploadEventAttachment(params: {
  */
 export async function uploadEventAppendices(params: {
   organizationName: string;
-  eventId: string;
+  eventId?: string;
+  eventName?: string;
   files: (File | Blob)[];
   fileNames?: string[];
 }): Promise<{ paths: string[]; publicUrls: string[]; errors: Error[] }> {
@@ -150,6 +167,7 @@ export async function uploadEventAppendices(params: {
       const res = await uploadEventAttachment({
         organizationName: params.organizationName,
         eventId: params.eventId,
+        eventName: params.eventName,
         category: "Appendices",
         file,
         fileName,

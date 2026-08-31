@@ -9,6 +9,7 @@ export interface ClearancePdfOptions {
   adviserName?: string;
   deanName?: string;
   categories?: { id: string; name: string }[];
+  viewerRole?: "student" | "adviser" | "dean" | "admin";
 }
 
 export interface LiquidationPdfOptions {
@@ -111,23 +112,76 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setLineWidth(0.5);
   doc.line(margin, 28, pageWidth - margin, 28);
 
+  const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
+  const viewerRole = options?.viewerRole;
+
+  // Role-based signatory display rules:
+  // - Student viewer: Student signed, Adviser & Dean pending
+  // - Adviser viewer: Student & Adviser signed, Dean pending
+  // - Dean viewer (or approved event): All 3 signatories signed
+  let showAdviserSign = isApproved || event.status === "For Approval";
+  let showDeanSign = isApproved;
+
+  if (viewerRole === "student" && !isApproved) {
+    showAdviserSign = false;
+    showDeanSign = false;
+  } else if (viewerRole === "adviser" && !isApproved) {
+    showAdviserSign = true;
+    showDeanSign = false;
+  } else if (viewerRole === "dean" || isApproved) {
+    showAdviserSign = true;
+    showDeanSign = true;
+  }
+
   // ── 2. EXECUTIVE STATUS BANNER (GENEROUS PADDING) ──────────────
   const bannerY = 34;
   const bannerH = 15;
-  doc.setFillColor(240, 253, 250); // #f0fdfa
-  doc.setDrawColor(153, 246, 228); // #99f6e4
-  doc.setLineWidth(0.3);
-  doc.roundedRect(margin, bannerY, contentWidth, bannerH, 1.5, 1.5, "FD");
+  if (showDeanSign) {
+    doc.setFillColor(240, 253, 250); // #f0fdfa
+    doc.setDrawColor(153, 246, 228); // #99f6e4
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, bannerY, contentWidth, bannerH, 1.5, 1.5, "FD");
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 118, 110);
-  doc.text("EXECUTIVE CLEARANCE STATUS: CLEARANCE GRANTED", margin + 4, bannerY + 5.8);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 118, 110);
+    doc.text("EXECUTIVE CLEARANCE STATUS: OFFICIAL CLEARANCE GRANTED", margin + 4, bannerY + 5.8);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105);
-  doc.text("Dispatched to Student Development Services (SDS) & Academic Affairs", margin + 4, bannerY + 11);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Dispatched to Student Development Services (SDS) & Academic Affairs", margin + 4, bannerY + 11);
+  } else if (showAdviserSign) {
+    doc.setFillColor(240, 253, 250); // #f0fdfa
+    doc.setDrawColor(153, 246, 228); // #99f6e4
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, bannerY, contentWidth, bannerH, 1.5, 1.5, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(15, 118, 110);
+    doc.text("ADVISER REVIEW STATUS: ENDORSED FOR DEAN APPROVAL", margin + 4, bannerY + 5.8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text("Activity Proposal Form (APF) & Appendices Endorsed to Dean's Office", margin + 4, bannerY + 11);
+  } else {
+    doc.setFillColor(248, 250, 252); // #f8fafc
+    doc.setDrawColor(226, 232, 240); // #e2e8f0
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, bannerY, contentWidth, bannerH, 1.5, 1.5, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.setTextColor(51, 65, 85);
+    doc.text("PROPOSAL CLEARANCE STATUS: PENDING ENDORSEMENT & CLEARANCE", margin + 4, bannerY + 5.8);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Activity Proposal Form (APF) Prepared for Faculty Adviser Review", margin + 4, bannerY + 11);
+  }
 
   // ── 3. EVENT IDENTIFICATION GRID (BALANCED PADDING) ────────────
   const gridY = 55;
@@ -313,15 +367,22 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setTextColor(100, 116, 139);
   doc.text("REVIEWED & ENDORSED BY:", margin + sigColW + 2, pageHeight - 42);
 
-  // Vector checkmark
-  doc.setDrawColor(4, 120, 87);
-  doc.setLineWidth(0.4);
-  doc.line(margin + sigColW + 2, pageHeight - 36.2, margin + sigColW + 3.4, pageHeight - 34.8);
-  doc.line(margin + sigColW + 3.4, pageHeight - 34.8, margin + sigColW + 5.8, pageHeight - 37.6);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(4, 120, 87);
-  doc.text("Reviewed & Endorsed", margin + sigColW + 7.5, pageHeight - 35.6);
+  if (showAdviserSign) {
+    // Vector checkmark
+    doc.setDrawColor(4, 120, 87);
+    doc.setLineWidth(0.4);
+    doc.line(margin + sigColW + 2, pageHeight - 36.2, margin + sigColW + 3.4, pageHeight - 34.8);
+    doc.line(margin + sigColW + 3.4, pageHeight - 34.8, margin + sigColW + 5.8, pageHeight - 37.6);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(4, 120, 87);
+    doc.text("Reviewed & Endorsed", margin + sigColW + 7.5, pageHeight - 35.6);
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text("[ Pending Endorsement ]", margin + sigColW + 2, pageHeight - 35.6);
+  }
 
   doc.setDrawColor(51, 65, 85);
   doc.line(margin + sigColW + 2, pageHeight - 28, margin + sigColW * 2 - 8, pageHeight - 28);
@@ -339,15 +400,22 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setTextColor(100, 116, 139);
   doc.text("EXECUTIVE CLEARANCE BY:", margin + sigColW * 2 + 2, pageHeight - 42);
 
-  // Vector checkmark
-  doc.setDrawColor(4, 120, 87);
-  doc.setLineWidth(0.4);
-  doc.line(margin + sigColW * 2 + 2, pageHeight - 36.2, margin + sigColW * 2 + 3.4, pageHeight - 34.8);
-  doc.line(margin + sigColW * 2 + 3.4, pageHeight - 34.8, margin + sigColW * 2 + 5.8, pageHeight - 37.6);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.5);
-  doc.setTextColor(4, 120, 87);
-  doc.text("Approved", margin + sigColW * 2 + 7.5, pageHeight - 35.6);
+  if (showDeanSign) {
+    // Vector checkmark
+    doc.setDrawColor(4, 120, 87);
+    doc.setLineWidth(0.4);
+    doc.line(margin + sigColW * 2 + 2, pageHeight - 36.2, margin + sigColW * 2 + 3.4, pageHeight - 34.8);
+    doc.line(margin + sigColW * 2 + 3.4, pageHeight - 34.8, margin + sigColW * 2 + 5.8, pageHeight - 37.6);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7.5);
+    doc.setTextColor(4, 120, 87);
+    doc.text("Approved", margin + sigColW * 2 + 7.5, pageHeight - 35.6);
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(148, 163, 184);
+    doc.text("[ Pending Executive Clearance ]", margin + sigColW * 2 + 2, pageHeight - 35.6);
+  }
 
   doc.setDrawColor(51, 65, 85);
   doc.line(margin + sigColW * 2 + 2, pageHeight - 28, pageWidth - margin - 2, pageHeight - 28);

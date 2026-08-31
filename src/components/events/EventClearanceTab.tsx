@@ -1,8 +1,10 @@
-import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Printer } from "lucide-react";
+import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Printer, Eye } from "lucide-react";
 import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event } from "../../services/mockData";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
+import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";
 import { useApp } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 
 interface EventClearanceTabProps {
@@ -16,10 +18,13 @@ export default function EventClearanceTab({
   event,
   organizationName,
   eventTypeName,
+  onViewPdf,
 }: EventClearanceTabProps) {
   const { organizations, eventTypes, users } = useApp();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
+  const isDeanViewing = currentUser?.role === "dean" || currentUser?.role === "admin";
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
   const org = organizations.find((o) => o.id === event.organizationId);
@@ -28,23 +33,59 @@ export default function EventClearanceTab({
   const resolvedOrgCode = org?.code || "CITE";
   const resolvedTypeName = eventTypeName || typeObj?.name || "Institutional Event";
 
-  const handlePrint = () => {
+  // Official Clearance Viewer from Database Storage (for approved events)
+  const handleViewClearance = () => {
+    try {
+      const storagePath = buildAttachmentPath(resolvedOrgName, event.name, "Clearance", clearanceFileName);
+      const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
+
+      if (onViewPdf) {
+        onViewPdf(storageUrl, `Event Clearance - ${event.name}`);
+        return;
+      }
+
+      const openWindow = window.open(storageUrl, "_blank");
+      if (!openWindow) {
+        // Fallback to vector blob generation if popup blocked or offline
+        const pdfBlob = generateClearancePdfBlob(event, {
+          organizationName: resolvedOrgName,
+          eventTypeName: resolvedTypeName,
+          viewerRole: currentUser?.role,
+        });
+        openPdfBlobInNewTab(pdfBlob, clearanceFileName);
+      }
+      toast.success("Clearance Certificate Opened", "Viewing official stored clearance from database.");
+    } catch (err: any) {
+      console.error("Clearance storage open error:", err);
+      // Fallback
+      const pdfBlob = generateClearancePdfBlob(event, {
+        organizationName: resolvedOrgName,
+        eventTypeName: resolvedTypeName,
+        viewerRole: currentUser?.role,
+      });
+      openPdfBlobInNewTab(pdfBlob, clearanceFileName);
+    }
+  };
+
+  // Preview Clearance Generator (Draft / In-Preparation)
+  const handlePreviewClearance = () => {
     try {
       const pdfBlob = generateClearancePdfBlob(event, {
         organizationName: resolvedOrgName,
         eventTypeName: resolvedTypeName,
+        viewerRole: currentUser?.role,
       });
       openPdfBlobInNewTab(pdfBlob, clearanceFileName);
-      toast.success("Clearance Certificate Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) opened for viewing.`);
+      toast.success("Clearance Certificate Previewed", `Draft PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled.`);
     } catch (err: any) {
-      console.error("Clearance export error:", err);
+      console.error("Clearance preview error:", err);
       toast.error("Export Failed", "Could not compile Clearance Certificate PDF.");
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      {/* ── 1. OFFICIAL CLEARANCE PDF BANNER (WHEN APPROVED) ── */}
+      {/* ── 1. CLEARANCE PDF BANNER ── */}
       {isApproved ? (
         <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-2xl p-5 shadow-md border border-emerald-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
@@ -53,7 +94,9 @@ export default function EventClearanceTab({
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-bold text-white tracking-tight">Official Event Clearance Granted</span>
+                <span className="text-sm font-bold text-white tracking-tight">
+                  Event Clearance Granted
+                </span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 font-bold uppercase">
                   Dispatched to SDS
                 </span>
@@ -68,22 +111,52 @@ export default function EventClearanceTab({
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePrint}
+              onClick={handleViewClearance}
               className="bg-white/10 hover:bg-white/20 border-white/20 text-white font-medium text-xs gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap"
             >
-              <Printer size={13} /> Print / Preview Clearance
+              <Eye size={13} /> View Clearance
             </Button>
           </div>
         </div>
-      ) : (
-        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-amber-900">
-          <Clock size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="text-xs space-y-0.5">
-            <p className="font-bold text-amber-950">Clearance Template in Preparation</p>
-            <p className="text-amber-800/90 leading-relaxed">
-              Official institutional clearance certificate will be finalized and sealed with executive digital signatories once approved by the College Dean.
-            </p>
+      ) : isDeanViewing ? (
+        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900">
+          <div className="flex items-start gap-3">
+            <Clock size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+            <div className="text-xs space-y-0.5">
+              <p className="font-bold text-emerald-950">Clearance Template Ready for Approval</p>
+              <p className="text-emerald-800/90 leading-relaxed">
+                Institutional clearance certificate will be finalized and sealed with executive digital signatories upon approval.
+              </p>
+            </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePreviewClearance}
+            className="border-emerald-300 bg-emerald-100/50 text-emerald-900 hover:bg-emerald-100 font-medium text-xs gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap flex-shrink-0 self-end sm:self-center"
+          >
+            <Eye size={13} /> Preview Clearance
+          </Button>
+        </div>
+      ) : (
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900">
+          <div className="flex items-start gap-3">
+            <Clock size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div className="text-xs space-y-0.5">
+              <p className="font-bold text-amber-950">Clearance Template in Preparation</p>
+              <p className="text-amber-800/90 leading-relaxed">
+                Institutional clearance certificate will be finalized and sealed with executive digital signatories once approved by the College Dean.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePreviewClearance}
+            className="border-amber-300 bg-amber-100/50 text-amber-900 hover:bg-amber-100 font-medium text-xs gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap flex-shrink-0 self-end sm:self-center"
+          >
+            <Eye size={13} /> Preview Clearance
+          </Button>
         </div>
       )}
 
@@ -94,7 +167,7 @@ export default function EventClearanceTab({
             {isApproved ? "Clearance Authorization Summary" : "Clearance Template Summary"}
           </p>
           <span className="text-xs font-mono text-[var(--primary)] font-bold">
-            {resolvedOrgName}
+            {resolvedOrgCode}
           </span>
         </div>
 
@@ -150,7 +223,7 @@ export default function EventClearanceTab({
         {event.clearanceDetails && (
           <div className="pt-2 border-t border-[var(--border)] mt-3">
             <p className="font-mono text-[var(--muted-foreground)] text-xs font-bold mb-1">Additional Clearance Notes</p>
-            <p className="text-xs text-[var(--foreground)] leading-relaxed bg-[var(--muted)]/40 p-2.5 rounded-xl border border-[var(--border)]">
+            <p className="text-xs text-[var(--foreground)] leading-relaxed bg-[var(--muted)]/40 p-3 rounded-xl border border-[var(--border)] whitespace-pre-wrap break-words">
               {event.clearanceDetails}
             </p>
           </div>

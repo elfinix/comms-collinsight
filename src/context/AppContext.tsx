@@ -89,10 +89,67 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [dataDensity, setDataDensity] = useState(10);
-  const [tableDensity, setTableDensity] = useState<"comfortable" | "compact">("comfortable");
-  const [defaultView, setDefaultView] = useState<"grid" | "list">("grid");
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    try {
+      const saved = localStorage.getItem("collinsight_theme");
+      return (saved === "dark" || saved === "light") ? saved : "light";
+    } catch {
+      return "light";
+    }
+  });
+  const [dataDensity, setDataDensity] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem("collinsight_data_density");
+      return saved ? Number(saved) : 10;
+    } catch {
+      return 10;
+    }
+  });
+  const [tableDensity, setTableDensity] = useState<"comfortable" | "compact">(() => {
+    try {
+      const saved = localStorage.getItem("collinsight_table_density");
+      return (saved === "compact" || saved === "comfortable") ? saved : "comfortable";
+    } catch {
+      return "comfortable";
+    }
+  });
+  const [defaultView, setDefaultView] = useState<"grid" | "list">(() => {
+    try {
+      const saved = localStorage.getItem("collinsight_default_view");
+      return (saved === "list" || saved === "grid") ? saved : "grid";
+    } catch {
+      return "grid";
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("collinsight_theme", theme);
+      if (theme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    } catch {}
+  }, [theme]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("collinsight_data_density", String(dataDensity));
+    } catch {}
+  }, [dataDensity]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("collinsight_table_density", tableDensity);
+    } catch {}
+  }, [tableDensity]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("collinsight_default_view", defaultView);
+    } catch {}
+  }, [defaultView]);
 
   const addExportedReport = (report: ExportedReport) => {
     const newReport: ExportedReport = {

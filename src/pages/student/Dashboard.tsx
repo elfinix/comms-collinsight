@@ -1,7 +1,7 @@
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
-import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Sparkles, FileText } from "lucide-react";
+import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Shapes, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { formatCurrency, formatDate, statusColors } from "../../services/mockData";
 
@@ -137,28 +137,44 @@ export default function StudentDashboard() {
         <Card>
           <CardHeader title="Events by Status" subtitle="Activity distribution across clearance stages" />
           <CardBody>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={byStatus} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#0a6b64" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {byStatus.every((d) => d.count === 0) ? (
+              <div className="h-[210px] flex flex-col items-center justify-center text-center p-4">
+                <FileText size={32} className="text-[var(--muted-foreground)] opacity-40 mb-2" />
+                <p className="text-xs font-semibold text-[var(--foreground)]">No event status records</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Submit event proposals to track clearance progress.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={byStatus} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="count" fill="#0a6b64" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader title="Events by Type" subtitle="Categorical breakdown of scheduled initiatives" />
           <CardBody>
-            <ResponsiveContainer width="100%" height={210}>
-              <PieChart>
-                <Pie data={byType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={72} label={({ name }) => name}>
-                  {byType.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {byType.length === 0 || byType.every((d) => d.value === 0) ? (
+              <div className="h-[210px] flex flex-col items-center justify-center text-center p-4">
+                <Shapes size={32} className="text-[var(--muted-foreground)] opacity-40 mb-2" />
+                <p className="text-xs font-semibold text-[var(--foreground)]">No event classification data</p>
+                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">No scheduled initiatives in this period.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={210}>
+                <PieChart>
+                  <Pie data={byType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={72} label={({ name }) => name}>
+                    {byType.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardBody>
         </Card>
       </div>

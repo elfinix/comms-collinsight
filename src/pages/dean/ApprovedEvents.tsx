@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, StatCard, Dialog, Tabs, SignatoryProgress, Button } from "../../components/ui";
 import { CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video, LayoutGrid, List } from "lucide-react";
 import {
-  formatCurrency, formatDate, formatDateTime, statusColors, organizations, Event,
+  formatCurrency, formatDate, formatDateTime, statusColors, Event,
   getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -11,7 +11,7 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanApprovedEvents() {
-  const { events, transactions, defaultView } = useApp();
+  const { events, transactions, organizations, defaultView } = useApp();
   const approved = events.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
   const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
 
@@ -84,6 +84,7 @@ export default function DeanApprovedEvents() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {approved.map((e) => {
             const org = organizations.find((o) => o.id === e.organizationId);
+            const orgColor = org?.logoColor || "#0d9488";
             const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
             return (
               <div
@@ -95,8 +96,15 @@ export default function DeanApprovedEvents() {
                     <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
                       {e.status}
                     </span>
-                    <span className="text-xs font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full">
-                      {org?.code}
+                    <span
+                      className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border shadow-2xs"
+                      style={{
+                        backgroundColor: `${orgColor}18`,
+                        color: orgColor,
+                        borderColor: `${orgColor}40`,
+                      }}
+                    >
+                      {org?.code || "CITE"}
                     </span>
                   </div>
 
@@ -163,6 +171,7 @@ export default function DeanApprovedEvents() {
               <tbody className="divide-y divide-[var(--border)]">
                 {approved.map((e) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
+                  const orgColor = org?.logoColor || "#0d9488";
                   const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
                   return (
                     <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition-colors">
@@ -179,7 +188,18 @@ export default function DeanApprovedEvents() {
                           {e.name}
                         </button>
                       </td>
-                      <td className="px-4 py-3.5 text-xs text-[var(--muted-foreground)]">{org?.name}</td>
+                      <td className="px-4 py-3.5 text-xs font-mono text-[var(--muted-foreground)]">
+                        <span
+                          className="font-bold px-2 py-0.5 rounded-md border"
+                          style={{
+                            backgroundColor: `${orgColor}18`,
+                            color: orgColor,
+                            borderColor: `${orgColor}40`,
+                          }}
+                        >
+                          {org?.code || "CITE"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3.5 font-mono text-xs">{formatDate(e.dateStart)}</td>
                       <td className="px-4 py-3.5 font-mono text-xs">{formatCurrency(e.proposedBudget)}</td>
                       <td className="px-4 py-3.5 font-mono text-xs text-[var(--primary)] font-semibold">{formatCurrency(spent)}</td>
@@ -209,8 +229,8 @@ export default function DeanApprovedEvents() {
       {/* Event Details Dialog */}
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
-          <div className="flex flex-col min-h-0 flex-1">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs">
+          <div className="flex flex-col min-h-0 flex-1 h-full">
+            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs flex-shrink-0">
               <div className="flex items-center gap-3 pb-3">
                 <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
                   {viewEvent.status}
@@ -222,7 +242,7 @@ export default function DeanApprovedEvents() {
               <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
             </div>
 
-            <div className="p-6">
+            <div className="p-6 flex-1">
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div>
@@ -349,7 +369,7 @@ export default function DeanApprovedEvents() {
               )}
             </div>
 
-            <div className="flex justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] flex-wrap gap-3">
+            <div className="flex justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] bg-white sticky bottom-0 z-10 mt-auto flex-wrap gap-3 flex-shrink-0">
               <Button variant="outline" onClick={() => setViewEvent(null)}>Close</Button>
               <div className="flex gap-2 flex-wrap">
                 {(viewTab === "details" || viewTab === "compliance") && (

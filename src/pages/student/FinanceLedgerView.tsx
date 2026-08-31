@@ -122,19 +122,25 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   const isClosedOrCompleted = activeEvent.status === "Closed" || activeEvent.status === "Completed";
 
   // Validation flags
+  const addAmountNum = parseFloat(newTxn.amount);
+  const isAddOverBudget = !isNaN(addAmountNum) && addAmountNum > budget;
   const isAddRecordValid = Boolean(
     newTxn.description.trim() &&
     newTxn.amount &&
-    !isNaN(parseFloat(newTxn.amount)) &&
-    parseFloat(newTxn.amount) > 0 &&
+    !isNaN(addAmountNum) &&
+    addAmountNum > 0 &&
+    !isAddOverBudget &&
     (newTxn.receiptName || newTxn.receiptPreviewUrl)
   );
 
+  const editAmountNum = parseFloat(editTxnForm.amount);
+  const isEditOverBudget = !isNaN(editAmountNum) && editAmountNum > budget;
   const isEditRecordValid = Boolean(
     editTxnForm.description.trim() &&
     editTxnForm.amount &&
-    !isNaN(parseFloat(editTxnForm.amount)) &&
-    parseFloat(editTxnForm.amount) > 0 &&
+    !isNaN(editAmountNum) &&
+    editAmountNum > 0 &&
+    !isEditOverBudget &&
     (editTxnForm.receiptName || editTxnForm.receiptPreviewUrl)
   );
 
@@ -312,6 +318,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       await uploadEventAttachment({
         organizationName: orgName,
         eventId: activeEvent!.id,
+        eventName: activeEvent!.name,
         category: "Liquidation",
         file: pdfBlob,
         fileName: liquidationDocName,
@@ -493,7 +500,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       });
 
       openPdfBlobInNewTab(pdfBlob, fileName);
-      toast.success("Liquidation Report Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and opened.`);
+      toast.success("Liquidation Report Exported", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and opened.`);
       setDownloadSuccess(true);
       setTimeout(() => setDownloadSuccess(false), 3000);
     } catch (err: any) {
@@ -650,7 +657,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
         <CardHeader className="flex items-center justify-between border-b border-[var(--border)]">
           <h2 className="font-semibold text-sm text-[var(--foreground)]">Transaction Records</h2>
           <span className="text-xs font-mono text-[var(--muted-foreground)] font-medium">
-            {eventTxns.length} records logged
+            {eventTxns.length} logged
           </span>
         </CardHeader>
         <div className="overflow-x-auto">
@@ -813,19 +820,35 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             options={expenditureCategories.map((c) => ({ value: c.id, label: c.name }))}
           />
 
-          <Input
-            label="Amount (₱) *"
-            type="text"
-            inputMode="decimal"
-            value={newTxn.amount}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                setNewTxn((p) => ({ ...p, amount: val }));
-              }
-            }}
-            placeholder="0.00"
-          />
+          <div>
+            <Input
+              label="Amount (₱) *"
+              type="text"
+              inputMode="decimal"
+              value={newTxn.amount}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                  setNewTxn((p) => ({ ...p, amount: val }));
+                }
+              }}
+              placeholder="0.00"
+            />
+            <div className="flex items-center justify-between text-[11px] font-mono mt-1 px-1">
+              <span className="text-[var(--muted-foreground)]">
+                Allocated Budget: <strong className="text-[var(--foreground)]">{formatCurrency(budget)}</strong>
+              </span>
+              {isAddOverBudget ? (
+                <span className="text-rose-600 font-bold">
+                  ⚠ Exceeds Event Budget ({formatCurrency(budget)})
+                </span>
+              ) : (
+                <span className="text-[var(--muted-foreground)]">
+                  Remaining: <strong className="text-emerald-700 dark:text-emerald-400">{formatCurrency(remaining)}</strong>
+                </span>
+              )}
+            </div>
+          </div>
 
           {/* Status strictly limited to Pending and Paid */}
           <Select
@@ -901,6 +924,8 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                 !isAddRecordValid
                   ? !newTxn.description.trim()
                     ? "Please enter transaction description"
+                    : isAddOverBudget
+                    ? `Amount exceeds event allocated budget of ${formatCurrency(budget)}`
                     : !newTxn.amount || isNaN(parseFloat(newTxn.amount)) || parseFloat(newTxn.amount) <= 0
                     ? "Please enter a valid numeric amount"
                     : "Please attach a receipt document"
@@ -930,19 +955,31 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             options={expenditureCategories.map((c) => ({ value: c.id, label: c.name }))}
           />
 
-          <Input
-            label="Amount (₱) *"
-            type="text"
-            inputMode="decimal"
-            value={editTxnForm.amount}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "" || /^\d*\.?\d*$/.test(val)) {
-                setEditTxnForm((p) => ({ ...p, amount: val }));
-              }
-            }}
-            placeholder="0.00"
-          />
+          <div>
+            <Input
+              label="Amount (₱) *"
+              type="text"
+              inputMode="decimal"
+              value={editTxnForm.amount}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "" || /^\d*\.?\d*$/.test(val)) {
+                  setEditTxnForm((p) => ({ ...p, amount: val }));
+                }
+              }}
+              placeholder="0.00"
+            />
+            <div className="flex items-center justify-between text-[11px] font-mono mt-1 px-1">
+              <span className="text-[var(--muted-foreground)]">
+                Allocated Budget: <strong className="text-[var(--foreground)]">{formatCurrency(budget)}</strong>
+              </span>
+              {isEditOverBudget ? (
+                <span className="text-rose-600 font-bold">
+                  ⚠ Exceeds Event Budget ({formatCurrency(budget)})
+                </span>
+              ) : null}
+            </div>
+          </div>
 
           {/* Status strictly limited to Pending and Paid */}
           <Select

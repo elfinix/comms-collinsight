@@ -11,7 +11,7 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function AdviserPendingReview() {
   const { currentUser } = useAuth();
-  const { events, setEventStatus, updateEvent, defaultView } = useApp();
+  const { events, eventTypes, setEventStatus, updateEvent, defaultView } = useApp();
   const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const pending = events.filter((e) => e.organizationId === orgId && e.status === "For Review");
@@ -30,18 +30,50 @@ export default function AdviserPendingReview() {
 
   function handleApprove() {
     if (!viewEvent) return;
-    setEventStatus(viewEvent.id, "For Approval");
-    if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Adviser's Remarks: ${feedback}`] });
-    toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`);
+    const targetEvent = { ...viewEvent, status: "For Approval" as const };
+    const trimmed = feedback.trim();
+    setEventStatus(viewEvent.id, "For Approval", trimmed || undefined);
+    const updatedRemarks = trimmed
+      ? [...(viewEvent.remarks ?? []), `[Adviser Remarks] ${trimmed}`]
+      : viewEvent.remarks;
+    updateEvent(viewEvent.id, {
+      remarks: updatedRemarks,
+      adviserFeedback: trimmed || undefined,
+    });
+    toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`, {
+      action: {
+        label: "Click here to view event details",
+        onClick: () => {
+          setViewEvent(targetEvent);
+          setViewTab("details");
+        },
+      },
+    });
     setViewEvent(null);
     setFeedback("");
     setShowApproveRemarks(false);
   }
 
   function handleRequestChange() {
-    if (!viewEvent || !feedback) return;
-    setEventStatus(viewEvent.id, "Pending Revision", feedback);
-    toast.warning("Revision Requested", `'${viewEvent.name}' returned to student officers with revision notes.`);
+    if (!viewEvent || !feedback.trim()) return;
+    const targetEvent = { ...viewEvent, status: "Pending Revision" as const };
+    const trimmed = feedback.trim();
+    setEventStatus(viewEvent.id, "Pending Revision", trimmed);
+    const updatedRemarks = [...(viewEvent.remarks ?? []), `[Adviser Remarks] Revision Requested: ${trimmed}`];
+    updateEvent(viewEvent.id, {
+      remarks: updatedRemarks,
+      adviserFeedback: trimmed,
+    });
+    toast.warning("Revision Requested", `'${viewEvent.name}' returned to student officers with revision notes.`, {
+      icon: "check",
+      action: {
+        label: "Click here to view event details",
+        onClick: () => {
+          setViewEvent(targetEvent);
+          setViewTab("details");
+        },
+      },
+    });
     setViewEvent(null);
     setFeedback("");
     setShowRequestChange(false);
@@ -149,7 +181,7 @@ export default function AdviserPendingReview() {
                 <Button
                   size="sm"
                   onClick={() => { setViewEvent(e); setViewTab("details"); }}
-                  className="w-full gap-2 font-semibold shadow-2xs"
+                  className="w-full flex items-center justify-center gap-2 font-semibold shadow-2xs"
                 >
                   <Eye size={14} /> Review Proposal
                 </Button>
@@ -167,7 +199,7 @@ export default function AdviserPendingReview() {
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Schedule & Location</th>
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Proposed Budget</th>
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-mono font-semibold text-[var(--muted-foreground)]">Action</th>
+                  <th className="px-4 py-3 text-center text-xs font-mono font-semibold text-[var(--muted-foreground)]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -189,14 +221,16 @@ export default function AdviserPendingReview() {
                         {e.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <Button
-                        size="sm"
-                        onClick={() => { setViewEvent(e); setViewTab("details"); }}
-                        className="gap-1.5 font-semibold text-xs h-8"
-                      >
-                        <Eye size={13} /> Review
-                      </Button>
+                    <td className="px-4 py-3.5 text-center">
+                      <div className="flex justify-center">
+                        <Button
+                          size="sm"
+                          onClick={() => { setViewEvent(e); setViewTab("details"); }}
+                          className="gap-1.5 font-semibold text-xs h-8"
+                        >
+                          <Eye size={13} /> Review Proposal
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -209,8 +243,8 @@ export default function AdviserPendingReview() {
       {/* Review Dialog */}
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
-          <div className="flex flex-col min-h-0 flex-1">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs">
+          <div className="flex flex-col min-h-0 flex-1 h-full">
+            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs flex-shrink-0">
               <div className="flex items-center gap-3 pb-3">
                 <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
                   {viewEvent.status}
@@ -221,11 +255,11 @@ export default function AdviserPendingReview() {
               </div>
               <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
             </div>
-            <div className="p-6">
+            <div className="p-6 flex-1">
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p>{getEventTypeById(viewEvent.typeId)?.name}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p></div>
                   <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p className="leading-relaxed">{viewEvent.description}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Proposed Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online" : viewEvent.mode}</p></div>
@@ -312,7 +346,7 @@ export default function AdviserPendingReview() {
               )}
             </div>
 
-            <div className="flex items-center justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] flex-wrap gap-3">
+            <div className="flex items-center justify-between px-6 pb-6 pt-4 border-t border-[var(--border)] bg-white sticky bottom-0 z-10 mt-auto flex-wrap gap-3 flex-shrink-0">
               <Button variant="outline" onClick={() => setViewEvent(null)}>Close</Button>
               <div className="flex gap-2 flex-wrap">
                 {(viewTab === "details" || viewTab === "compliance") && (
@@ -338,7 +372,7 @@ export default function AdviserPendingReview() {
       )}
 
       {/* Approve with Remarks Dialog */}
-      <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm">
+      <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
           <p className="text-sm text-[var(--muted-foreground)]">Add optional remarks to be included in the event clearance. The event will be forwarded to the Dean.</p>
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Add any notes or conditions..." />
@@ -352,7 +386,7 @@ export default function AdviserPendingReview() {
       </Dialog>
 
       {/* Request Change Dialog */}
-      <Dialog open={showRequestChange} onClose={() => setShowRequestChange(false)} title="Request Changes" size="sm">
+      <Dialog open={showRequestChange} onClose={() => setShowRequestChange(false)} title="Request Changes" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
           <p className="text-sm text-[var(--muted-foreground)]">Provide specific feedback for the student officers to address before resubmission.</p>
           <Textarea label="Feedback / Comments *" rows={4} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Describe what needs to be changed..." />

@@ -203,6 +203,7 @@ export default function StudentEvents() {
         const apfRes = await uploadEventAttachment({
           organizationName: orgName,
           eventId: id,
+          eventName: draft.name,
           category: "APF",
           file: apfFile,
         });
@@ -216,6 +217,7 @@ export default function StudentEvents() {
         const appRes = await uploadEventAppendices({
           organizationName: orgName,
           eventId: id,
+          eventName: draft.name,
           files: appendixFiles,
         });
         if (appRes.paths.length > 0) {
@@ -256,6 +258,7 @@ export default function StudentEvents() {
         const apfRes = await uploadEventAttachment({
           organizationName: orgName,
           eventId: editEvent.id,
+          eventName: editEvent.name,
           category: "APF",
           file: editApfFile,
         });
@@ -269,6 +272,7 @@ export default function StudentEvents() {
         const appRes = await uploadEventAppendices({
           organizationName: orgName,
           eventId: editEvent.id,
+          eventName: editEvent.name,
           files: editAppendixFiles,
         });
         if (appRes.paths.length > 0) {
@@ -917,7 +921,7 @@ export default function StudentEvents() {
                 <div className="mb-4 flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-3.5 text-xs text-orange-800">
                   <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
                   <div>
-                    <p className="font-bold text-orange-900">Faculty Adviser Feedback & Revision Guidance</p>
+                    <p className="font-bold text-orange-900">Faculty Adviser Feedback</p>
                     <p className="mt-0.5 leading-relaxed">{editEvent.adviserFeedback}</p>
                   </div>
                 </div>
@@ -1337,12 +1341,33 @@ export default function StudentEvents() {
 
                   {/* Faculty Adviser Feedback */}
                   {viewEvent.adviserFeedback && (
-                    <div className="bg-orange-50/80 border border-orange-200 rounded-2xl p-4">
+                    <div
+                      className={`border rounded-2xl p-4 ${
+                        viewEvent.status === "Pending Revision"
+                          ? "bg-orange-50/80 border-orange-200 text-orange-800"
+                          : "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                      }`}
+                    >
                       <div className="flex items-center gap-2 mb-1.5">
-                        <MessageSquareQuote size={15} className="text-orange-600" />
-                        <p className="text-xs font-mono font-bold text-orange-800">Faculty Adviser Feedback & Revision Guidance</p>
+                        <MessageSquareQuote
+                          size={15}
+                          className={
+                            viewEvent.status === "Pending Revision"
+                              ? "text-orange-600"
+                              : "text-emerald-600"
+                          }
+                        />
+                        <p
+                          className={`text-xs font-mono font-bold ${
+                            viewEvent.status === "Pending Revision"
+                              ? "text-orange-800"
+                              : "text-emerald-800"
+                          }`}
+                        >
+                          Faculty Adviser's Feedback
+                        </p>
                       </div>
-                      <p className="text-sm text-orange-800 leading-relaxed pl-5">{viewEvent.adviserFeedback}</p>
+                      <p className="text-sm leading-relaxed pl-5 whitespace-pre-wrap">{viewEvent.adviserFeedback}</p>
                     </div>
                   )}
 
@@ -1351,9 +1376,9 @@ export default function StudentEvents() {
                     <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4">
                       <div className="flex items-center gap-2 mb-1.5">
                         <MessageSquareQuote size={15} className="text-emerald-600" />
-                        <p className="text-xs font-mono font-bold text-emerald-800">Dean / Executive Approval Notes</p>
+                        <p className="text-xs font-mono font-bold text-emerald-800">Dean's Feedback</p>
                       </div>
-                      <p className="text-sm text-emerald-900 leading-relaxed pl-5">{viewEvent.deanFeedback}</p>
+                      <p className="text-sm text-emerald-900 leading-relaxed pl-5 whitespace-pre-wrap">{viewEvent.deanFeedback}</p>
                     </div>
                   )}
 
@@ -1396,7 +1421,7 @@ export default function StudentEvents() {
       )}
 
       {/* Delete Confirm */}
-      <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Event Proposal" size="sm">
+      <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Delete Event Proposal" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
           <p className="text-sm text-[var(--foreground)]">Are you sure you want to delete <strong>"{deleteConfirm?.name}"</strong>?</p>
           <div className="flex justify-end gap-2">
@@ -1409,7 +1434,7 @@ export default function StudentEvents() {
       </Dialog>
 
       {/* Submit Confirm */}
-      <Dialog open={!!submitConfirm} onClose={() => setSubmitConfirm(null)} title="Submit to Adviser?" size="sm">
+      <Dialog open={!!submitConfirm} onClose={() => setSubmitConfirm(null)} title="Submit to Adviser?" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
           <p className="text-sm text-[var(--foreground)]">
             Once submitted, <strong>"{submitConfirm?.name}"</strong> will be sent to the Faculty Adviser for review and will no longer be editable until returned.

@@ -3,23 +3,43 @@ import { CheckCircle2, AlertCircle, Info, AlertTriangle, X } from "lucide-react"
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
+export interface ToastAction {
+  label: string;
+  onClick: () => void;
+}
+
 export interface ToastItem {
   id: string;
   type: ToastType;
   title: string;
   message?: string;
   duration?: number;
+  icon?: "check" | "alert" | "info" | "warning";
+  action?: ToastAction;
+}
+
+interface ToastOptions {
+  icon?: "check" | "warning" | "alert" | "info";
+  duration?: number;
+  action?: ToastAction;
 }
 
 interface ToastContextType {
   toasts: ToastItem[];
-  showToast: (options: { type?: ToastType; title: string; message?: string; duration?: number }) => void;
+  showToast: (options: {
+    type?: ToastType;
+    title: string;
+    message?: string;
+    duration?: number;
+    icon?: "check" | "alert" | "info" | "warning";
+    action?: ToastAction;
+  }) => void;
   removeToast: (id: string) => void;
   toast: {
-    success: (title: string, message?: string) => void;
-    error: (title: string, message?: string) => void;
-    info: (title: string, message?: string) => void;
-    warning: (title: string, message?: string) => void;
+    success: (title: string, message?: string, options?: ToastOptions) => void;
+    error: (title: string, message?: string, options?: ToastOptions) => void;
+    info: (title: string, message?: string, options?: ToastOptions) => void;
+    warning: (title: string, message?: string, options?: ToastOptions | "check" | "warning") => void;
   };
 }
 
@@ -56,15 +76,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       type = "success",
       title,
       message,
-      duration = 3800,
+      duration = 4500,
+      icon,
+      action,
     }: {
       type?: ToastType;
       title: string;
       message?: string;
       duration?: number;
+      icon?: "check" | "alert" | "info" | "warning";
+      action?: ToastAction;
     }) => {
       const id = `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
-      const newToast: ToastItem = { id, type, title, message, duration };
+      const newToast: ToastItem = { id, type, title, message, duration, icon, action };
 
       setToasts((prev) => [...prev.slice(-4), newToast]); // Keep up to 5 simultaneous
 
@@ -79,10 +103,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 
   const toast = {
-    success: (title: string, message?: string) => showToast({ type: "success", title, message }),
-    error: (title: string, message?: string) => showToast({ type: "error", title, message }),
-    info: (title: string, message?: string) => showToast({ type: "info", title, message }),
-    warning: (title: string, message?: string) => showToast({ type: "warning", title, message }),
+    success: (title: string, message?: string, options?: ToastOptions) =>
+      showToast({ type: "success", title, message, ...options }),
+    error: (title: string, message?: string, options?: ToastOptions) =>
+      showToast({ type: "error", title, message, ...options }),
+    info: (title: string, message?: string, options?: ToastOptions) =>
+      showToast({ type: "info", title, message, ...options }),
+    warning: (title: string, message?: string, options?: ToastOptions | "check" | "warning") => {
+      if (typeof options === "string") {
+        showToast({ type: "warning", title, message, icon: options });
+      } else {
+        showToast({ type: "warning", title, message, icon: "check", ...options });
+      }
+    },
   };
 
   return (
@@ -124,8 +157,13 @@ function ToastContainer({
         const isWarning = t.type === "warning";
         const isExiting = exitingIds.has(t.id);
 
-        const icon = isSuccess ? (
-          <CheckCircle2 size={18} className="text-teal-600 dark:text-teal-400 flex-shrink-0" />
+        const icon = isSuccess || (isWarning && (t.icon === "check" || !t.icon)) ? (
+          <CheckCircle2
+            size={18}
+            className={`${
+              isWarning ? "text-amber-600 dark:text-amber-400" : "text-teal-600 dark:text-teal-400"
+            } flex-shrink-0`}
+          />
         ) : isError ? (
           <AlertCircle size={18} className="text-rose-600 dark:text-rose-400 flex-shrink-0" />
         ) : isWarning ? (
@@ -156,6 +194,18 @@ function ToastContainer({
                 <p className="text-[11px] opacity-80 mt-0.5 leading-relaxed break-words">
                   {t.message}
                 </p>
+              )}
+              {t.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    t.action?.onClick();
+                    onRemove(t.id);
+                  }}
+                  className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold underline underline-offset-2 hover:opacity-100 transition-opacity cursor-pointer text-[var(--primary)]"
+                >
+                  {t.action.label} →
+                </button>
               )}
             </div>
             <button

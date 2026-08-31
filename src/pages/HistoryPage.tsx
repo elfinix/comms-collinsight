@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   formatDate, formatDateTime, formatCurrency, statusColors, getEventTypeById,
-  Event, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass
+  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass
 } from "../services/mockData";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../components/events/EventClearanceTab";
@@ -417,7 +417,7 @@ export default function HistoryPage() {
                           )}
                           {entry.statusFrom && entry.statusTo && <ArrowRight size={11} className="text-[var(--muted-foreground)]" />}
                           {entry.statusTo && (
-                            <span className={`px-1.5 py-0.5 rounded font-bold border ${entry.statusTo === "Approved" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-teal-50 text-[var(--primary)] border-teal-200"}`}>
+                            <span className={`px-2 py-0.5 rounded font-bold border ${statusColors[entry.statusTo as EventStatus] || "bg-slate-100 text-slate-700 border-slate-300"}`}>
                               {entry.statusTo}
                             </span>
                           )}
@@ -530,7 +530,7 @@ export default function HistoryPage() {
                             <span className="text-xs text-[var(--muted-foreground)] font-mono">System Record</span>
                           )}
                           {evt && (
-                            <span className="inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                            <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${statusColors[evt.status] || "bg-slate-100 text-slate-700 border-slate-300"}`}>
                               {evt.status}
                             </span>
                           )}
