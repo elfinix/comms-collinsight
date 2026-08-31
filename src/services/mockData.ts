@@ -33,6 +33,8 @@ export interface Department {
   id: string;
   name: string;
   code: string;
+  color?: string;
+  description?: string;
   deleted?: boolean;
 }
 
@@ -44,19 +46,44 @@ export interface Organization {
   allocatedBudget: number;
   adviserId: string;
   logoColor: string;
+  description?: string;
+  avatar?: string;
   deleted?: boolean;
 }
 
 export interface EventType {
   id: string;
   name: string;
+  description?: string;
   deleted?: boolean;
 }
 
 export interface ExpenditureCategory {
   id: string;
   name: string;
+  description?: string;
   deleted?: boolean;
+}
+
+export interface OrganizationMember {
+  id: string;
+  organizationId: string;
+  userId: string;
+  position: string;
+  role: "officer" | "member" | "adviser";
+  isPrimary?: boolean;
+  academicYear?: string;
+  createdAt?: string;
+}
+
+export interface EventSignatory {
+  id: string;
+  eventId: string;
+  userId: string;
+  role: "student" | "adviser" | "dean" | "sds";
+  status: "Pending" | "Endorsed" | "Approved" | "Revision Requested";
+  feedback?: string;
+  signedAt?: string;
 }
 
 export interface Event {
@@ -112,6 +139,46 @@ export interface AuditEntry {
   remarks?: string;
 }
 
+export interface ExportedReport {
+  id: string;
+  title: string;
+  docRef: string;
+  category: "System Usage" | "Directorate Summary" | "Organization Financial Summary" | "Audit Trail Ledger";
+  organizationName: string;
+  generatedBy: string;
+  generatedAt: string;
+  fileUrl?: string;
+  filePath?: string;
+  format?: "PDF" | "HTML";
+}
+
+export const initialExportedReports: ExportedReport[] = [
+  {
+    id: "rep-001",
+    title: "AY 2026-2027 Midyear Directorate Analytics Report",
+    docRef: "REP-DEAN-CITE-2026",
+    category: "Directorate Summary",
+    organizationName: "College Administration",
+    generatedBy: "Dr. Marilou Castro Villanueva, Ph.D.",
+    generatedAt: "2026-08-28T09:30:00Z",
+    fileUrl: "https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/reports/College%20Administration/2026-08-28/REP-DEAN-CITE-2026_Analytics_Report.pdf",
+    filePath: "College Administration/2026-08-28/REP-DEAN-CITE-2026_Analytics_Report.pdf",
+    format: "PDF",
+  },
+  {
+    id: "rep-002",
+    title: "System Usage & Activity Analytics Overview",
+    docRef: "SYS-RPT-883012",
+    category: "System Usage",
+    organizationName: "Administration",
+    generatedBy: "Team COLLinSight CITE",
+    generatedAt: "2026-08-29T14:15:00Z",
+    fileUrl: "https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/reports/Administration/2026-08-29/SYS-RPT-883012_System_Report.pdf",
+    filePath: "Administration/2026-08-29/SYS-RPT-883012_System_Report.pdf",
+    format: "PDF",
+  },
+];
+
 export const departments: Department[] = [
   { id: "dept-1", name: "Bachelor of Science in Information Technology", code: "BSIT" },
   { id: "dept-2", name: "Bachelor of Science in Computer Engineering", code: "BSCpE" },
@@ -146,22 +213,22 @@ export const expenditureCategories: ExpenditureCategory[] = [
 export const users: User[] = [
   {
     id: "user-admin-1",
-    firstName: "Ricardo",
-    middleName: "B.",
-    lastName: "Cruz",
+    firstName: "Team COLLinSight",
+    middleName: "",
+    lastName: "CITE",
     suffix: "",
     email: "admin@cite.edu.ph",
-    password: "cruz_882341",
+    password: "collinsight_admins",
     role: "admin",
     position: "System Administrator",
-    gender: "male",
+    gender: "non-binary",
     yearLevel: "Faculty/Staff",
     memberSince: "2022-06-01",
   },
   {
     id: "user-dean-1",
     firstName: "Marilou",
-    middleName: "C.",
+    middleName: "Castro",
     lastName: "Villanueva",
     suffix: "Ph.D.",
     email: "dean@cite.edu.ph",
@@ -175,9 +242,9 @@ export const users: User[] = [
   {
     id: "user-adv-1",
     firstName: "Eduardo",
-    middleName: "S.",
+    middleName: "Severino",
     lastName: "Reyes",
-    suffix: "M.Sc.",
+    suffix: "",
     email: "ereyes@cite.edu.ph",
     password: "reyes_773012",
     role: "adviser",
@@ -190,7 +257,7 @@ export const users: User[] = [
   {
     id: "user-adv-2",
     firstName: "Cynthia",
-    middleName: "L.",
+    middleName: "Lazaro",
     lastName: "Domingo",
     suffix: "",
     email: "cdomingo@cite.edu.ph",
@@ -205,9 +272,9 @@ export const users: User[] = [
   {
     id: "user-adv-3",
     firstName: "Jerome",
-    middleName: "A.",
+    middleName: "Acapule",
     lastName: "Santos",
-    suffix: "M.Eng.",
+    suffix: "",
     email: "jsantos@cite.edu.ph",
     password: "santos_330928",
     role: "adviser",
@@ -220,7 +287,7 @@ export const users: User[] = [
   {
     id: "user-stu-1",
     firstName: "Maria",
-    middleName: "D.",
+    middleName: "Denise",
     lastName: "Lopez",
     suffix: "",
     email: "mlopez@student.cite.edu.ph",
@@ -235,7 +302,7 @@ export const users: User[] = [
   {
     id: "user-stu-2",
     firstName: "Carlo",
-    middleName: "E.",
+    middleName: "Enrique",
     lastName: "Mendoza",
     suffix: "",
     email: "cmendoza@student.cite.edu.ph",
@@ -249,12 +316,12 @@ export const users: User[] = [
   },
   {
     id: "user-stu-3",
-    firstName: "Ana",
-    middleName: "R.",
-    lastName: "Garcia",
+    firstName: "Bea",
+    middleName: "Ramona",
+    lastName: "Santos",
     suffix: "",
-    email: "agarcia@student.cite.edu.ph",
-    password: "garcia_659012",
+    email: "bsantos@student.cite.edu.ph",
+    password: "santos_654321",
     role: "student",
     position: "Secretary",
     gender: "female",
@@ -264,12 +331,12 @@ export const users: User[] = [
   },
   {
     id: "user-stu-4",
-    firstName: "Justin",
-    middleName: "K.",
-    lastName: "Tan",
+    firstName: "Angelo",
+    middleName: "Miguel",
+    lastName: "Bautista",
     suffix: "",
-    email: "jtan@student.cite.edu.ph",
-    password: "tan_991023",
+    email: "abautista@student.cite.edu.ph",
+    password: "bautista_987654",
     role: "student",
     position: "Treasurer",
     gender: "male",
@@ -798,10 +865,17 @@ export const SAMPLE_FIXTURES = {
 
 export function resolvePdfUrl(url?: string, fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType];
-  if (isWebUrl(url)) return toWebUrl(url);
-  const fname = url.replace(/^.*[\\/]/, "");
-  if (fname.startsWith("blob:") || fname.startsWith("data:") || fname.startsWith("http")) {
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("data:")) {
     return url;
+  }
+  if (url.startsWith("/fixtures")) {
+    return url;
+  }
+  // Resolve Supabase Storage attachments bucket path
+  if (url.includes("/")) {
+    const DEFAULT_SUPABASE_URL = "https://snsqkogfrrtyloqetowx.supabase.co";
+    const base = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    return `${base}/storage/v1/object/public/attachments/${url}`;
   }
   return SAMPLE_FIXTURES[fallbackType];
 }

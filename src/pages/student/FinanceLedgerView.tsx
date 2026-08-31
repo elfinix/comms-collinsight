@@ -12,6 +12,8 @@ import {
   formatCurrency, formatDate, formatDateTime, statusColors,
   getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl
 } from "../../services/mockData";
+import { uploadEventAttachment } from "../../services/storageService";
+import { generateLiquidationPdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 
 interface FinanceLedgerViewProps {
   selectedEventId: string;
@@ -21,13 +23,17 @@ interface FinanceLedgerViewProps {
 
 export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = false }: FinanceLedgerViewProps) {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, users, updateEvent, addTransaction, updateTransaction, deleteTransaction } = useApp();
+  const { events, transactions, organizations, users, expenditureCategories, updateEvent, addTransaction, updateTransaction, deleteTransaction } = useApp();
   const { toast } = useToast();
 
   const activeEvent = events.find((e) => e.id === selectedEventId);
   const org = organizations.find((o) => o.id === activeEvent?.organizationId);
   const eventTxns = transactions.filter((t) => t.eventId === selectedEventId && !t.deleted);
   const eventSpent = eventTxns.reduce((s, t) => s + t.amount, 0);
+
+  const cleanDocRef = activeEvent
+    ? `LIQ-${activeEvent.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase()}-${new Date(activeEvent.dateStart || Date.now()).getFullYear()}`
+    : "LIQ-000000-2026";
 
   // Dynamic Signatories
   const orgAdviser = users.find((u) => u.role === "adviser" && (u.organizationId === activeEvent?.organizationId || u.id === org?.adviserId));
@@ -185,7 +191,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     if (isNaN(amountNum) || amountNum <= 0) return;
 
     addTransaction({
-      id: `txn-${Date.now()}`,
+      id: crypto.randomUUID(),
       eventId: activeEvent!.id,
       description: newTxn.description.trim(),
       categoryId: newTxn.categoryId,
@@ -219,7 +225,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       categoryId: txn.categoryId,
       amount: String(txn.amount),
       status: txn.status === "Pending" ? "Pending" : "Paid",
-      receiptName: txn.receiptUrl ? (txn.receiptUrl.startsWith("data:") ? "Uploaded_Receipt" : txn.receiptUrl.split("/").pop() || "receipt.jpg") : "",
+      receiptName: txn.receiptUrl ? (txn.receiptUrl.startsWith("data:") ? "Uploaded Receipt" : txn.receiptUrl.split("/").pop() || "receipt.jpg") : "",
       receiptPreviewUrl: txn.receiptUrl || "",
     });
   }
@@ -267,7 +273,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   }
 
   // Handle Liquidation
-  function handleCompleteLiquidation() {
+  async function handleCompleteLiquidation() {
     const revNum = parseFloat(revenue);
     const hasRev = !isNaN(revNum) && revNum > 0;
     const remarksArr = activeEvent!.remarks ? [...activeEvent!.remarks] : [];
@@ -280,6 +286,39 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     const activeLiquidator = currentUser
       ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? " " + currentUser.suffix : ""}`
       : "Student Finance Officer";
+
+    const orgName = org?.name || org?.code || "Organization";
+
+    // Generate & upload official liquidation statement to Supabase Storage
+    try {
+      const liquidationDocName = `Liquidation_Report_${activeEvent!.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+      const adviserUser = users.find((u) => u.role === "adviser" && (u.organizationId === activeEvent!.organizationId || u.id === org?.adviserId));
+      const adviserName = adviserUser
+        ? `${adviserUser.firstName} ${adviserUser.middleName ? adviserUser.middleName + " " : ""}${adviserUser.lastName}${adviserUser.suffix ? ", " + adviserUser.suffix : ""}`
+        : "Engr. Emmanuel S. Reyes, M.Sc.";
+      const deanUser = users.find((u) => u.role === "dean");
+      const deanName = deanUser
+        ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
+        : "Dr. Marilou Castro Villanueva, Ph.D.";
+
+      const pdfBlob = generateLiquidationPdfBlob(activeEvent!, eventTxns, {
+        organizationName: orgName,
+        officerName: activeLiquidator,
+        adviserName,
+        deanName,
+        categories: expenditureCategories,
+      });
+
+      await uploadEventAttachment({
+        organizationName: orgName,
+        eventId: activeEvent!.id,
+        category: "Liquidation",
+        file: pdfBlob,
+        fileName: liquidationDocName,
+      });
+    } catch (e) {
+      console.warn("Liquidation cloud archive notice:", e);
+    }
 
     updateEvent(activeEvent!.id, {
       status: "Closed",
@@ -441,135 +480,26 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
   function handleTriggerDownloadPdf() {
     if (!activeEvent) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-
     const orgName = org?.name || "Student Organization";
-    const docRef = `LQ-${activeEvent.id.toUpperCase()}-2026`;
-    const rowsHtml = eventTxns.map((t, idx) => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${idx + 1}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${t.description}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #475569;">${getCategoryById(t.categoryId)?.name ?? "General"}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatCurrency(t.amount)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-          <span style="background: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold;">${t.status}</span>
-        </td>
-      </tr>
-    `).join("");
+    const fileName = `Liquidation_Report_${activeEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Liquidation_Report_${activeEvent.name.replace(/[^a-zA-Z0-9]/g, '_')}</title>
-        <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; font-size: 12px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 14px; margin-bottom: 16px; }
-          .brand { display: flex; align-items: center; gap: 12px; }
-          .logo { width: 44px; height: 44px; border-radius: 8px; background-color: #134e4a; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; }
-          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-family: monospace; }
-          .grid-label { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-          .grid-val { font-weight: bold; font-size: 11px; margin-top: 2px; }
-          table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; margin-bottom: 16px; }
-          th { background: #f1f5f9; text-align: left; padding: 8px; border-bottom: 1px solid #cbd5e1; font-weight: bold; }
-          .total-row { background: #f0fdfa; font-weight: bold; border-top: 2px solid #0f766e; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand">
-            <div class="logo">LCUP</div>
-            <div>
-              <h2 style="margin: 0; font-size: 16px; font-weight: 800; color: #134e4a; text-transform: uppercase;">La Consolacion University Philippines</h2>
-              <p style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">College of Information Technology & Engineering</p>
-              <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e;">${orgName}</p>
-            </div>
-          </div>
-          <div style="text-align: right; font-family: monospace;">
-            <span style="background: #ccfbf1; color: #115e59; font-weight: bold; padding: 4px 8px; border-radius: 4px; border: 1px solid #99f6e4; font-size: 10px;">DIGITAL LIQUIDATION</span>
-            <p style="margin: 4px 0 0 0; font-size: 10px; color: #64748b;">Doc Ref: ${docRef}</p>
-          </div>
-        </div>
+    try {
+      const pdfBlob = generateLiquidationPdfBlob(activeEvent, eventTxns, {
+        organizationName: orgName,
+        officerName: liquidatorName,
+        adviserName,
+        deanName,
+        categories: expenditureCategories,
+      });
 
-        <div class="grid">
-          <div><span class="grid-label">Event Name</span><div class="grid-val">${activeEvent.name}</div></div>
-          <div><span class="grid-label">Date Conducted</span><div class="grid-val">${formatDate(activeEvent.dateStart)}</div></div>
-          <div><span class="grid-label">Approved Budget</span><div class="grid-val" style="color: #0f766e;">${formatCurrency(budget)}</div></div>
-          <div><span class="grid-label">Total Disbursed</span><div class="grid-val">${formatCurrency(eventSpent)}</div></div>
-        </div>
-
-        <h4 style="font-family: monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; margin: 0 0 8px 0; color: #334155;">Itemized Financial Statement</h4>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 30px;">#</th>
-              <th>Description</th>
-              <th>Category</th>
-              <th style="text-align: right;">Amount (₱)</th>
-              <th style="text-align: center;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rowsHtml}
-            <tr class="total-row">
-              <td colspan="3" style="padding: 8px; text-align: right; color: #134e4a;">TOTAL EXPENDITURES:</td>
-              <td style="padding: 8px; text-align: right; color: #134e4a;">${formatCurrency(eventSpent)}</td>
-              <td style="padding: 8px; text-align: center; color: #0f766e; font-size: 10px;">100% RECONCILED</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 8px;">
-          <span style="color: #475569;">Net Balance Remaining (Surplus / Reversion):</span>
-          <span style="font-weight: bold; color: #0f766e; font-size: 13px;">${formatCurrency(remaining)}</span>
-        </div>
-
-        ${activeEvent.revenue && activeEvent.revenue > 0 ? `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 8px;">
-          <span style="color: #115e59;">Total Gross Event Revenue Generated:</span>
-          <span style="font-weight: bold; color: #0f766e; font-size: 13px;">${formatCurrency(activeEvent.revenue)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; font-family: monospace; font-size: 11px; margin-bottom: 8px;">
-          <span style="color: #065f46; font-weight: bold;">Net Total Surplus Reconciled to Treasury:</span>
-          <span style="font-weight: 800; color: #047857; font-size: 14px;">${formatCurrency(remaining + activeEvent.revenue)}</span>
-        </div>
-        ` : ''}
-
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; font-family: monospace;">
-          <div>
-            <div style="height: 26px; display: flex; align-items: center; justify-content: center; color: #047857; font-weight: bold; font-size: 11px;">✓ Digitally Certified</div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${liquidatorName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Student Finance Officer, ${orgName}</div>
-          </div>
-          <div>
-            <div style="height: 26px;"></div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${adviserName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Organization Adviser</div>
-          </div>
-          <div>
-            <div style="height: 26px;"></div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${deanName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">College Dean, CITE</div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    toast.success("Liquidation Report Exported", `'${activeEvent.name}' liquidation statement prepared for PDF export.`);
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
-
-    setDownloadSuccess(true);
-    setTimeout(() => setDownloadSuccess(false), 3000);
+      openPdfBlobInNewTab(pdfBlob, fileName);
+      toast.success("Liquidation Report Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and opened.`);
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } catch (err: any) {
+      console.error("Liquidation export error:", err);
+      toast.error("Export Failed", "Could not compile Liquidation Report PDF.");
+    }
   }
 
   return (
@@ -769,7 +699,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                           onClick={() => setPreviewReceipt({
                             title: t.description,
                             url: resolvePdfUrl(t.receiptUrl, "receipt"),
-                            fileName: t.receiptUrl?.startsWith("data:") ? "Uploaded_Receipt" : t.receiptUrl?.split("/").pop() || "Official Receipt"
+                            fileName: t.receiptUrl?.startsWith("data:") ? "Uploaded Receipt" : t.receiptUrl?.split("/").pop() || "Official Receipt"
                           })}
                           className="inline-flex items-center gap-1.5 text-xs font-mono text-[var(--primary)] hover:underline bg-[var(--muted)]/60 border border-[var(--border)] px-2.5 py-1 rounded-lg transition cursor-pointer"
                           title="View attached receipt"
@@ -1224,7 +1154,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                     download={previewReceipt.fileName || "receipt.pdf"}
                     className="inline-flex items-center gap-1 text-[var(--primary)] font-mono hover:underline font-bold"
                   >
-                    <ExternalLink size={12} /> Open PDF
+                    <ExternalLink size={12} /> Download PDF
                   </a>
                 </div>
               </div>
@@ -1270,7 +1200,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                 <span className="px-3 py-1 rounded-md bg-teal-100 text-teal-900 font-bold border border-teal-300">
                   DIGITAL LIQUIDATION
                 </span>
-                <p className="text-[11px] text-slate-500 mt-1.5">Doc Ref: LQ-{activeEvent.id.toUpperCase()}-2026</p>
+                <p className="text-[11px] text-slate-500 mt-1.5">Doc Ref: {cleanDocRef}</p>
               </div>
             </div>
 

@@ -11,8 +11,9 @@ import {
 } from "lucide-react";
 import {
   getEventTypeById, formatDate, formatCurrency, statusColors, Event,
-  isWebUrl, toWebUrl, resolvePdfUrl, printClearanceDocument, printLiquidationDocument
+  isWebUrl, toWebUrl, resolvePdfUrl
 } from "../services/mockData";
+import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
 
 function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mode?: string; size?: number; className?: string }) {
   if (mode?.toLowerCase().includes("online") || mode?.toLowerCase().includes("virtual")) {
@@ -923,7 +924,7 @@ export default function CalendarPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-xs font-bold text-white">Official Event Clearance Granted</p>
+                          <p className="text-xs font-bold text-white">Event Clearance Granted</p>
                           <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 uppercase font-bold">
                             SDS Dispatched
                           </span>
@@ -938,7 +939,7 @@ export default function CalendarPage() {
                         type="button"
                         onClick={() => {
                           printClearanceDocument(selectedEvent, org?.name, type?.name);
-                          toast.success("Clearance Certificate Prepared", "Official document dispatched to printer.");
+                          toast.success("Clearance Certificate Prepared", "Document dispatched to the browser.");
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >
@@ -948,7 +949,7 @@ export default function CalendarPage() {
                   </div>
                 )}
 
-                {/* Official Liquidation Banner if Closed */}
+                {/* Liquidation Banner if Closed */}
                 {selectedEvent.status === "Closed" && (
                   <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-teal-700/80 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
@@ -957,7 +958,7 @@ export default function CalendarPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-xs font-bold text-white">Digital Liquidation Report Reconciled</p>
+                          <p className="text-xs font-bold text-white">Liquidation Report Reconciled</p>
                           <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-200 border border-teal-400/30 uppercase font-bold">
                             Audited & Archived
                           </span>
@@ -972,8 +973,8 @@ export default function CalendarPage() {
                         type="button"
                         onClick={() => {
                           const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
-                          printLiquidationDocument(selectedEvent, eventTxns, org?.name);
-                          toast.success("Liquidation Statement Prepared", "Official document dispatched for print/PDF export.");
+                          printLiquidationDocument(selectedEvent, eventTxns, { organizationName: org?.name });
+                          toast.success("Liquidation Statement Prepared", "Document dispatched for print/PDF export.");
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >

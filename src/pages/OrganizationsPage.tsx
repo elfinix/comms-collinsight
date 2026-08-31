@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import {
   getEventTypeById,
-  formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl, printClearanceDocument, printLiquidationDocument
+  formatDate, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../services/mockData";
+import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -1096,7 +1097,7 @@ export default function OrganizationsPage() {
                             {org?.name}
                           </span>
                           <span className="inline-flex items-center gap-1 text-xs font-bold text-[var(--primary)] group-hover:translate-x-0.5 transition">
-                            Details <ArrowUpRight size={14} />
+                            <ArrowUpRight size={14} />
                           </span>
                         </div>
                       </button>
@@ -1343,7 +1344,7 @@ export default function OrganizationsPage() {
                         type="button"
                         onClick={() => {
                           printClearanceDocument(selectedEvent, org?.name, type?.name);
-                          toast.success("Clearance Certificate Prepared", "Official document dispatched to printer.");
+                          toast.success("Clearance Certificate Prepared", "Document dispatched to the browser.");
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >
@@ -1353,7 +1354,7 @@ export default function OrganizationsPage() {
                   </div>
                 )}
 
-                {/* Official Liquidation Banner if Closed */}
+                {/* Liquidation Banner if Closed */}
                 {selectedEvent.status === "Closed" && (
                   <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-teal-700/80 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
@@ -1362,7 +1363,7 @@ export default function OrganizationsPage() {
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-xs font-bold text-white">Digital Liquidation Report Reconciled</p>
+                          <p className="text-xs font-bold text-white">Liquidation Report Reconciled</p>
                           <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-200 border border-teal-400/30 uppercase font-bold">
                             Audited & Archived
                           </span>

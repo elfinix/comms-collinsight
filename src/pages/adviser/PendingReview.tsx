@@ -31,7 +31,7 @@ export default function AdviserPendingReview() {
   function handleApprove() {
     if (!viewEvent) return;
     setEventStatus(viewEvent.id, "For Approval");
-    if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Adviser note: ${feedback}`] });
+    if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Adviser's Remarks: ${feedback}`] });
     toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`);
     setViewEvent(null);
     setFeedback("");

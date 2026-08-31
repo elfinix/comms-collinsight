@@ -4,12 +4,14 @@ import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
+import { uploadEventAttachment } from "../../services/storageService";
+import { generateClearancePdfBlob } from "../../services/pdfDocuments";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanPendingApproval() {
-  const { events, organizations, setEventStatus, updateEvent, defaultView } = useApp();
+  const { events, organizations, users, setEventStatus, updateEvent, defaultView } = useApp();
   const { toast } = useToast();
   const pending = events.filter((e) => e.status === "For Approval");
 
@@ -25,10 +27,38 @@ export default function DeanPendingApproval() {
   const [showRequestChange, setShowRequestChange] = useState(false);
   const [feedback, setFeedback] = useState("");
 
-  function handleApprove() {
+  async function handleApprove() {
     if (!viewEvent) return;
     setEventStatus(viewEvent.id, "Approved");
-    if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Dean note: ${feedback}`] });
+
+    const org = organizations.find((o) => o.id === viewEvent.organizationId);
+    const orgName = org?.name || org?.code || "Organization";
+
+    // Generate genuine vector Clearance PDF and upload to Supabase Storage
+    try {
+      const clearanceDocName = `Event_Clearance_${viewEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+      const deanUser = users.find((u) => u.role === "dean");
+      const deanName = deanUser
+        ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
+        : "Dr. Marilou Castro Villanueva, Ph.D.";
+
+      const pdfBlob = generateClearancePdfBlob(viewEvent, {
+        organizationName: orgName,
+        deanName,
+      });
+
+      await uploadEventAttachment({
+        organizationName: orgName,
+        eventId: viewEvent.id,
+        category: "Clearance",
+        file: pdfBlob,
+        fileName: clearanceDocName,
+      });
+    } catch (e) {
+      console.warn("Storage upload notice:", e);
+    }
+
+    if (feedback) updateEvent(viewEvent.id, { remarks: [...(viewEvent.remarks ?? []), `Dean's Remarks: ${feedback}`] });
     toast.success("Executive Approval Granted", `'${viewEvent.name}' officially approved by the College Dean.`);
     setViewEvent(null);
     setFeedback("");

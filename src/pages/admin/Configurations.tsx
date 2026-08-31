@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Card, CardHeader, CardBody } from "../../components/ui";
-import { Plus, Trash2, Tag, Layers, Sliders, Save, X, Search } from "lucide-react";
+import { Plus, Trash2, Tag, Layers, X, Search, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
 
 export default function AdminConfigurations() {
   const { eventTypes, expenditureCategories, addEventType, deleteEventType, addCategory, deleteCategory } = useApp();
@@ -10,40 +10,78 @@ export default function AdminConfigurations() {
   const [showAddType, setShowAddType] = useState(false);
   const [showAddCat, setShowAddCat] = useState(false);
   const [typeName, setTypeName] = useState("");
+  const [typeDesc, setTypeDesc] = useState("");
   const [catName, setCatName] = useState("");
+  const [catDesc, setCatDesc] = useState("");
   const [deleteTypeConfirm, setDeleteTypeConfirm] = useState<{ id: string; name: string } | null>(null);
   const [deleteCatConfirm, setDeleteCatConfirm] = useState<{ id: string; name: string } | null>(null);
 
+  // Event Types Toolbar State
   const [typeSearch, setTypeSearch] = useState("");
+  const [typeSortKey, setTypeSortKey] = useState<"name" | "createdAt">("name");
+  const [typeSortDir, setTypeSortDir] = useState<"asc" | "desc">("asc");
+
+  // Expenditure Categories Toolbar State
   const [catSearch, setCatSearch] = useState("");
+  const [catSortKey, setCatSortKey] = useState<"name" | "createdAt">("name");
+  const [catSortDir, setCatSortDir] = useState<"asc" | "desc">("asc");
 
-  const filteredTypes = eventTypes.filter((et) =>
-    et.name.toLowerCase().includes(typeSearch.toLowerCase())
-  );
+  // Filter & Sort Event Types
+  const filteredTypes = eventTypes
+    .filter((et) => {
+      const q = typeSearch.toLowerCase();
+      return et.name.toLowerCase().includes(q) || (et.description && et.description.toLowerCase().includes(q));
+    })
+    .sort((a, b) => {
+      let comp = 0;
+      if (typeSortKey === "name") {
+        comp = a.name.localeCompare(b.name);
+      } else {
+        // Fallback or ID comparison for order
+        comp = a.id.localeCompare(b.id);
+      }
+      return typeSortDir === "asc" ? comp : -comp;
+    });
 
-  const filteredCats = expenditureCategories.filter((ec) =>
-    ec.name.toLowerCase().includes(catSearch.toLowerCase())
-  );
+  // Filter & Sort Expenditure Categories
+  const filteredCats = expenditureCategories
+    .filter((ec) => {
+      const q = catSearch.toLowerCase();
+      return ec.name.toLowerCase().includes(q) || (ec.description && ec.description.toLowerCase().includes(q));
+    })
+    .sort((a, b) => {
+      let comp = 0;
+      if (catSortKey === "name") {
+        comp = a.name.localeCompare(b.name);
+      } else {
+        comp = a.id.localeCompare(b.id);
+      }
+      return catSortDir === "asc" ? comp : -comp;
+    });
 
   function handleAddType() {
     if (!typeName.trim()) return;
     addEventType({
-      id: `et-${Date.now()}`,
+      id: crypto.randomUUID(),
       name: typeName.trim(),
+      description: typeDesc.trim(),
     });
     toast.success("Event Type Added", `'${typeName.trim()}' added to proposal classifications.`);
     setTypeName("");
+    setTypeDesc("");
     setShowAddType(false);
   }
 
   function handleAddCat() {
     if (!catName.trim()) return;
     addCategory({
-      id: `ec-${Date.now()}`,
+      id: crypto.randomUUID(),
       name: catName.trim(),
+      description: catDesc.trim(),
     });
     toast.success("Expenditure Category Added", `'${catName.trim()}' added to financial categories.`);
     setCatName("");
+    setCatDesc("");
     setShowAddCat(false);
   }
 
@@ -72,6 +110,7 @@ export default function AdminConfigurations() {
                 size="sm"
                 onClick={() => {
                   setTypeName("");
+                  setTypeDesc("");
                   setShowAddType(true);
                 }}
                 className="gap-1.5 text-xs font-bold shadow-2xs h-8"
@@ -81,15 +120,44 @@ export default function AdminConfigurations() {
             }
           />
           <CardBody className="space-y-3">
-            {/* Search filter for Event Types */}
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
-              <input
-                value={typeSearch}
-                onChange={(e) => setTypeSearch(e.target.value)}
-                placeholder="Search event types..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
-              />
+            {/* Search and Sort Toolbar for Event Types */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[160px]">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                <input
+                  value={typeSearch}
+                  onChange={(e) => setTypeSearch(e.target.value)}
+                  placeholder="Search event types..."
+                  className="w-full pl-7 pr-2.5 py-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
+                />
+              </div>
+
+              {/* Sort Selector */}
+              <div className="relative">
+                <select
+                  value={typeSortKey}
+                  onChange={(e) => setTypeSortKey(e.target.value as any)}
+                  className="pl-7 pr-3 py-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none shadow-2xs cursor-pointer appearance-none"
+                >
+                  <option value="name">Sort: Name</option>
+                  <option value="createdAt">Sort: Date Created</option>
+                </select>
+                <ArrowUpDown size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+              </div>
+
+              {/* Sort Direction Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setTypeSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                className="p-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 transition cursor-pointer shadow-2xs flex items-center justify-center flex-shrink-0"
+                title={typeSortDir === "asc" ? "Ascending — Click for Descending" : "Descending — Click for Ascending"}
+              >
+                {typeSortDir === "asc" ? (
+                  <ArrowUpWideNarrow size={14} className="text-[var(--primary)]" />
+                ) : (
+                  <ArrowDownWideNarrow size={14} className="text-[var(--primary)]" />
+                )}
+              </button>
             </div>
 
             <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--card)]">
@@ -109,7 +177,11 @@ export default function AdminConfigurations() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[var(--foreground)] truncate">{et.name}</p>
-                        <p className="text-[10px] font-mono text-[var(--muted-foreground)]">#{idx + 1} · {et.id}</p>
+                        <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-1 pr-1">
+                          {et.description || (
+                            <span className="italic">No description provided</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     <button
@@ -137,6 +209,7 @@ export default function AdminConfigurations() {
                 size="sm"
                 onClick={() => {
                   setCatName("");
+                  setCatDesc("");
                   setShowAddCat(true);
                 }}
                 className="gap-1.5 text-xs font-bold shadow-2xs h-8"
@@ -146,15 +219,44 @@ export default function AdminConfigurations() {
             }
           />
           <CardBody className="space-y-3">
-            {/* Search filter for Categories */}
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
-              <input
-                value={catSearch}
-                onChange={(e) => setCatSearch(e.target.value)}
-                placeholder="Search expenditure categories..."
-                className="w-full pl-8 pr-3 py-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
-              />
+            {/* Search and Sort Toolbar for Categories */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative flex-1 min-w-[160px]">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                <input
+                  value={catSearch}
+                  onChange={(e) => setCatSearch(e.target.value)}
+                  placeholder="Search expenditure categories..."
+                  className="w-full pl-7 pr-2.5 py-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
+                />
+              </div>
+
+              {/* Sort Selector */}
+              <div className="relative">
+                <select
+                  value={catSortKey}
+                  onChange={(e) => setCatSortKey(e.target.value as any)}
+                  className="pl-7 pr-3 py-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none shadow-2xs cursor-pointer appearance-none"
+                >
+                  <option value="name">Sort: Name</option>
+                  <option value="createdAt">Sort: Date Created</option>
+                </select>
+                <ArrowUpDown size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+              </div>
+
+              {/* Sort Direction Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setCatSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                className="p-1.5 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 transition cursor-pointer shadow-2xs flex items-center justify-center flex-shrink-0"
+                title={catSortDir === "asc" ? "Ascending — Click for Descending" : "Descending — Click for Ascending"}
+              >
+                {catSortDir === "asc" ? (
+                  <ArrowUpWideNarrow size={14} className="text-[var(--primary)]" />
+                ) : (
+                  <ArrowDownWideNarrow size={14} className="text-[var(--primary)]" />
+                )}
+              </button>
             </div>
 
             <div className="divide-y divide-[var(--border)] border border-[var(--border)] rounded-xl overflow-hidden bg-[var(--card)]">
@@ -174,7 +276,11 @@ export default function AdminConfigurations() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[var(--foreground)] truncate">{cat.name}</p>
-                        <p className="text-[10px] font-mono text-[var(--muted-foreground)]">#{idx + 1} · {cat.id}</p>
+                        <p className="text-[11px] text-[var(--muted-foreground)] line-clamp-1 pr-1">
+                          {cat.description || (
+                            <span className="italic">No description provided</span>
+                          )}
+                        </p>
                       </div>
                     </div>
                     <button
@@ -194,13 +300,19 @@ export default function AdminConfigurations() {
       </div>
 
       {/* Add Event Type Dialog */}
-      <Dialog open={showAddType} onClose={() => setShowAddType(false)} title="Add Event Classification Type" size="sm">
+      <Dialog open={showAddType} onClose={() => setShowAddType(false)} title="Add Event Classification Type" size="md">
         <div className="p-6 flex flex-col gap-4">
           <Input
             label="Event Type Title *"
             value={typeName}
             onChange={(e) => setTypeName(e.target.value)}
             placeholder="e.g., Hackathon, Academic Seminar"
+          />
+          <Input
+            label="Description"
+            value={typeDesc}
+            onChange={(e) => setTypeDesc(e.target.value)}
+            placeholder="Brief scope or purpose of this classification..."
           />
           <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowAddType(false)} className="gap-1.5 text-xs">
@@ -214,13 +326,19 @@ export default function AdminConfigurations() {
       </Dialog>
 
       {/* Add Category Dialog */}
-      <Dialog open={showAddCat} onClose={() => setShowAddCat(false)} title="Add Expenditure Category" size="sm">
+      <Dialog open={showAddCat} onClose={() => setShowAddCat(false)} title="Add Expenditure Category" size="md">
         <div className="p-6 flex flex-col gap-4">
           <Input
             label="Expenditure Category Title *"
             value={catName}
             onChange={(e) => setCatName(e.target.value)}
             placeholder="e.g., Transportation, Venue Rental"
+          />
+          <Input
+            label="Description"
+            value={catDesc}
+            onChange={(e) => setCatDesc(e.target.value)}
+            placeholder="Itemized expenses covered under this category..."
           />
           <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowAddCat(false)} className="gap-1.5 text-xs">

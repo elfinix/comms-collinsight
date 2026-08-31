@@ -1,5 +1,6 @@
 import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Printer } from "lucide-react";
-import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event, printClearanceDocument } from "../../services/mockData";
+import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event } from "../../services/mockData";
+import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { Button } from "../ui";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
@@ -16,7 +17,7 @@ export default function EventClearanceTab({
   organizationName,
   eventTypeName,
 }: EventClearanceTabProps) {
-  const { organizations, eventTypes } = useApp();
+  const { organizations, eventTypes, users } = useApp();
   const { toast } = useToast();
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
@@ -28,8 +29,17 @@ export default function EventClearanceTab({
   const resolvedTypeName = eventTypeName || typeObj?.name || "Institutional Event";
 
   const handlePrint = () => {
-    printClearanceDocument(event, resolvedOrgName, resolvedTypeName);
-    toast.success("Clearance Certificate Prepared", "Official document dispatched to printer.");
+    try {
+      const pdfBlob = generateClearancePdfBlob(event, {
+        organizationName: resolvedOrgName,
+        eventTypeName: resolvedTypeName,
+      });
+      openPdfBlobInNewTab(pdfBlob, clearanceFileName);
+      toast.success("Clearance Certificate Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) opened for viewing.`);
+    } catch (err: any) {
+      console.error("Clearance export error:", err);
+      toast.error("Export Failed", "Could not compile Clearance Certificate PDF.");
+    }
   };
 
   return (

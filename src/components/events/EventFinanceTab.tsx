@@ -8,9 +8,9 @@ import {
   CheckCircle, Clock, Scale
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, Event,
-  printLiquidationDocument
+  formatCurrency, formatDate, Event
 } from "../../services/mockData";
+import { printLiquidationDocument } from "../../services/pdfDocuments";
 
 interface EventFinanceTabProps {
   event: Event;

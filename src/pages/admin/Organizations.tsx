@@ -2,13 +2,16 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card } from "../../components/ui";
-import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
 import { Organization, formatCurrency } from "../../services/mockData";
 
 export default function AdminOrganizations() {
   const { organizations, departments, users, addOrganization, updateOrganization, deleteOrganization, updateUser } = useApp();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [deptFilter, setDeptFilter] = useState("all");
+  const [sortKey, setSortKey] = useState<"name" | "code" | "budget">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [showAdd, setShowAdd] = useState(false);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Organization | null>(null);
@@ -23,17 +26,35 @@ export default function AdminOrganizations() {
     adviserId: "",
     allocatedBudget: "50000",
     logoColor: "#0d9488",
+    description: "",
   });
 
-  const filteredOrgs = organizations.filter((o) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return o.name.toLowerCase().includes(q) || o.code.toLowerCase().includes(q);
-  });
+  const filteredOrgs = organizations
+    .filter((o) => {
+      if (deptFilter !== "all" && o.departmentId !== deptFilter) return false;
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return (
+        o.name.toLowerCase().includes(q) ||
+        o.code.toLowerCase().includes(q) ||
+        (o.description && o.description.toLowerCase().includes(q))
+      );
+    })
+    .sort((a, b) => {
+      let comp = 0;
+      if (sortKey === "name") {
+        comp = a.name.localeCompare(b.name);
+      } else if (sortKey === "code") {
+        comp = a.code.localeCompare(b.code);
+      } else if (sortKey === "budget") {
+        comp = (a.allocatedBudget || 0) - (b.allocatedBudget || 0);
+      }
+      return sortDir === "asc" ? comp : -comp;
+    });
 
   function handleAdd() {
     if (!form.name || !form.code) return;
-    const newOrgId = `org-${Date.now()}`;
+    const newOrgId = crypto.randomUUID();
     addOrganization({
       id: newOrgId,
       name: form.name.trim(),
@@ -42,6 +63,7 @@ export default function AdminOrganizations() {
       adviserId: form.adviserId,
       allocatedBudget: parseFloat(form.allocatedBudget) || 0,
       logoColor: form.logoColor,
+      description: form.description.trim(),
     });
 
     // If an adviser was assigned, sync their organizationId
@@ -58,6 +80,7 @@ export default function AdminOrganizations() {
       adviserId: "",
       allocatedBudget: "50000",
       logoColor: "#0d9488",
+      description: "",
     });
     setShowAdd(false);
   }
@@ -92,16 +115,60 @@ export default function AdminOrganizations() {
         </Button>
       </div>
 
-      {/* Search Filter Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 min-w-[240px]">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search organizations by name or acronym..."
-            className="w-full pl-9 pr-3 py-2 text-sm border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
-          />
+      {/* Filter & Sort Toolbar */}
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[220px]">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search organizations by name or acronym..."
+              className="w-full pl-9 pr-3 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
+            />
+          </div>
+
+          {/* Department Filter */}
+          <select
+            value={deptFilter}
+            onChange={(e) => setDeptFilter(e.target.value)}
+            className="px-3.5 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none shadow-2xs cursor-pointer"
+          >
+            <option value="all">All Departments</option>
+            {activeDepartments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.code} — {d.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Sort Selector */}
+          <div className="relative">
+            <select
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as any)}
+              className="pl-8 pr-3.5 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none shadow-2xs cursor-pointer appearance-none"
+            >
+              <option value="name">Sort: Full Name</option>
+              <option value="code">Sort: Acronym / Code</option>
+              <option value="budget">Sort: Allocated Budget</option>
+            </select>
+            <ArrowUpDown size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+          </div>
+
+          {/* Sort Direction Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            className="p-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 transition cursor-pointer shadow-2xs flex items-center justify-center flex-shrink-0"
+            title={sortDir === "asc" ? "Ascending — Click for Descending" : "Descending — Click for Ascending"}
+          >
+            {sortDir === "asc" ? (
+              <ArrowUpWideNarrow size={14} className="text-[var(--primary)]" />
+            ) : (
+              <ArrowDownWideNarrow size={14} className="text-[var(--primary)]" />
+            )}
+          </button>
         </div>
       </div>
 
@@ -230,7 +297,15 @@ export default function AdminOrganizations() {
                 ]}
               />
             </div>
-            <div className="sm:col-span-6">
+            <div className="sm:col-span-12">
+              <Input
+                label="Organization Description"
+                value={form.description}
+                onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Brief description of organization mission and objectives..."
+              />
+            </div>
+            <div className="sm:col-span-12">
               <Input
                 label="Allocated Budget (₱)"
                 type="number"
@@ -333,7 +408,15 @@ export default function AdminOrganizations() {
                   ]}
                 />
               </div>
-              <div className="sm:col-span-6">
+              <div className="sm:col-span-12">
+                <Input
+                  label="Organization Description"
+                  value={editOrg.description || ""}
+                  onChange={(e) => setEditOrg((p) => p && { ...p, description: e.target.value })}
+                  placeholder="Brief description..."
+                />
+              </div>
+              <div className="sm:col-span-12">
                 <Input
                   label="Allocated Budget (₱)"
                   type="number"

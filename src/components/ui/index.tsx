@@ -386,7 +386,7 @@ export function Select({ label, error, options, className = "", ...props }: Sele
       {label && <label className="text-sm font-medium text-[var(--foreground)]">{label}</label>}
       <div className="relative flex items-center">
         <select
-          className={`w-full pl-3.5 pr-10 py-2 text-sm border border-[var(--border)] rounded-xl bg-white text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition appearance-none cursor-pointer ${className}`}
+          className={`w-full pl-3.5 pr-10 py-2 text-sm border border-[var(--border)] rounded-xl bg-white text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--muted)]/50 ${className}`}
           {...props}
         >
           {options.map((o) => (

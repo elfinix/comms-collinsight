@@ -13,6 +13,7 @@ import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, statusColors, eventTypes, expenditureCategories,
   Event, EventStatus, resolvePdfUrl,
 } from "../../services/mockData";
+import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
@@ -166,30 +167,131 @@ export default function StudentEvents() {
       return sortDir === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
     });
 
+  const [apfFile, setApfFile] = useState<File | null>(null);
+  const [appendixFiles, setAppendixFiles] = useState<File[]>([]);
+  const [editApfFile, setEditApfFile] = useState<File | null>(null);
+  const [editAppendixFiles, setEditAppendixFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
   function handleCreate() {
     setDraft(newEventShell(currentUser?.id ?? "", orgId, eventTypes[0]?.id ?? ""));
+    setApfFile(null);
+    setAppendixFiles([]);
     setCreateTab("details");
     setShowCreate(true);
   }
 
   function handleOpenEdit(e: Event) {
     setEditEvent({ ...e, appendices: e.appendices ? [...e.appendices] : [] });
+    setEditApfFile(null);
+    setEditAppendixFiles([]);
     setEditTab("details");
   }
 
-  function handleSaveDraft() {
+  async function handleSaveDraft() {
     if (!draft.name) return;
-    const id = `evt-${Date.now()}`;
-    addEvent({ ...draft, id });
-    setShowCreate(false);
-    toast.success("Event Proposal Created", `'${draft.name}' was created and saved to drafts.`);
+    setIsUploading(true);
+    const id = crypto.randomUUID();
+    const orgName = org?.name || org?.code || "Organization";
+
+    let finalApfUrl = draft.apfUrl;
+    let finalAppendices = draft.appendices ? [...draft.appendices] : [];
+
+    try {
+      // 1. Upload APF to Supabase Storage if file object is present
+      if (apfFile) {
+        const apfRes = await uploadEventAttachment({
+          organizationName: orgName,
+          eventId: id,
+          category: "APF",
+          file: apfFile,
+        });
+        if (apfRes.path) {
+          finalApfUrl = apfRes.path;
+        }
+      }
+
+      // 2. Upload Appendices to Supabase Storage if file objects are present
+      if (appendixFiles.length > 0) {
+        const appRes = await uploadEventAppendices({
+          organizationName: orgName,
+          eventId: id,
+          files: appendixFiles,
+        });
+        if (appRes.paths.length > 0) {
+          finalAppendices = appRes.paths;
+        }
+      }
+
+      addEvent({
+        ...draft,
+        id,
+        apfUrl: finalApfUrl,
+        appendices: finalAppendices,
+      });
+
+      setShowCreate(false);
+      setApfFile(null);
+      setAppendixFiles([]);
+      toast.success("Event Proposal Created", `'${draft.name}' was created and attachments uploaded.`);
+    } catch (err: any) {
+      console.error("Save draft error:", err);
+      toast.error("Upload Warning", "Failed to upload attachments. Event was saved locally.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
-  function handleSaveEdit() {
+  async function handleSaveEdit() {
     if (!editEvent) return;
-    updateEvent(editEvent.id, { ...editEvent });
-    toast.success("Event Proposal Updated", `Changes to '${editEvent.name}' were successfully saved.`);
-    setEditEvent(null);
+    setIsUploading(true);
+    const orgName = org?.name || org?.code || "Organization";
+
+    let finalApfUrl = editEvent.apfUrl;
+    let finalAppendices = editEvent.appendices ? [...editEvent.appendices] : [];
+
+    try {
+      // 1. Upload new APF if changed
+      if (editApfFile) {
+        const apfRes = await uploadEventAttachment({
+          organizationName: orgName,
+          eventId: editEvent.id,
+          category: "APF",
+          file: editApfFile,
+        });
+        if (apfRes.path) {
+          finalApfUrl = apfRes.path;
+        }
+      }
+
+      // 2. Upload new Appendices if added
+      if (editAppendixFiles.length > 0) {
+        const appRes = await uploadEventAppendices({
+          organizationName: orgName,
+          eventId: editEvent.id,
+          files: editAppendixFiles,
+        });
+        if (appRes.paths.length > 0) {
+          finalAppendices = [...finalAppendices, ...appRes.paths];
+        }
+      }
+
+      updateEvent(editEvent.id, {
+        ...editEvent,
+        apfUrl: finalApfUrl,
+        appendices: finalAppendices,
+      });
+
+      toast.success("Event Proposal Updated", `Changes to '${editEvent.name}' were successfully saved.`);
+      setEditEvent(null);
+      setEditApfFile(null);
+      setEditAppendixFiles([]);
+    } catch (err: any) {
+      console.error("Save edit error:", err);
+      toast.error("Update Warning", "Failed to upload new attachments. Event was updated locally.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function handleSubmitToAdviser(evt: Event) {
@@ -610,6 +712,7 @@ export default function StudentEvents() {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
+                      setApfFile(file);
                       setDraft((d) => ({ ...d, apfUrl: file.name }));
                     }
                   }}
@@ -623,7 +726,9 @@ export default function StudentEvents() {
                   onChange={(e) => {
                     const files = e.target.files;
                     if (files && files.length > 0) {
-                      const newFileNames = Array.from(files).map((f) => f.name);
+                      const fileArr = Array.from(files);
+                      setAppendixFiles((prev) => [...prev, ...fileArr]);
+                      const newFileNames = fileArr.map((f) => f.name);
                       setDraft((d) => ({
                         ...d,
                         appendices: [...(d.appendices || []), ...newFileNames],
@@ -646,11 +751,12 @@ export default function StudentEvents() {
                   {draft.apfUrl ? (
                     <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
                       <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-                      <span className="font-bold truncate max-w-[260px]">{draft.apfUrl}</span>
+                      <span className="font-bold truncate max-w-[260px]">{draft.apfUrl.replace(/^.*[\\/]/, "")}</span>
                       <button
                         type="button"
                         onClick={() => {
                           setDraft((d) => ({ ...d, apfUrl: "" }));
+                          setApfFile(null);
                           if (apfInputRef.current) apfInputRef.current.value = "";
                         }}
                         className="text-emerald-700 hover:text-red-600 ml-1 p-0.5 cursor-pointer font-bold"
@@ -700,10 +806,13 @@ export default function StudentEvents() {
                       {draft.appendices.map((file, idx) => (
                         <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
                           <FileText size={13} className="text-[var(--primary)]" />
-                          <span className="truncate max-w-[200px]">{file}</span>
+                          <span className="truncate max-w-[200px]">{file.replace(/^.*[\\/]/, "")}</span>
                           <button
                             type="button"
-                            onClick={() => setDraft((d) => ({ ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) }))}
+                            onClick={() => {
+                              setDraft((d) => ({ ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) }));
+                              setAppendixFiles((prev) => prev.filter((_, i) => i !== idx));
+                            }}
                             className="text-[var(--muted-foreground)] hover:text-red-600 cursor-pointer ml-1"
                             title="Remove attachment"
                           >
@@ -936,6 +1045,7 @@ export default function StudentEvents() {
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
+                        setEditApfFile(file);
                         setEditEvent((d) => (d ? { ...d, apfUrl: file.name } : null));
                       }
                     }}
@@ -949,7 +1059,9 @@ export default function StudentEvents() {
                     onChange={(e) => {
                       const files = e.target.files;
                       if (files && files.length > 0) {
-                        const newFileNames = Array.from(files).map((f) => f.name);
+                        const fileArr = Array.from(files);
+                        setEditAppendixFiles((prev) => [...prev, ...fileArr]);
+                        const newFileNames = fileArr.map((f) => f.name);
                         setEditEvent((d) => (d ? { ...d, appendices: [...(d.appendices || []), ...newFileNames] } : null));
                       }
                     }}
@@ -969,11 +1081,12 @@ export default function StudentEvents() {
                     {editEvent.apfUrl ? (
                       <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
                         <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-                        <span className="font-bold truncate max-w-[260px]">{editEvent.apfUrl}</span>
+                        <span className="font-bold truncate max-w-[260px]">{editEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
                         <button
                           type="button"
                           onClick={() => {
                             setEditEvent((d) => (d ? { ...d, apfUrl: "" } : null));
+                            setEditApfFile(null);
                             if (editApfInputRef.current) editApfInputRef.current.value = "";
                           }}
                           className="text-emerald-700 hover:text-red-600 ml-1 p-0.5 cursor-pointer font-bold"
@@ -1023,10 +1136,13 @@ export default function StudentEvents() {
                         {editEvent.appendices.map((file, idx) => (
                           <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
                             <FileText size={13} className="text-[var(--primary)]" />
-                            <span className="truncate max-w-[200px]">{file}</span>
+                            <span className="truncate max-w-[200px]">{file.replace(/^.*[\\/]/, "")}</span>
                             <button
                               type="button"
-                              onClick={() => setEditEvent((d) => (d ? { ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) } : null))}
+                              onClick={() => {
+                                setEditEvent((d) => (d ? { ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) } : null));
+                                setEditAppendixFiles((prev) => prev.filter((_, i) => i !== idx));
+                              }}
                               className="text-[var(--muted-foreground)] hover:text-red-600 cursor-pointer ml-1"
                               title="Remove attachment"
                             >

@@ -8,13 +8,16 @@ import {
   FileDown, BarChart2, Calendar, Wallet, CreditCard,
   ChevronDown, ArrowUpDown, ArrowUpNarrowWide, ArrowDownWideNarrow, Filter
 } from "lucide-react";
-import { formatCurrency, formatDate, statusColors, getEventTypeById, getCategoryById } from "../../services/mockData";
+import { formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById, getCategoryById } from "../../services/mockData";
+import { uploadGeneratedReport } from "../../services/storageService";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
 
 export default function StudentReports() {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, users } = useApp();
+  const { events, transactions, organizations, users, expenditureCategories, exportedReports, addExportedReport } = useApp();
   const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
@@ -53,7 +56,7 @@ export default function StudentReports() {
   const deanUser = users.find((u) => u.role === "dean");
   const deanName = deanUser
     ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-    : "Dr. Aris S. Gonzales";
+    : "Dr. Marilou Castro Villanueva, Ph.D.";
 
   const studentOfficerName = currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? " " + currentUser.suffix : ""}`
@@ -70,376 +73,550 @@ export default function StudentReports() {
     return { name: label, events: count };
   });
 
-  function handleExportPdf() {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-
+  async function handleExportPdf() {
     const orgName = org?.name || "Student Organization";
     const orgCode = org?.code || "CITE-ORG";
-    const docRef = `REP-${orgCode.toUpperCase()}-${new Date().getFullYear()}`;
-    const generatedDate = formatDate(new Date().toISOString());
+    const docRef = `REP-${orgCode.toUpperCase()}-${Date.now().toString().slice(-6)}`;
+    const generatedDate = formatDateTime(new Date().toISOString());
 
-    const statusReportStyles: Record<string, string> = {
-      Created: "background: #f8fafc; color: #475569; border: 1px solid #e2e8f0;",
-      "For Review": "background: #fffbeb; color: #b45309; border: 1px solid #fde68a;",
-      "For Approval": "background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;",
-      "Pending Revision": "background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;",
-      Approved: "background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;",
-      Completed: "background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;",
-      Closed: "background: #f9fafb; color: #4b5563; border: 1px solid #e5e7eb;",
-    };
+    try {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
 
-    const tableRowsHtml = filtered.map((e, idx) => {
-      const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
-      const stStyle = statusReportStyles[e.status] || "background: #f1f5f9; color: #475569;";
-      return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${idx + 1}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${e.name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #475569;">${getEventTypeById(e.typeId)?.name || "General"}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${formatDate(e.dateStart)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatCurrency(e.proposedBudget)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #0f766e;">${formatCurrency(spent)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-            <span style="${stStyle} padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; display: inline-block;">${e.status}</span>
-          </td>
-        </tr>
-      `;
-    }).join("");
+      const pageWidth = 297;
+      const margin = 14;
+      const contentWidth = pageWidth - margin * 2; // 269mm
 
-    const filteredBudgetTotal = filtered.reduce((s, e) => s + e.proposedBudget, 0);
-    const filteredSpentTotal = filtered.reduce((s, e) => {
-      const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((st, t) => st + t.amount, 0);
-      return s + spent;
-    }, 0);
+      // ── 1. HEADER SECTION ───────────────────────────────────────────
+      // LCUP Logo Square
+      doc.setFillColor(19, 78, 74); // #134e4a
+      doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.text("LCUP", margin + 1.6, 19);
 
-    // SVG Chart 1: Events per Month (Bar Chart)
-    const barWidth = 340;
-    const barHeight = 140;
-    const barTop = 15;
-    const barBottom = 25;
-    const barLeft = 25;
-    const barRight = 10;
-    const barPlotW = barWidth - barLeft - barRight;
-    const barPlotH = barHeight - barTop - barBottom;
-    const maxEventsVal = Math.max(3, ...monthlyData.map((d) => d.events));
-    const barW = Math.max(16, Math.min(32, (barPlotW / monthlyData.length) * 0.55));
-    const barStep = barPlotW / monthlyData.length;
+      // University & Department Titles
+      doc.setTextColor(19, 78, 74); // #134e4a
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
 
-    let barGridHtml = "";
-    [0, Math.ceil(maxEventsVal / 2), maxEventsVal].forEach((tickVal) => {
-      const y = barTop + barPlotH - (tickVal / maxEventsVal) * barPlotH;
-      barGridHtml += `<line x1="${barLeft}" y1="${y}" x2="${barWidth - barRight}" y2="${y}" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />`;
-      barGridHtml += `<text x="${barLeft - 6}" y="${y + 3}" fill="#64748b" font-size="8" text-anchor="end" font-family="monospace">${tickVal}</text>`;
-    });
+      doc.setTextColor(71, 85, 105); // #475569
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text("College of Information Technology & Engineering", margin + 14, 20);
 
-    let barsHtml = "";
-    let barXLabelsHtml = "";
-    monthlyData.forEach((d, i) => {
-      const h = (d.events / maxEventsVal) * barPlotH;
-      const x = barLeft + i * barStep + (barStep - barW) / 2;
-      const y = barTop + barPlotH - h;
-      barsHtml += `
-        <rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="3" fill="#0d9488" />
-        ${d.events > 0 ? `<text x="${x + barW / 2}" y="${y - 4}" fill="#0f766e" font-size="8" font-weight="bold" text-anchor="middle" font-family="monospace">${d.events}</text>` : ""}
-      `;
-      barXLabelsHtml += `
-        <text x="${x + barW / 2}" y="${barHeight - 6}" fill="#475569" font-size="8" font-weight="500" text-anchor="middle" font-family="monospace">${d.name}</text>
-      `;
-    });
+      doc.setTextColor(15, 118, 110); // #0f766e
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${orgName} (${orgCode}) · Activity & Finance Report`, margin + 14, 24);
 
-    const barChartSvg = `
-      <svg width="100%" height="140" viewBox="0 0 ${barWidth} ${barHeight}" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff;">
-        ${barGridHtml}
-        <line x1="${barLeft}" y1="${barTop + barPlotH}" x2="${barWidth - barRight}" y2="${barTop + barPlotH}" stroke="#cbd5e1" stroke-width="1" />
-        ${barsHtml}
-        ${barXLabelsHtml}
-      </svg>
-    `;
+      // Top Right: ACTIVITY & FINANCE REPORT Pill Badge
+      const badgeText = "ACTIVITY & FINANCE REPORT";
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      const badgeW = doc.getTextWidth(badgeText) + 6;
+      const badgeX = pageWidth - margin - badgeW;
 
-    // SVG Chart 2: Spending by Category (Donut/Pie Chart)
-    const orgTxns = transactions.filter((t) => orgEvents.some((e) => e.id === t.eventId) && !t.deleted);
-    const byCategory = Object.entries(
-      orgTxns.reduce<Record<string, number>>((acc, t) => {
-        const name = getCategoryById(t.categoryId)?.name ?? "Other";
+      doc.setFillColor(204, 251, 241); // #ccfbf1
+      doc.setDrawColor(153, 246, 228); // #99f6e4
+      doc.setLineWidth(0.3);
+      doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
+
+      doc.setTextColor(17, 94, 89); // #115e59
+      doc.text(badgeText, badgeX + 3, 15.5);
+
+      // Ref and Date below pill badge (Normal Weight)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105); // #475569
+      doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
+      doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
+
+      // Teal Header Line Divider
+      doc.setDrawColor(15, 118, 110); // #0f766e
+      doc.setLineWidth(0.5);
+      doc.line(margin, 28, pageWidth - margin, 28);
+
+      // ── 2. KPI SUMMARY METRIC BOXES ────────────────────────────────
+      const kpiY = 32;
+      const kpiH = 12;
+      doc.setFillColor(248, 250, 252); // #f8fafc
+      doc.setDrawColor(226, 232, 240); // #e2e8f0
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, kpiY, contentWidth, kpiH, 1.5, 1.5, "FD");
+
+      const colW = contentWidth / 4;
+
+      // Col 1: Total Events
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("TOTAL PROPOSALS", margin + 4, kpiY + 4.5);
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${orgEvents.length} Events`, margin + 4, kpiY + 9.5);
+
+      // Col 2: Approved Events
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("APPROVED & ACTIVE", margin + colW + 4, kpiY + 4.5);
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${approvedEvents.length} Events`, margin + colW + 4, kpiY + 9.5);
+
+      // Col 3: Total Proposed Budget
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("PROPOSED BUDGET", margin + colW * 2 + 4, kpiY + 4.5);
+      doc.setFontSize(9);
+      doc.setTextColor(15, 118, 110);
+      doc.text(`PHP ${totalBudget.toLocaleString()}`, margin + colW * 2 + 4, kpiY + 9.5);
+
+      // Col 4: Total Spent
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("TOTAL DISBURSED", margin + colW * 3 + 4, kpiY + 4.5);
+      doc.setFontSize(9);
+      doc.setTextColor(21, 128, 61);
+      doc.text(`PHP ${totalSpent.toLocaleString()}`, margin + colW * 3 + 4, kpiY + 9.5);
+
+      // ── 3. VISUAL CHARTS OVERVIEW (VECTOR DRAWINGS) ────────────────
+      const chartRowY = 48;
+      const chartCardW = (contentWidth - 8) / 2; // 130.5mm
+      const chartCardH = 45;
+
+      // ── Chart 1: Spending by Category Donut Chart ──────────────────
+      const c1X = margin;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(c1X, chartRowY, chartCardW, chartCardH, 1.5, 1.5, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(51, 65, 85);
+      doc.text("SPENDING BY CATEGORY", c1X + 4, chartRowY + 5.5);
+
+      const orgTxns = transactions.filter((t) => orgEvents.some((e) => e.id === t.eventId) && !t.deleted);
+      const catSpendMap = orgTxns.reduce<Record<string, number>>((acc, t) => {
+        const name = expenditureCategories.find((c) => c.id === t.categoryId)?.name ?? getCategoryById(t.categoryId)?.name ?? "Other";
         acc[name] = (acc[name] || 0) + t.amount;
         return acc;
-      }, {})
-    )
-      .map(([name, value], idx) => {
-        const pct = totalSpent > 0 ? (value / totalSpent) * 100 : 0;
-        const catColors = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#ef4444", "#10b981", "#f97316", "#64748b"];
-        return {
+      }, {});
+
+      const catColors = [
+        [2, 132, 199],   // #0284c7 Sky Blue
+        [245, 158, 11],  // #f59e0b Amber
+        [124, 58, 237],  // #7c3aed Purple
+        [13, 148, 136],  // #0d9488 Teal
+        [239, 68, 68],   // #ef4444 Red
+        [16, 185, 129],  // #10b981 Emerald
+        [100, 116, 139], // #64748b Slate
+      ];
+
+      const catEntries = Object.entries(catSpendMap)
+        .map(([name, value], idx) => ({
           name,
           value,
-          pct,
+          pct: totalSpent > 0 ? (value / totalSpent) * 100 : 0,
           color: catColors[idx % catColors.length],
+        }))
+        .sort((a, b) => b.value - a.value);
+
+      if (catEntries.length === 0 || totalSpent === 0) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text("No category disbursements recorded yet.", c1X + chartCardW / 2, chartRowY + chartCardH / 2, { align: "center" });
+      } else {
+        const cx = c1X + 22;
+        const cy = chartRowY + 25;
+        const R = 12.5;
+        const innerR = 6;
+
+        // Draw Donut Wedges
+        let currentAngle = -Math.PI / 2;
+        catEntries.forEach((cat) => {
+          const sliceAngle = (cat.pct / 100) * (2 * Math.PI);
+          const endAngle = currentAngle + sliceAngle;
+          const steps = Math.max(8, Math.ceil(sliceAngle * 16));
+
+          doc.setFillColor(cat.color[0], cat.color[1], cat.color[2]);
+          for (let i = 0; i < steps; i++) {
+            const a1 = currentAngle + (i / steps) * sliceAngle;
+            const a2 = currentAngle + ((i + 1) / steps) * sliceAngle;
+            const x1 = cx + R * Math.cos(a1);
+            const y1 = cy + R * Math.sin(a1);
+            const x2 = cx + R * Math.cos(a2);
+            const y2 = cy + R * Math.sin(a2);
+            doc.triangle(cx, cy, x1, y1, x2, y2, "F");
+          }
+          currentAngle = endAngle;
+        });
+
+        // Donut Inner Hole
+        doc.setFillColor(255, 255, 255);
+        doc.circle(cx, cy, innerR, "F");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("TOTAL", cx, cy - 1, { align: "center" });
+        doc.setFontSize(5.5);
+        doc.setTextColor(15, 23, 42);
+        const shortSpent = totalSpent >= 1000 ? `PHP ${(totalSpent / 1000).toFixed(1)}k` : `PHP ${totalSpent}`;
+        doc.text(shortSpent, cx, cy + 2.5, { align: "center" });
+
+        // Donut Legend List (Complete Full Category Names)
+        const topCats = catEntries.slice(0, 5);
+        const legX = c1X + 40;
+        const startLegY = chartRowY + 10.5;
+        topCats.forEach((cat, idx) => {
+          const ly = startLegY + idx * 6.5;
+          doc.setFillColor(cat.color[0], cat.color[1], cat.color[2]);
+          doc.circle(legX + 2, ly + 2.5, 1.8, "F");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(6.5);
+          doc.setTextColor(51, 65, 85);
+          doc.text(cat.name, legX + 6, ly + 3.3);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(6.5);
+          doc.setTextColor(15, 118, 110);
+          doc.text(`${cat.pct.toFixed(0)}% (PHP ${cat.value.toLocaleString()})`, c1X + chartCardW - 4, ly + 3.3, { align: "right" });
+        });
+      }
+
+      // ── Chart 2: Budget vs. Spending Trend Line Chart ──────────────
+      const c2X = margin + chartCardW + 8;
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(c2X, chartRowY, chartCardW, chartCardH, 1.5, 1.5, "FD");
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setTextColor(51, 65, 85);
+      doc.text("BUDGET VS. SPENDING TREND", c2X + 4, chartRowY + 5.5);
+
+      // Top Legend
+      doc.setFillColor(13, 148, 136); // Teal
+      doc.circle(c2X + 78, chartRowY + 5, 1.8, "F");
+      doc.setFontSize(6);
+      doc.setTextColor(15, 118, 110);
+      doc.text("Budget", c2X + 82, chartRowY + 5.8);
+
+      doc.setFillColor(245, 158, 11); // Amber
+      doc.circle(c2X + 104, chartRowY + 5, 1.8, "F");
+      doc.setTextColor(180, 83, 9);
+      doc.text("Spent", c2X + 108, chartRowY + 5.8);
+
+      const trendData = approvedEvents.map((e) => ({
+        name: e.name.length > 12 ? e.name.substring(0, 11) + "…" : e.name,
+        budget: e.proposedBudget,
+        spent: transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0),
+      }));
+
+      if (trendData.length === 0) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text("No approved event expenditures to trend yet.", c2X + chartCardW / 2, chartRowY + chartCardH / 2, { align: "center" });
+      } else {
+        const plotX = c2X + 18;
+        const plotY = chartRowY + 11;
+        const plotW = chartCardW - 24;
+        const plotH = 24;
+
+        const maxVal = Math.max(1000, ...trendData.map((d) => Math.max(d.budget, d.spent)));
+
+        // Grid lines & Y-ticks
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        [0, 0.5, 1].forEach((ratio) => {
+          const gy = plotY + plotH - ratio * plotH;
+          doc.line(plotX, gy, plotX + plotW, gy);
+
+          const tickVal = Math.round(ratio * maxVal);
+          const tickLabel = tickVal >= 1000 ? `${(tickVal / 1000).toFixed(0)}k` : `${tickVal}`;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5.5);
+          doc.setTextColor(148, 163, 184);
+          doc.text(tickLabel, plotX - 2, gy + 1.5, { align: "right" });
+        });
+
+        // Compute Points
+        const step = trendData.length > 1 ? plotW / (trendData.length - 1) : plotW / 2;
+        const budgetPts: { x: number; y: number }[] = [];
+        const spentPts: { x: number; y: number }[] = [];
+
+        trendData.forEach((d, i) => {
+          const px = trendData.length === 1 ? plotX + plotW / 2 : plotX + i * step;
+          const pyB = plotY + plotH - (d.budget / maxVal) * plotH;
+          const pyS = plotY + plotH - (d.spent / maxVal) * plotH;
+
+          budgetPts.push({ x: px, y: pyB });
+          spentPts.push({ x: px, y: pyS });
+
+          // X-label
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(d.name, px, plotY + plotH + 5, { align: "center" });
+        });
+
+        // Draw Budget Line (Teal)
+        doc.setDrawColor(13, 148, 136);
+        doc.setLineWidth(0.5);
+        for (let i = 0; i < budgetPts.length - 1; i++) {
+          doc.line(budgetPts[i].x, budgetPts[i].y, budgetPts[i + 1].x, budgetPts[i + 1].y);
+        }
+        budgetPts.forEach((pt) => {
+          doc.setFillColor(13, 148, 136);
+          doc.circle(pt.x, pt.y, 1.2, "F");
+        });
+
+        // Draw Spent Line (Amber)
+        doc.setDrawColor(245, 158, 11);
+        doc.setLineWidth(0.5);
+        for (let i = 0; i < spentPts.length - 1; i++) {
+          doc.line(spentPts[i].x, spentPts[i].y, spentPts[i + 1].x, spentPts[i + 1].y);
+        }
+        spentPts.forEach((pt) => {
+          doc.setFillColor(245, 158, 11);
+          doc.circle(pt.x, pt.y, 1.2, "F");
+        });
+      }
+
+      // ── 4. STATUS BADGE COLOR HELPER ────────────────────────────────
+      const getStatusPillColors = (status: string) => {
+        const s = status.toLowerCase();
+        if (s.includes("approv") || s.includes("complet")) {
+          return { bg: [240, 253, 250], border: [153, 246, 228], text: [15, 118, 110] }; // Teal
+        }
+        if (s.includes("review") || s.includes("for app")) {
+          return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] }; // Blue
+        }
+        if (s.includes("revis") || s.includes("reject")) {
+          return { bg: [255, 241, 242], border: [254, 205, 211], text: [190, 18, 60] }; // Rose
+        }
+        if (s.includes("closed")) {
+          return { bg: [241, 245, 249], border: [203, 213, 225], text: [71, 85, 105] }; // Slate
+        }
+        return { bg: [241, 245, 249], border: [203, 213, 225], text: [71, 85, 105] };
+      };
+
+      // ── 5. EVENTS TABLE DATA CONSTRUCTION ───────────────────────────
+      const rawEventRows = filtered.map((e, idx) => {
+        const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
+        const typeName = getEventTypeById(e.typeId)?.name || "General";
+
+        return {
+          idx: idx + 1,
+          name: e.name,
+          typeName,
+          date: formatDate(e.dateStart),
+          budget: `PHP ${e.proposedBudget.toLocaleString()}`,
+          spent: `PHP ${spent.toLocaleString()}`,
+          status: e.status,
         };
-      })
-      .sort((a, b) => b.value - a.value);
-
-    const pieW = 340;
-    const pieH = 140;
-    let pieChartSvg = "";
-
-    if (byCategory.length === 0) {
-      pieChartSvg = `
-        <div style="height: 140px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; font-family: monospace; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
-          No category spending recorded yet.
-        </div>
-      `;
-    } else {
-      const cx = 65;
-      const cy = 70;
-      const r = 42;
-      const C = 2 * Math.PI * r;
-      let accumulated = 0;
-      let circlesHtml = "";
-
-      byCategory.forEach((cat) => {
-        const segLen = (cat.pct / 100) * C;
-        circlesHtml += `
-          <circle
-            cx="${cx}"
-            cy="${cy}"
-            r="${r}"
-            fill="none"
-            stroke="${cat.color}"
-            stroke-width="18"
-            stroke-dasharray="${segLen} ${C - segLen}"
-            stroke-dashoffset="${-accumulated}"
-            transform="rotate(-90 ${cx} ${cy})"
-          />
-        `;
-        accumulated += segLen;
       });
 
-      const topCats = byCategory.slice(0, 5);
-      let legendRows = "";
-      const startY = Math.max(14, 70 - (topCats.length * 21) / 2 + 8);
-      topCats.forEach((cat, idx) => {
-        const y = startY + idx * 21;
-        legendRows += `
-          <g transform="translate(130, ${y})">
-            <circle cx="4" cy="4" r="3.5" fill="${cat.color}" />
-            <text x="12" y="7" fill="#334155" font-size="8" font-weight="600" font-family="monospace">${cat.name.length > 12 ? cat.name.slice(0, 11) + "…" : cat.name}</text>
-            <text x="200" y="7" fill="#0f766e" font-size="8" font-weight="bold" text-anchor="end" font-family="monospace">${cat.pct.toFixed(0)}% (${formatCurrency(cat.value)})</text>
-          </g>
-        `;
+      const eventsTableData = rawEventRows.map((r) => [
+        r.idx,
+        r.name,
+        r.typeName,
+        r.date,
+        r.budget,
+        r.spent,
+        r.status,
+      ]);
+
+      // Total Summary Row
+      const filteredBudgetTotal = filtered.reduce((s, e) => s + e.proposedBudget, 0);
+      const filteredSpentTotal = filtered.reduce((s, e) => {
+        const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((st, t) => st + t.amount, 0);
+        return s + spent;
+      }, 0);
+
+      eventsTableData.push([
+        "",
+        `TOTAL (${filtered.length} Events)`,
+        "",
+        "",
+        `PHP ${filteredBudgetTotal.toLocaleString()}`,
+        `PHP ${filteredSpentTotal.toLocaleString()}`,
+        "RECONCILED",
+      ]);
+
+      autoTable(doc, {
+        startY: 97,
+        head: [["#", "Event Proposal Name", "Event Type", "Event Date", "Proposed Budget", "Total Disbursed", "Status"]],
+        body: eventsTableData,
+        theme: "plain",
+        styles: {
+          font: "helvetica",
+          fontStyle: "normal",
+          fontSize: 7.5,
+          textColor: [15, 23, 42],
+          cellPadding: { top: 3.5, bottom: 3.5, left: 3, right: 3 },
+          lineWidth: { bottom: 0.15 },
+          lineColor: [226, 232, 240],
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [51, 65, 85],
+          fontSize: 7,
+          fontStyle: "bold",
+          font: "helvetica",
+          lineWidth: { bottom: 0.3 },
+          lineColor: [203, 213, 225],
+        },
+        columnStyles: {
+          0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
+          1: { cellWidth: 85, fontStyle: "bold" },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 30 },
+          4: { cellWidth: 35, halign: "right", fontStyle: "bold" },
+          5: { cellWidth: 35, halign: "right", fontStyle: "bold", textColor: [15, 118, 110] },
+          6: { cellWidth: 40, halign: "center" },
+        },
+        margin: { left: margin, right: margin, bottom: 36 },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.column.index === 6 && data.row.index < rawEventRows.length) {
+            const rowObj = rawEventRows[data.row.index];
+            if (rowObj) {
+              const text = rowObj.status;
+              const colors = getStatusPillColors(text);
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(6.5);
+              const tw = doc.getTextWidth(text) + 4.5;
+              const pillX = data.cell.x + (data.cell.width - tw) / 2;
+              const pillY = data.cell.y + 2.5;
+
+              doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+              doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+              doc.setLineWidth(0.25);
+              doc.roundedRect(pillX, pillY, tw, 4.8, 1, 1, "FD");
+
+              doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+              doc.text(text, pillX + 2.2, pillY + 3.4);
+
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(15, 23, 42);
+            }
+          }
+        },
+        didDrawPage: () => {
+          const pageHeight = doc.internal.pageSize.getHeight();
+
+          // Signatories at bottom (Raised up with comfortable 14mm page bottom margin)
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.3);
+          doc.line(margin, pageHeight - 32, pageWidth - margin, pageHeight - 32);
+
+          const sigColW = contentWidth / 3;
+
+          // Signatory 1: Student Finance Officer
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(100, 116, 139);
+          doc.text("SUBMITTED & CERTIFIED BY:", margin + 2, pageHeight - 26);
+          doc.setDrawColor(51, 65, 85);
+          doc.setLineWidth(0.3);
+          doc.line(margin + 2, pageHeight - 21, margin + sigColW - 10, pageHeight - 21);
+          doc.setFontSize(8);
+          doc.setTextColor(15, 23, 42);
+          doc.text(studentOfficerName, margin + 2, pageHeight - 17.5);
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139);
+          doc.text(`Finance Officer, ${orgCode}`, margin + 2, pageHeight - 14);
+
+          // Signatory 2: Adviser
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(100, 116, 139);
+          doc.text("REVIEWED & ENDORSED BY:", margin + sigColW + 2, pageHeight - 26);
+          doc.setDrawColor(51, 65, 85);
+          doc.line(margin + sigColW + 2, pageHeight - 21, margin + sigColW * 2 - 10, pageHeight - 21);
+          doc.setFontSize(8);
+          doc.setTextColor(15, 23, 42);
+          doc.text(adviserName, margin + sigColW + 2, pageHeight - 17.5);
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139);
+          doc.text("Organization Adviser", margin + sigColW + 2, pageHeight - 14);
+
+          // Signatory 3: Dean
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(100, 116, 139);
+          doc.text("CONFIRMED BY:", margin + sigColW * 2 + 2, pageHeight - 26);
+          doc.setDrawColor(51, 65, 85);
+          doc.line(margin + sigColW * 2 + 2, pageHeight - 21, pageWidth - margin - 2, pageHeight - 21);
+          doc.setFontSize(8);
+          doc.setTextColor(15, 23, 42);
+          doc.text(deanName, margin + sigColW * 2 + 2, pageHeight - 17.5);
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139);
+          doc.text("College Dean, CITE", margin + sigColW * 2 + 2, pageHeight - 14);
+        },
       });
 
-      pieChartSvg = `
-        <svg width="100%" height="140" viewBox="0 0 ${pieW} ${pieH}" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff;">
-          ${circlesHtml}
-          <text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="7.5" fill="#64748b" font-weight="bold" font-family="monospace">SPENT</text>
-          <text x="${cx}" y="${cy + 8}" text-anchor="middle" font-size="9" font-weight="bold" fill="#0f766e" font-family="monospace">${totalSpent >= 1000 ? `₱${(totalSpent / 1000).toFixed(0)}k` : `₱${totalSpent}`}</text>
-          ${legendRows}
-        </svg>
-      `;
+      // Output real binary PDF
+      const pdfBlob = doc.output("blob");
+      const fileName = `${docRef}_Activity_Report.pdf`;
+
+      // Upload genuine vector PDF to Supabase Storage
+      const targetOrgName = org?.name || "Student Organization";
+
+      uploadGeneratedReport({
+        organizationName: targetOrgName,
+        dateGenerated: new Date(),
+        file: pdfBlob,
+        fileName,
+      }).then((res) => {
+        addExportedReport({
+          id: crypto.randomUUID(),
+          title: `${orgName} Financial & Activity Report`,
+          docRef,
+          category: "Organization Financial Summary",
+          organizationName: targetOrgName,
+          generatedBy: studentOfficerName,
+          generatedAt: new Date().toISOString(),
+          fileUrl: res.publicUrl,
+          filePath: res.path,
+          format: "PDF",
+        });
+      }).catch((e) => console.warn("Storage archive error:", e));
+
+      // Open valid PDF directly in new tab
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const openWindow = window.open(blobUrl, "_blank");
+      if (!openWindow) {
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      toast.success("Organization Report Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
+    } catch (err: any) {
+      console.error("PDF generation failed:", err);
+      toast.error("Export Failed", "Could not compile Organization Report.");
     }
-
-    // SVG Chart 3: Budget vs. Spending Trend (Full Width Line Chart)
-    const trendData = approvedEvents.map((e) => ({
-      name: e.name.length > 14 ? e.name.substring(0, 13) + "…" : e.name,
-      budget: e.proposedBudget,
-      spent: transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0),
-    }));
-
-    const lineW = 700;
-    const lineH = 135;
-    const lineTop = 22;
-    const lineBottom = 25;
-    const lineLeft = 50;
-    const lineRight = 20;
-    const linePlotW = lineW - lineLeft - lineRight;
-    const linePlotH = lineH - lineTop - lineBottom;
-
-    let lineChartSvg = "";
-    if (trendData.length === 0) {
-      lineChartSvg = `
-        <div style="height: 135px; display: flex; align-items: center; justify-content: center; color: #94a3b8; font-size: 11px; font-family: monospace; background: #f8fafc; border-radius: 6px; border: 1px dashed #cbd5e1;">
-          No approved events data to chart yet.
-        </div>
-      `;
-    } else {
-      const maxTrendVal = Math.max(1000, ...trendData.map((d) => Math.max(d.budget, d.spent)));
-      const lineStep = trendData.length > 1 ? linePlotW / (trendData.length - 1) : linePlotW / 2;
-
-      let lineGridHtml = "";
-      [0, Math.round(maxTrendVal / 2), maxTrendVal].forEach((tickVal) => {
-        const y = lineTop + linePlotH - (tickVal / maxTrendVal) * linePlotH;
-        lineGridHtml += `<line x1="${lineLeft}" y1="${y}" x2="${lineW - lineRight}" y2="${y}" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1" />`;
-        const tickStr = tickVal >= 1000 ? `₱${(tickVal / 1000).toFixed(0)}k` : `₱${tickVal}`;
-        lineGridHtml += `<text x="${lineLeft - 6}" y="${y + 3}" fill="#64748b" font-size="8" text-anchor="end" font-family="monospace">${tickStr}</text>`;
-      });
-
-      const budgetPoints: string[] = [];
-      const spentPoints: string[] = [];
-      let dotsHtml = "";
-      let lineXLabelsHtml = "";
-
-      trendData.forEach((d, i) => {
-        const x = trendData.length === 1 ? lineLeft + linePlotW / 2 : lineLeft + i * lineStep;
-        const yBudget = lineTop + linePlotH - (d.budget / maxTrendVal) * linePlotH;
-        const ySpent = lineTop + linePlotH - (d.spent / maxTrendVal) * linePlotH;
-
-        budgetPoints.push(`${x},${yBudget}`);
-        spentPoints.push(`${x},${ySpent}`);
-
-        dotsHtml += `
-          <circle cx="${x}" cy="${yBudget}" r="3" fill="#0d9488" />
-          <circle cx="${x}" cy="${ySpent}" r="3" fill="#f59e0b" />
-        `;
-
-        lineXLabelsHtml += `
-          <text x="${x}" y="${lineH - 6}" fill="#475569" font-size="8" text-anchor="middle" font-family="monospace">${d.name}</text>
-        `;
-      });
-
-      const legendHtml = `
-        <g transform="translate(${lineLeft}, 8)">
-          <circle cx="4" cy="4" r="3" fill="#0d9488" />
-          <text x="12" y="7" fill="#0f766e" font-size="8" font-weight="bold" font-family="monospace">Budget</text>
-          <circle cx="65" cy="4" r="3" fill="#f59e0b" />
-          <text x="73" y="7" fill="#b45309" font-size="8" font-weight="bold" font-family="monospace">Spent</text>
-        </g>
-      `;
-
-      lineChartSvg = `
-        <svg width="100%" height="135" viewBox="0 0 ${lineW} ${lineH}" xmlns="http://www.w3.org/2000/svg" style="background: #ffffff;">
-          ${legendHtml}
-          ${lineGridHtml}
-          <line x1="${lineLeft}" y1="${lineTop + linePlotH}" x2="${lineW - lineRight}" y2="${lineTop + linePlotH}" stroke="#cbd5e1" stroke-width="1" />
-          <polyline points="${budgetPoints.join(" ")}" fill="none" stroke="#0d9488" stroke-width="2" stroke-linejoin="round" />
-          <polyline points="${spentPoints.join(" ")}" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linejoin="round" />
-          ${dotsHtml}
-          ${lineXLabelsHtml}
-        </svg>
-      `;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Activity_and_Finance_Report_${orgCode}_${new Date().getFullYear()}</title>
-        <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; font-size: 12px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 14px; margin-bottom: 16px; }
-          .brand { display: flex; align-items: center; gap: 12px; }
-          .logo { width: 44px; height: 44px; border-radius: 8px; background-color: #134e4a; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; }
-          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-family: monospace; }
-          .grid-label { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-          .grid-val { font-weight: bold; font-size: 12px; margin-top: 2px; }
-          .charts-row-top { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
-          .chart-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; }
-          table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; margin-bottom: 16px; }
-          th { background: #f1f5f9; text-align: left; padding: 8px; border-bottom: 1px solid #cbd5e1; font-weight: bold; }
-          .total-row { background: #f0fdfa; font-weight: bold; border-top: 2px solid #0f766e; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand">
-            <div class="logo">LCUP</div>
-            <div>
-              <h2 style="margin: 0; font-size: 16px; font-weight: 800; color: #134e4a; text-transform: uppercase;">La Consolacion University Philippines</h2>
-              <p style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">College of Information Technology & Engineering</p>
-              <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e;">${orgName} (${orgCode})</p>
-            </div>
-          </div>
-          <div style="text-align: right; font-family: monospace;">
-            <span style="background: #ccfbf1; color: #115e59; font-weight: bold; padding: 4px 8px; border-radius: 4px; border: 1px solid #99f6e4; font-size: 10px;">ACTIVITY & FINANCE REPORT</span>
-            <p style="margin: 4px 0 0 0; font-size: 10px; color: #64748b;">Doc Ref: ${docRef}</p>
-            <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">Generated: ${generatedDate}</p>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div><span class="grid-label">Total Events</span><div class="grid-val">${orgEvents.length} Events</div></div>
-          <div><span class="grid-label">Approved/Active</span><div class="grid-val">${approvedEvents.length} Events</div></div>
-          <div><span class="grid-label">Total Budget</span><div class="grid-val" style="color: #0f766e;">${formatCurrency(totalBudget)}</div></div>
-          <div><span class="grid-label">Total Spent</span><div class="grid-val" style="color: #047857;">${formatCurrency(totalSpent)}</div></div>
-        </div>
-
-        <!-- Visual Charts Overview -->
-        <div class="charts-row-top">
-          <div class="chart-card">
-            <h4 style="font-family: monospace; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0 0 6px 0; color: #334155;">Events per Month</h4>
-            ${barChartSvg}
-          </div>
-          <div class="chart-card">
-            <h4 style="font-family: monospace; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0 0 6px 0; color: #334155;">Spending by Category</h4>
-            ${pieChartSvg}
-          </div>
-        </div>
-
-        <div class="chart-card" style="margin-bottom: 16px;">
-          <h4 style="font-family: monospace; font-size: 10px; font-weight: bold; text-transform: uppercase; margin: 0 0 6px 0; color: #334155;">Budget vs. Spending Trend</h4>
-          ${lineChartSvg}
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; font-family: monospace;">
-          <h4 style="font-size: 11px; font-weight: bold; text-transform: uppercase; margin: 0; color: #334155;">Comprehensive Event Summary</h4>
-          <span style="font-size: 9.5px; color: #64748b;">
-            Scope: <strong>${statusFilter === "All" ? "All Statuses" : statusFilter}</strong> • Sorted by: <strong>${sortKey === "dateStart" ? "Date" : sortKey === "proposedBudget" ? "Budget" : sortKey === "status" ? "Status" : "Name"}</strong> (${sortDir.toUpperCase()}) • Showing ${filtered.length} of ${orgEvents.length} Events
-          </span>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 30px;">#</th>
-              <th>Event Name</th>
-              <th>Type</th>
-              <th>Date</th>
-              <th style="text-align: right;">Proposed Budget</th>
-              <th style="text-align: right;">Total Spent</th>
-              <th style="text-align: center;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRowsHtml || `<tr><td colspan="7" style="padding: 18px; text-align: center; color: #94a3b8; font-style: italic;">No events match the status filter "${statusFilter}".</td></tr>`}
-            <tr class="total-row">
-              <td colspan="4" style="padding: 8px; text-align: right; color: #134e4a;">TOTAL (${filtered.length} ${filtered.length === 1 ? 'Event' : 'Events'}):</td>
-              <td style="padding: 8px; text-align: right; color: #134e4a;">${formatCurrency(filteredBudgetTotal)}</td>
-              <td style="padding: 8px; text-align: right; color: #0f766e;">${formatCurrency(filteredSpentTotal)}</td>
-              <td style="padding: 8px; text-align: center; color: #0f766e; font-size: 10px;">RECONCILED</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; font-family: monospace;">
-          <div>
-            <div style="height: 26px; display: flex; align-items: center; justify-content: center; color: #047857; font-weight: bold; font-size: 11px;">✓ Digitally Certified</div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${studentOfficerName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Student Finance Officer, ${orgName}</div>
-          </div>
-          <div>
-            <div style="height: 26px;"></div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${adviserName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Organization Adviser</div>
-          </div>
-          <div>
-            <div style="height: 26px;"></div>
-            <div style="border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: bold; font-size: 11px;">${deanName}</div>
-            <div style="font-size: 10px; color: #64748b; margin-top: 2px;">College Dean, CITE</div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-    toast.success("Organization Report Exported", "Comprehensive activity and financial report prepared for PDF/print export.");
-    setTimeout(() => {
-      printWindow.print();
-    }, 250);
   }
 
   return (

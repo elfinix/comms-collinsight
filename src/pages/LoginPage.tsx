@@ -1,50 +1,50 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useApp } from "../context/AppContext";
 import { Input, PasswordInput, Button } from "../components/ui";
 import { Landmark, ArrowLeft, AlertCircle } from "lucide-react";
-import { users } from "../services/mockData";
+import { users as fallbackUsers } from "../services/mockData";
 
 export default function LoginPage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
   const { login } = useAuth();
+  const { users: liveUsers } = useApp();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  const allUsers = liveUsers.length > 0 ? liveUsers : fallbackUsers;
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const success = login(email.trim(), password.trim());
-      if (success) {
-        const user = users.find((u) => u.email === email.trim());
-        if (user) {
-          const routes: Record<string, string> = {
-            student: "/student/dashboard",
-            adviser: "/adviser/dashboard",
-            dean: "/dean/dashboard",
-            admin: "/admin/dashboard",
-          };
-          navigate(routes[user.role] || "/");
-        }
-      } else {
-        setError("Invalid email or password. Please try again.");
-      }
-      setLoading(false);
-    }, 600);
-  }
 
-  // Demo credentials for quick login
-  const demoAccounts = [
-    { role: "Student Officer", email: "mlopez@student.cite.edu.ph", password: "lopez_124983", color: "bg-teal-50 border-teal-200 text-teal-700" },
-    { role: "Faculty Adviser", email: "ereyes@cite.edu.ph", password: "reyes_773012", color: "bg-blue-50 border-blue-200 text-blue-700" },
-    { role: "College Dean", email: "dean@cite.edu.ph", password: "villanueva_441209", color: "bg-purple-50 border-purple-200 text-purple-700" },
-    { role: "Administrator", email: "admin@cite.edu.ph", password: "cruz_882341", color: "bg-amber-50 border-amber-200 text-amber-700" },
-  ];
+    try {
+      const success = await login(email.trim(), password.trim());
+      if (success) {
+        const user = allUsers.find(
+          (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+        );
+        const routes: Record<string, string> = {
+          student: "/student/dashboard",
+          adviser: "/adviser/dashboard",
+          dean: "/dean/dashboard",
+          admin: "/admin/dashboard",
+        };
+        navigate(user ? routes[user.role] || "/" : "/student/dashboard");
+      } else {
+        setError("Invalid institutional email or password. Please try again.");
+      }
+    } catch {
+      setError("An unexpected error occurred while verifying credentials.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="page-enter min-h-screen bg-gradient-to-br from-[#031f1e] via-[#052c29] to-[#0a4f4a] flex items-center justify-center p-4">
@@ -92,32 +92,15 @@ export default function LoginPage() {
               />
               <PasswordInput
                 label="Password"
-                placeholder="lastname_xxxxxx"
+                placeholder="••••••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <Button type="submit" size="lg" className="w-full justify-center" disabled={loading}>
+              <Button type="submit" size="lg" className="w-full justify-center mt-2 shadow-sm" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
-
-            <div className="mt-6">
-              <p className="text-xs text-center text-[var(--muted-foreground)] mb-3 font-mono">— Demo Accounts —</p>
-              <div className="grid grid-cols-2 gap-2">
-                {demoAccounts.map((acc) => (
-                  <button
-                    key={acc.role}
-                    type="button"
-                    onClick={() => { setEmail(acc.email); setPassword(acc.password); }}
-                    className={`text-left px-3 py-2 rounded-lg text-xs border transition hover:opacity-80 ${acc.color}`}
-                  >
-                    <p className="font-semibold">{acc.role}</p>
-                    <p className="font-mono truncate mt-0.5 opacity-70">{acc.email}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </div>
         <p className="text-center text-teal-100 text-xs mt-4 font-mono">© {new Date().getFullYear()} COLLinSight · CITE · LCUP</p>

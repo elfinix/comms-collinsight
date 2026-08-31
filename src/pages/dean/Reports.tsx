@@ -14,6 +14,9 @@ import {
   formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById,
   Event, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../../services/mockData";
+import { uploadGeneratedReport } from "../../services/storageService";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
@@ -23,7 +26,7 @@ const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981", "#64748b"
 const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
 
 export default function DeanReports() {
-  const { events, transactions, users, organizations } = useApp();
+  const { events, transactions, users, organizations, exportedReports, addExportedReport } = useApp();
   const { toast } = useToast();
   const [tab, setTab] = useState<"events" | "finance">("events");
 
@@ -128,157 +131,301 @@ export default function DeanReports() {
       });
   }, [allEvents, orgFilter, statusFilter, searchQuery, sortKey, sortDir, transactions]);
 
-  function handleExportPdf() {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-      window.print();
-      return;
+  async function handleExportPdf() {
+    const docRef = `REP-DEAN-${Date.now().toString().slice(-6)}`;
+    const generatedDate = formatDateTime(new Date().toISOString());
+
+    try {
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = 297;
+      const margin = 14;
+      const contentWidth = pageWidth - margin * 2; // 269mm
+
+      // ── 1. HEADER SECTION ───────────────────────────────────────────
+      // LCUP Logo Square
+      doc.setFillColor(19, 78, 74); // #134e4a
+      doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8.5);
+      doc.setFont("helvetica", "bold");
+      doc.text("LCUP", margin + 1.6, 19);
+
+      // University & Department Titles
+      doc.setTextColor(19, 78, 74); // #134e4a
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
+
+      doc.setTextColor(71, 85, 105); // #475569
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text("College of Information Technology & Engineering", margin + 14, 20);
+
+      doc.setTextColor(15, 118, 110); // #0f766e
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.text("Office of the College Dean · Cross-Organizational Directorate Report", margin + 14, 24);
+
+      // Top Right: DIRECTORATE REPORT Pill Badge
+      const badgeText = "DIRECTORATE REPORT";
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      const badgeW = doc.getTextWidth(badgeText) + 6;
+      const badgeX = pageWidth - margin - badgeW;
+
+      doc.setFillColor(204, 251, 241); // #ccfbf1
+      doc.setDrawColor(153, 246, 228); // #99f6e4
+      doc.setLineWidth(0.3);
+      doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
+
+      doc.setTextColor(17, 94, 89); // #115e59
+      doc.text(badgeText, badgeX + 3, 15.5);
+
+      // Ref and Date below pill badge (Normal Weight)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105); // #475569
+      doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
+      doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
+
+      // Teal Header Line Divider
+      doc.setDrawColor(15, 118, 110); // #0f766e
+      doc.setLineWidth(0.5);
+      doc.line(margin, 28, pageWidth - margin, 28);
+
+      // ── 2. KPI SUMMARY METRIC BOXES ────────────────────────────────
+      const kpiY = 32;
+      const kpiH = 12;
+      doc.setFillColor(248, 250, 252); // #f8fafc
+      doc.setDrawColor(226, 232, 240); // #e2e8f0
+      doc.setLineWidth(0.3);
+      doc.roundedRect(margin, kpiY, contentWidth, kpiH, 1.5, 1.5, "FD");
+
+      const colW = contentWidth / 4;
+
+      // Col 1: Total Events
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("TOTAL PROPOSALS", margin + 4, kpiY + 4.5);
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${allEvents.length} Events`, margin + 4, kpiY + 9.5);
+
+      // Col 2: Approved Events
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("APPROVED & ACTIVE", margin + colW + 4, kpiY + 4.5);
+      doc.setFontSize(9.5);
+      doc.setTextColor(15, 23, 42);
+      doc.text(`${approved.length} Events`, margin + colW + 4, kpiY + 9.5);
+
+      // Col 3: Total Allocated Budget
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("TOTAL ALLOCATION", margin + colW * 2 + 4, kpiY + 4.5);
+      doc.setFontSize(9);
+      doc.setTextColor(15, 118, 110);
+      doc.text(`PHP ${totalBudget.toLocaleString()}`, margin + colW * 2 + 4, kpiY + 9.5);
+
+      // Col 4: Total Disbursed
+      doc.setFontSize(6.5);
+      doc.setTextColor(100, 116, 139);
+      doc.text("TOTAL DISBURSED", margin + colW * 3 + 4, kpiY + 4.5);
+      doc.setFontSize(9);
+      doc.setTextColor(21, 128, 61);
+      doc.text(`PHP ${totalSpent.toLocaleString()} (${spentPercentage}%)`, margin + colW * 3 + 4, kpiY + 9.5);
+
+      // ── 3. STATUS BADGE COLOR HELPER ────────────────────────────────
+      const getStatusPillColors = (status: string) => {
+        const s = status.toLowerCase();
+        if (s.includes("approv") || s.includes("complet")) {
+          return { bg: [240, 253, 250], border: [153, 246, 228], text: [15, 118, 110] }; // Teal
+        }
+        if (s.includes("review") || s.includes("for app")) {
+          return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] }; // Blue
+        }
+        if (s.includes("revis") || s.includes("reject")) {
+          return { bg: [255, 241, 242], border: [254, 205, 211], text: [190, 18, 60] }; // Rose
+        }
+        if (s.includes("closed")) {
+          return { bg: [241, 245, 249], border: [203, 213, 225], text: [71, 85, 105] }; // Slate
+        }
+        return { bg: [241, 245, 249], border: [203, 213, 225], text: [71, 85, 105] };
+      };
+
+      // ── 4. EVENTS TABLE DATA CONSTRUCTION ───────────────────────────
+      const rawEventRows = filteredEvents.map((e, idx) => {
+        const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
+        const orgCode = organizations.find((o) => o.id === e.organizationId)?.code || "CITE";
+        const typeName = getEventTypeById(e.typeId)?.name || "General";
+
+        return {
+          idx: idx + 1,
+          name: e.name,
+          orgCode,
+          typeName,
+          date: formatDate(e.dateStart),
+          budget: `PHP ${e.proposedBudget.toLocaleString()}`,
+          spent: `PHP ${spent.toLocaleString()}`,
+          status: e.status,
+        };
+      });
+
+      const eventsTableData = rawEventRows.map((r) => [
+        r.idx,
+        r.name,
+        r.orgCode,
+        r.typeName,
+        r.date,
+        r.budget,
+        r.spent,
+        r.status,
+      ]);
+
+      autoTable(doc, {
+        startY: 48,
+        head: [["#", "Event Proposal Name", "Org", "Event Type", "Event Date", "Allocated", "Disbursed", "Status"]],
+        body: eventsTableData,
+        theme: "plain",
+        styles: {
+          font: "helvetica",
+          fontStyle: "normal",
+          fontSize: 7.5,
+          textColor: [15, 23, 42],
+          cellPadding: { top: 3.5, bottom: 3.5, left: 3, right: 3 },
+          lineWidth: { bottom: 0.15 },
+          lineColor: [226, 232, 240],
+          valign: "middle",
+        },
+        headStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [51, 65, 85],
+          fontSize: 7,
+          fontStyle: "bold",
+          font: "helvetica",
+          lineWidth: { bottom: 0.3 },
+          lineColor: [203, 213, 225],
+        },
+        columnStyles: {
+          0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
+          1: { cellWidth: 81, fontStyle: "bold" },
+          2: { cellWidth: 20, fontStyle: "bold", textColor: [15, 118, 110] },
+          3: { cellWidth: 32 },
+          4: { cellWidth: 28 },
+          5: { cellWidth: 32, halign: "right", fontStyle: "bold" },
+          6: { cellWidth: 32, halign: "right", fontStyle: "bold", textColor: [15, 118, 110] },
+          7: { cellWidth: 35, halign: "center" },
+        },
+        margin: { left: margin, right: margin, bottom: 36 },
+        didDrawCell: (data) => {
+          if (data.section === "body" && data.column.index === 7) {
+            const rowObj = rawEventRows[data.row.index];
+            if (rowObj) {
+              const text = rowObj.status;
+              const colors = getStatusPillColors(text);
+
+              doc.setFont("helvetica", "bold");
+              doc.setFontSize(6.5);
+              const tw = doc.getTextWidth(text) + 4.5;
+              const pillX = data.cell.x + (data.cell.width - tw) / 2;
+              const pillY = data.cell.y + 2.5;
+
+              doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+              doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+              doc.setLineWidth(0.25);
+              doc.roundedRect(pillX, pillY, tw, 4.8, 1, 1, "FD");
+
+              doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+              doc.text(text, pillX + 2.2, pillY + 3.4);
+
+              doc.setFont("helvetica", "normal");
+              doc.setTextColor(15, 23, 42);
+            }
+          }
+        },
+        didDrawPage: () => {
+          const pageHeight = doc.internal.pageSize.getHeight();
+
+          // Signatories at bottom (Raised up with comfortable 14mm page bottom margin)
+          doc.setDrawColor(226, 232, 240);
+          doc.setLineWidth(0.3);
+          doc.line(margin, pageHeight - 32, pageWidth - margin, pageHeight - 32);
+
+          // Left Dean Signature
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(100, 116, 139);
+          doc.text("DIRECTORATE REPORT CERTIFIED BY:", margin + 2, pageHeight - 26);
+          doc.setDrawColor(51, 65, 85);
+          doc.setLineWidth(0.3);
+          doc.line(margin + 2, pageHeight - 21, margin + 95, pageHeight - 21);
+          doc.setFontSize(8);
+          doc.setTextColor(15, 23, 42);
+          doc.text(deanName, margin + 2, pageHeight - 17.5);
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(100, 116, 139);
+          doc.text("College Dean, CITE", margin + 2, pageHeight - 14);
+
+          // Right Footer Notes
+          doc.setFontSize(6.5);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(148, 163, 184);
+          doc.text("COLLinSight Directorate Analytics · LCUP CITE Executive Ledger", pageWidth - margin, pageHeight - 14, { align: "right" });
+        },
+      });
+
+      // Output real binary PDF
+      const pdfBlob = doc.output("blob");
+      const fileName = `${docRef}_Directorate_Report.pdf`;
+
+      // Upload genuine vector PDF to Supabase Storage
+      const selectedOrg = organizations.find((o) => o.id === orgFilter);
+      const targetOrgName = selectedOrg ? selectedOrg.name : "Administration";
+
+      uploadGeneratedReport({
+        organizationName: targetOrgName,
+        dateGenerated: new Date(),
+        file: pdfBlob,
+        fileName,
+      }).then((res) => {
+        addExportedReport({
+          id: crypto.randomUUID(),
+          title: `Executive Directorate Analytics Report (${filteredEvents.length} events)`,
+          docRef,
+          category: "Directorate Summary",
+          organizationName: targetOrgName,
+          generatedBy: deanName,
+          generatedAt: new Date().toISOString(),
+          fileUrl: res.publicUrl,
+          filePath: res.path,
+          format: "PDF",
+        });
+      }).catch((e) => console.warn("Storage archive error:", e));
+
+      // Open valid PDF directly in new tab
+      const blobUrl = URL.createObjectURL(pdfBlob);
+      const openWindow = window.open(blobUrl, "_blank");
+      if (!openWindow) {
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      toast.success("Directorate Report Exported", `Vector PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
+    } catch (err: any) {
+      console.error("PDF generation failed:", err);
+      toast.error("Export Failed", "Could not compile Directorate Report.");
     }
-
-    const docRef = `REP-DEAN-CITE-${new Date().getFullYear()}`;
-    const generatedDate = formatDate(new Date().toISOString());
-
-    const statusReportStyles: Record<string, string> = {
-      Created: "background: #f8fafc; color: #475569; border: 1px solid #e2e8f0;",
-      "For Review": "background: #fffbeb; color: #b45309; border: 1px solid #fde68a;",
-      "For Approval": "background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;",
-      "Pending Revision": "background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;",
-      Approved: "background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4;",
-      Completed: "background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0;",
-      Closed: "background: #f9fafb; color: #4b5563; border: 1px solid #e5e7eb;",
-    };
-
-    const tableRowsHtml = filteredEvents.map((e, idx) => {
-      const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
-      const orgCode = organizations.find((o) => o.id === e.organizationId)?.code || "CITE";
-      const stStyle = statusReportStyles[e.status] || "background: #f1f5f9; color: #475569;";
-      return `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${idx + 1}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: 500;">${e.name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; color: #0f766e;">${orgCode}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; color: #475569; white-space: nowrap;">${getEventTypeById(e.typeId)?.name || "General"}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${formatDate(e.dateStart)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatCurrency(e.proposedBudget)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #0f766e;">${formatCurrency(spent)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">
-            <span style="${stStyle} padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; display: inline-block;">${e.status}</span>
-          </td>
-        </tr>
-      `;
-    }).join("");
-
-    const orgSummaryRowsHtml = orgData.map((o) => `
-      <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold;">${o.name}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center;">${o.events}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold;">${formatCurrency(o.budget)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #0f766e;">${formatCurrency(o.spent)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #047857;">${formatCurrency(o.budget - o.spent)}</td>
-      </tr>
-    `).join("");
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>Dean_Cross_Organizational_Report_CITE_${new Date().getFullYear()}</title>
-        <style>
-          @page { size: A4 portrait; margin: 15mm; }
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0f172a; margin: 0; padding: 24px; font-size: 12px; }
-          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 14px; margin-bottom: 16px; }
-          .brand { display: flex; align-items: center; gap: 12px; }
-          .logo { width: 44px; height: 44px; border-radius: 8px; background-color: #134e4a; color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; }
-          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 16px; font-family: monospace; }
-          .grid-label { font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; }
-          .grid-val { font-weight: bold; font-size: 12px; margin-top: 2px; }
-          table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; margin-bottom: 16px; }
-          th { background: #f1f5f9; text-align: left; padding: 8px; border-bottom: 1px solid #cbd5e1; font-weight: bold; }
-          .total-row { background: #f0fdfa; font-weight: bold; border-top: 2px solid #0f766e; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand">
-            <div class="logo">LCUP</div>
-            <div>
-              <h2 style="margin: 0; font-size: 16px; font-weight: 800; color: #134e4a; text-transform: uppercase;">La Consolacion University Philippines</h2>
-              <p style="margin: 2px 0 0 0; font-size: 12px; color: #475569;">College of Information Technology & Engineering</p>
-              <p style="margin: 2px 0 0 0; font-size: 11px; font-weight: bold; color: #0f766e;">Office of the College Dean · Cross-Organizational Directorate</p>
-            </div>
-          </div>
-          <div style="text-align: right; font-family: monospace;">
-            <span style="background: #ccfbf1; color: #115e59; font-weight: bold; padding: 4px 8px; border-radius: 4px; border: 1px solid #99f6e4; font-size: 10px;">DIRECTORATE REPORT</span>
-            <p style="margin: 4px 0 0 0; font-size: 10px; color: #64748b;">Doc Ref: ${docRef}</p>
-            <p style="margin: 2px 0 0 0; font-size: 10px; color: #64748b;">Generated: ${generatedDate}</p>
-          </div>
-        </div>
-
-        <div class="grid">
-          <div><span class="grid-label">Total Events</span><div class="grid-val">${allEvents.length} Events</div></div>
-          <div><span class="grid-label">Approved Events</span><div class="grid-val">${approved.length} Events</div></div>
-          <div><span class="grid-label">Total Allocated</span><div class="grid-val" style="color: #0f766e;">${formatCurrency(totalBudget)}</div></div>
-          <div><span class="grid-label">Total Disbursed</span><div class="grid-val" style="color: #047857;">${formatCurrency(totalSpent)}</div></div>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <h4 style="font-family: monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; margin: 0 0 8px 0; color: #334155;">Budget vs. Spending Breakdown by Organization</h4>
-          <table>
-            <thead>
-              <tr>
-                <th>Organization</th>
-                <th style="text-align: center;">Events</th>
-                <th style="text-align: right;">Allocated Budget</th>
-                <th style="text-align: right;">Total Disbursed</th>
-                <th style="text-align: right;">Remaining Balance</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${orgSummaryRowsHtml}
-            </tbody>
-          </table>
-        </div>
-
-        <h4 style="font-family: monospace; font-size: 11px; font-weight: bold; text-transform: uppercase; margin: 0 0 8px 0; color: #334155;">All Events Record (${filteredEvents.length})</h4>
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 30px;">#</th>
-              <th>Event Name</th>
-              <th>Org</th>
-              <th style="white-space: nowrap;">Type</th>
-              <th style="white-space: nowrap;">Date</th>
-              <th style="text-align: right;">Budget</th>
-              <th style="text-align: right;">Spent</th>
-              <th style="text-align: center;">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRowsHtml}
-          </tbody>
-        </table>
-
-        <div style="margin-top: 24px; border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; font-size: 11px;">
-          <div>
-            <p style="margin: 0; font-weight: bold;">Report Generated by:</p>
-            <p style="margin: 20px 0 0 0; font-weight: bold; text-decoration: underline;">${deanName}</p>
-            <p style="margin: 2px 0 0 0; color: #64748b;">College Dean, CITE</p>
-          </div>
-          <div style="text-align: right; color: #94a3b8; font-size: 9px; font-family: monospace; align-self: flex-end;">
-            CollsInsight Directorate Analytics · System Generated Report
-          </div>
-        </div>
-      </body>
-      </html>
-    `);
-
-    printWindow.document.close();
-    printWindow.focus();
-    toast.success("Directorate Report Exported", "Comprehensive analytics report prepared for PDF/print export.");
-    setTimeout(() => {
-      printWindow.print();
-    }, 400);
   }
 
   return (
