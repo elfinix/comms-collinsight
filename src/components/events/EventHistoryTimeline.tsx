@@ -1,5 +1,5 @@
 import { useApp } from "../../context/AppContext";
-import { formatDateTime, Event, getActionBadgeClass } from "../../services/dataService";
+import { formatDateTime, Event, getActionBadgeClass, formatUserRole } from "../../services/dataService";
 import {
   Clock, CheckCircle, RotateCcw, MessageSquareQuote, FileText,
   User, Shield, DollarSign, Send, ArrowRight, Edit2, Trash2
@@ -25,23 +25,6 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
   const eventEntries = [...rawEntries].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
-
-  function getRoleBadge(role?: string) {
-    switch (role) {
-      case "student":
-        return { label: "Student Officer", bg: "bg-teal-50 text-teal-800 border-teal-200" };
-      case "adviser":
-        return { label: "Faculty Adviser", bg: "bg-amber-50 text-amber-800 border-amber-200" };
-      case "dean":
-        return { label: "Dean / Executive", bg: "bg-indigo-50 text-indigo-800 border-indigo-200" };
-      case "sds":
-        return { label: "Student Dev. Services", bg: "bg-emerald-50 text-emerald-800 border-emerald-200" };
-      case "admin":
-        return { label: "System Admin", bg: "bg-purple-50 text-purple-800 border-purple-200" };
-      default:
-        return { label: "Signatory", bg: "bg-slate-50 text-slate-700 border-slate-200" };
-    }
-  }
 
   function getActionIcon(action: string) {
     const act = action.toLowerCase();
@@ -104,7 +87,6 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
           const user = users.find((u) => u.id === entry.userId);
           const userName = user ? `${user.firstName} ${user.lastName}` : entry.userId;
           const userRole = user?.role || entry.actorRole || "student";
-          const roleBadge = getRoleBadge(userRole);
 
           return (
             <div key={entry.id || idx} className="relative group">
@@ -163,14 +145,11 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
                   </div>
                 )}
 
-                {/* Footer User Meta with Role Badge */}
-                <div className="pt-2 border-t border-[var(--border)]/60 flex items-center justify-between text-[11px] text-[var(--muted-foreground)] flex-wrap gap-2">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <User size={12} className="text-[var(--muted-foreground)]" />
-                    <span>Performed by: <strong className="text-[var(--foreground)] font-medium">{userName}</strong></span>
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-semibold ${roleBadge.bg}`}>
-                      {roleBadge.label}
-                    </span>
+                {/* Footer User Meta */}
+                <div className="pt-2 border-t border-[var(--border)]/60 flex items-center justify-between text-xs text-[var(--muted-foreground)] flex-wrap gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <User size={13} />
+                    <span>Performed by: <strong className="text-[var(--foreground)] font-medium">{userName}</strong> ({formatUserRole(userRole)})</span>
                   </div>
                   <span className="font-mono text-[10px]">#{entry.id}</span>
                 </div>
@@ -182,3 +161,4 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
     </div>
   );
 }
+

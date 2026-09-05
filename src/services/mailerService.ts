@@ -313,7 +313,7 @@ export function generateClearanceEmailHtml(params: {
           <div>
             <span class="status-pill">✓ Approved by Dean</span>
             <p class="status-title">Executive Clearance Granted</p>
-            <p class="status-desc">The official clearance certificate and endorsed activity proposal have been transmitted for SDS compliance archiving.</p>
+            <p class="status-desc">The digital clearance certificate and endorsed activity proposal have been transmitted for SDS compliance archiving.</p>
           </div>
         </div>
 
@@ -375,7 +375,7 @@ export function generateClearanceEmailHtml(params: {
         }
 
         <!-- Attached Documents -->
-        <div class="section-title">Attached Official Documents (${attachmentNames.length})</div>
+        <div class="section-title">Attached Digital Documents (${attachmentNames.length})</div>
         <div class="attachments-card">
           ${attachmentNames
             .map(
@@ -461,9 +461,9 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
       }
     }
 
-    // 3. Fetch and attach all Appendices (if any)
+    // 3. Fetch and attach all Appendices (if any, preserving numerical order)
     if (event.appendices && event.appendices.length > 0) {
-      await Promise.all(
+      const appendixAttachments = await Promise.all(
         event.appendices.map(async (appendixUrl, idx) => {
           const resolvedUrl = resolvePdfUrl(appendixUrl, "appendix");
           const appendixBase64 = await urlToBase64(resolvedUrl);
@@ -473,14 +473,21 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
               ? `Appendix_${idx + 1}_${rawFilename}`
               : `Appendix_${idx + 1}_${rawFilename}.pdf`;
 
-            attachments.push({
+            return {
               filename,
               contentBase64: appendixBase64,
               contentType: "application/pdf",
-            });
+            };
           }
+          return null;
         })
       );
+
+      for (const item of appendixAttachments) {
+        if (item) {
+          attachments.push(item);
+        }
+      }
     }
 
     // 4. Generate Branded HTML Body

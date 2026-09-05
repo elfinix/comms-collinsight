@@ -488,6 +488,44 @@ export function formatEventSchedule(dateStart?: string, dateEnd?: string): strin
   }
 }
 
+/**
+ * Formats an event's date and time specifically for compact event cards:
+ * "Sep 5, 2026 | 10:12 AM" or "Sep 5, 2026 | 10:12 AM – 11:12 PM"
+ */
+export function formatCardSchedule(dateStart?: string, dateEnd?: string): string {
+  if (!dateStart) return "—";
+  try {
+    const s = new Date(dateStart);
+    if (isNaN(s.getTime())) return dateStart;
+
+    const dStr = s.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const sTime = dateStart.includes("T") ? s.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+
+    if (!dateEnd || dateEnd === dateStart) {
+      return sTime ? `${dStr} | ${sTime}` : dStr;
+    }
+
+    const e = new Date(dateEnd);
+    if (isNaN(e.getTime())) {
+      return sTime ? `${dStr} | ${sTime}` : dStr;
+    }
+
+    const eDateStr = e.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    const eTime = dateEnd.includes("T") ? e.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : "";
+
+    if (dStr === eDateStr) {
+      if (sTime && eTime && sTime !== eTime) {
+        return `${dStr} | ${sTime} – ${eTime}`;
+      }
+      return sTime ? `${dStr} | ${sTime}` : dStr;
+    }
+
+    return `${dStr}${sTime ? ` (${sTime})` : ""} – ${eDateStr}${eTime ? ` (${eTime})` : ""}`;
+  } catch {
+    return dateStart;
+  }
+}
+
 export const statusColors: Record<EventStatus, string> = {
   Created: "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
   "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
@@ -569,4 +607,24 @@ export function getActionBadgeClass(action: string): string {
   return "bg-slate-100 text-slate-700 border border-slate-300 font-bold";
 }
 
+export function formatUserRole(role?: string): string {
+  if (!role) return "Student";
+  const r = role.toLowerCase();
+  switch (r) {
+    case "student":
+      return "Student";
+    case "adviser":
+      return "Adviser";
+    case "dean":
+      return "Dean";
+    case "sds":
+      return "SDS";
+    case "admin":
+      return "Admin";
+    default:
+      return r.charAt(0).toUpperCase() + r.slice(1);
+  }
+}
+
 export { printClearanceDocument, printLiquidationDocument } from "./pdfDocuments";
+

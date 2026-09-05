@@ -151,7 +151,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
     doc.setTextColor(15, 118, 110);
-    doc.text("EXECUTIVE CLEARANCE STATUS: OFFICIAL CLEARANCE GRANTED", margin + 4, bannerY + 5.8);
+    doc.text("EXECUTIVE CLEARANCE STATUS: DIGITAL CLEARANCE GRANTED", margin + 4, bannerY + 5.8);
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
@@ -290,7 +290,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   const splitDesc = doc.splitTextToSize(cleanDescription, contentWidth - 10);
-  const descBoxH = Math.max(22, splitDesc.length * 4.5 + 8.5);
+  const descBoxH = Math.max(22, splitDesc.length * 4.8 + 8.5);
 
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
@@ -314,7 +314,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   const splitCert = doc.splitTextToSize(certClause, contentWidth - 16);
-  const certBoxH = Math.max(24, splitCert.length * 4.5 + 9);
+  const certBoxH = Math.max(23.5, splitCert.length * 4.5 + 8.5);
 
   doc.setFillColor(240, 253, 250);
   doc.setDrawColor(204, 251, 241);

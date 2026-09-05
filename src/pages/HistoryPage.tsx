@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getEventTypeById,
-  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass
+  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass, formatUserRole
 } from "../services/dataService";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../components/events/EventClearanceTab";
@@ -454,7 +454,7 @@ export default function HistoryPage() {
                       <div className="pt-2 border-t border-[var(--border)]/60 flex items-center justify-between text-xs text-[var(--muted-foreground)] flex-wrap gap-2">
                         <div className="flex items-center gap-1.5">
                           <User size={13} />
-                          <span>Performed by: <strong className="text-[var(--foreground)] font-medium">{userName}</strong> ({userRole})</span>
+                          <span>Performed by: <strong className="text-[var(--foreground)] font-medium">{userName}</strong> ({formatUserRole(userRole)})</span>
                         </div>
                         {evt && (
                           <button
@@ -563,7 +563,7 @@ export default function HistoryPage() {
                         {/* Actor */}
                         <td className="px-4 py-3.5 align-top whitespace-nowrap text-xs">
                           <div className="font-medium text-[var(--foreground)]">{userName}</div>
-                          <span className="text-[10px] font-mono text-[var(--muted-foreground)] capitalize">{userRole}</span>
+                          <span className="text-[10px] font-mono text-[var(--muted-foreground)]">{formatUserRole(userRole)}</span>
                         </td>
 
                         {/* Details */}

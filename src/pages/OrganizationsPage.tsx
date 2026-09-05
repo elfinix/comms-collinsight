@@ -397,7 +397,7 @@ export default function OrganizationsPage() {
               </span>
             </div>
 
-            <div className="flex flex-col gap-5 pb-6">
+            <div className="flex flex-col gap-2 pb-6">
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold">
@@ -410,40 +410,11 @@ export default function OrganizationsPage() {
                 <RefreshButton />
               </div>
 
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-                <p className="text-sm lg:text-base text-[var(--muted-foreground)] max-w-2xl leading-relaxed">
-                  {tab === "roster"
-                    ? "Explore official CITE student organizations, view designated leadership officers, and monitor organization-specific initiatives."
-                    : "Track proposals, approved gatherings, workshops, and milestones scheduled across college departments in real time."}
-                </p>
-
-                {/* Quick Metrics Badges */}
-                <div className="flex items-center gap-3 flex-wrap">
-                  <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
-                    <Building2 size={16} className="text-[var(--primary)]" />
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-[var(--foreground)]">{organizations.length} Organizations</p>
-                      <p className="text-[10px] font-mono text-[var(--muted-foreground)]">{departments.length} Departments</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
-                    <CalendarDays size={16} className="text-[var(--primary)]" />
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-[var(--foreground)]">{publicEvents.length} Events Total</p>
-                      <p className="text-[10px] font-mono text-[var(--primary)] font-semibold">{approvedEventsCount} Approved</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
-                    <Users size={16} className="text-sky-600" />
-                    <div className="text-left">
-                      <p className="text-xs font-bold text-[var(--foreground)]">{totalOfficersCount} Officers</p>
-                      <p className="text-[10px] font-mono text-[var(--muted-foreground)]">Active Leadership</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <p className="mt-1 text-sm lg:text-base text-[var(--muted-foreground)] leading-relaxed">
+                {tab === "roster"
+                  ? "Explore official CITE student organizations, view designated leadership officers, and monitor organization-specific initiatives."
+                  : "Track proposals, approved gatherings, workshops, and milestones scheduled across college departments in real time."}
+              </p>
             </div>
           </FadeSection>
 

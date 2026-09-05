@@ -55,6 +55,28 @@ interface DateTimePickerProps {
   placeholder?: string;
 }
 
+function parseLocalDateTime(val?: string): Date | null {
+  if (!val) return null;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(val)) {
+    const [dPart, tPart] = val.split("T");
+    const [y, m, d] = dPart.split("-").map(Number);
+    const [h, min] = tPart.split(":").map(Number);
+    const dt = new Date(y, m - 1, d, h, min, 0);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+  const dt = new Date(val);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+function formatLocalDateTime(dt: Date): string {
+  const y = dt.getFullYear();
+  const m = String(dt.getMonth() + 1).padStart(2, "0");
+  const d = String(dt.getDate()).padStart(2, "0");
+  const h = String(dt.getHours()).padStart(2, "0");
+  const min = String(dt.getMinutes()).padStart(2, "0");
+  return `${y}-${m}-${d}T${h}:${min}`;
+}
+
 export function DateTimePicker({
   label,
   error,
@@ -68,16 +90,19 @@ export function DateTimePicker({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Parse ISO value
-  const parsedDate = value ? new Date(value) : null;
-  const isValidDate = parsedDate && !isNaN(parsedDate.getTime());
+  const parsedDate = parseLocalDateTime(value);
+  const isValidDate = parsedDate !== null;
 
   // View state for Month/Year in calendar
-  const [viewDate, setViewDate] = useState<Date>(isValidDate ? parsedDate : new Date());
+  const minDate = min ? parseLocalDateTime(min) : null;
+  const [viewDate, setViewDate] = useState<Date>(
+    isValidDate ? parsedDate : (minDate || new Date())
+  );
 
   // Update viewDate when value changes
   useEffect(() => {
     if (isValidDate) {
-      setViewDate(new Date(value));
+      setViewDate(parsedDate);
     }
   }, [value]);
 
@@ -100,8 +125,6 @@ export function DateTimePicker({
         parsedDate.getHours() % 12 || 12
       ).padStart(2, "0")}:${String(parsedDate.getMinutes()).padStart(2, "0")} ${parsedDate.getHours() >= 12 ? "PM" : "AM"}`
     : "";
-
-  const minDate = min ? new Date(min) : null;
 
   // Calendar calculations
   const year = viewDate.getFullYear();
@@ -129,32 +152,103 @@ export function DateTimePicker({
   }
 
   // Time state helpers
-  const currentHours24 = isValidDate ? parsedDate.getHours() : 9;
+  const defaultDate = minDate ? new Date(minDate.getTime() + 60 * 60 * 1000) : new Date();
+  const currentHours24 = isValidDate ? parsedDate.getHours() : (minDate ? defaultDate.getHours() : 9);
   const currentHours12 = currentHours24 % 12 || 12;
-  const currentMinutes = isValidDate ? parsedDate.getMinutes() : 0;
+  const currentMinutes = isValidDate ? parsedDate.getMinutes() : (minDate ? defaultDate.getMinutes() : 0);
   const currentPeriod = currentHours24 >= 12 ? "PM" : "AM";
 
+  const [inputHour, setInputHour] = useState(String(currentHours12).padStart(2, "0"));
+  const [inputMinute, setInputMinute] = useState(String(currentMinutes).padStart(2, "0"));
+  const isHourFocused = useRef(false);
+  const isMinuteFocused = useRef(false);
+  const hourInputRef = useRef<HTMLInputElement>(null);
+  const minuteInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isHourFocused.current) {
+      setInputHour(String(currentHours12).padStart(2, "0"));
+    }
+  }, [currentHours12]);
+
+  useEffect(() => {
+    if (!isMinuteFocused.current) {
+      setInputMinute(String(currentMinutes).padStart(2, "0"));
+    }
+  }, [currentMinutes]);
+
   function setDatePart(targetDate: Date) {
-    const base = isValidDate ? new Date(value) : new Date();
     const newY = targetDate.getFullYear();
     const newM = String(targetDate.getMonth() + 1).padStart(2, "0");
     const newD = String(targetDate.getDate()).padStart(2, "0");
-    const h = String(base.getHours()).padStart(2, "0");
-    const m = String(base.getMinutes()).padStart(2, "0");
-    onChange(`${newY}-${newM}-${newD}T${h}:${m}`);
+    const hh = String(currentHours24).padStart(2, "0");
+    const mm = String(currentMinutes).padStart(2, "0");
+    onChange(`${newY}-${newM}-${newD}T${hh}:${mm}`);
   }
 
   function setTimePart(hour12: number, minNum: number, period: "AM" | "PM") {
-    let hour24 = hour12 % 12;
+    let safeH = Math.max(1, Math.min(12, hour12));
+    let safeM = Math.max(0, Math.min(59, minNum));
+    let hour24 = safeH % 12;
     if (period === "PM") hour24 += 12;
 
-    const base = isValidDate ? new Date(value) : new Date();
+    const base = isValidDate ? parsedDate : (minDate || viewDate || new Date());
     const y = base.getFullYear();
     const m = String(base.getMonth() + 1).padStart(2, "0");
     const d = String(base.getDate()).padStart(2, "0");
     const hh = String(hour24).padStart(2, "0");
-    const mm = String(minNum).padStart(2, "0");
+    const mm = String(safeM).padStart(2, "0");
     onChange(`${y}-${m}-${d}T${hh}:${mm}`);
+  }
+
+  function handleHourChange(val: string) {
+    const clean = val.replace(/\D/g, "").slice(0, 2);
+    setInputHour(clean);
+    if (clean) {
+      const num = parseInt(clean, 10);
+      if (num >= 1 && num <= 12) {
+        setTimePart(num, currentMinutes, currentPeriod);
+        if (clean.length === 2 || num >= 2) {
+          minuteInputRef.current?.focus();
+          minuteInputRef.current?.select();
+        }
+      } else if (num > 12) {
+        setInputHour("12");
+        setTimePart(12, currentMinutes, currentPeriod);
+        minuteInputRef.current?.focus();
+        minuteInputRef.current?.select();
+      }
+    }
+  }
+
+  function handleHourBlur() {
+    let num = parseInt(inputHour, 10);
+    if (isNaN(num) || num < 1) num = 12;
+    if (num > 12) num = 12;
+    setInputHour(String(num).padStart(2, "0"));
+    setTimePart(num, currentMinutes, currentPeriod);
+  }
+
+  function handleMinuteChange(val: string) {
+    const clean = val.replace(/\D/g, "").slice(0, 2);
+    setInputMinute(clean);
+    if (clean) {
+      const num = parseInt(clean, 10);
+      if (num >= 0 && num <= 59) {
+        setTimePart(currentHours12, num, currentPeriod);
+      } else if (num > 59) {
+        setInputMinute("59");
+        setTimePart(currentHours12, 59, currentPeriod);
+      }
+    }
+  }
+
+  function handleMinuteBlur() {
+    let num = parseInt(inputMinute, 10);
+    if (isNaN(num) || num < 0) num = 0;
+    if (num > 59) num = 59;
+    setInputMinute(String(num).padStart(2, "0"));
+    setTimePart(currentHours12, num, currentPeriod);
   }
 
   const monthNames = [
@@ -266,41 +360,100 @@ export function DateTimePicker({
             })}
           </div>
 
-          {/* Time Picker Row */}
+          {/* Time Picker Row with Direct Validated Inputs */}
           <div className="pt-3 mt-3 border-t border-[var(--border)] flex items-center justify-between gap-2">
             <span className="text-[11px] font-mono text-[var(--muted-foreground)] font-bold">Time:</span>
 
-            <div className="flex items-center gap-1">
-              {/* Hours */}
-              <select
-                value={currentHours12}
-                onChange={(e) => setTimePart(parseInt(e.target.value), currentMinutes, currentPeriod as any)}
-                className="px-1.5 py-1 text-xs font-mono border border-[var(--border)] rounded-lg bg-white text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer"
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                  <option key={h} value={h}>{String(h).padStart(2, "0")}</option>
-                ))}
-              </select>
+            <div className="flex items-center gap-1.5">
+              {/* Hour Input */}
+              <div className="relative">
+                <input
+                  ref={hourInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  value={inputHour}
+                  onFocus={(e) => {
+                    isHourFocused.current = true;
+                    e.target.select();
+                  }}
+                  onChange={(e) => handleHourChange(e.target.value)}
+                  onBlur={() => {
+                    isHourFocused.current = false;
+                    handleHourBlur();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const next = (currentHours12 % 12) + 1;
+                      setInputHour(String(next).padStart(2, "0"));
+                      setTimePart(next, currentMinutes, currentPeriod);
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      const prev = currentHours12 <= 1 ? 12 : currentHours12 - 1;
+                      setInputHour(String(prev).padStart(2, "0"));
+                      setTimePart(prev, currentMinutes, currentPeriod);
+                    } else if (e.key === "Enter" || e.key === ":" || e.key === "Tab") {
+                      if (e.key === ":" || e.key === "Enter") {
+                        e.preventDefault();
+                        minuteInputRef.current?.focus();
+                        minuteInputRef.current?.select();
+                      }
+                    }
+                  }}
+                  className="w-10 h-7 text-center font-mono text-xs font-bold border border-[var(--border)] rounded-lg bg-white text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] shadow-2xs transition select-all"
+                  placeholder="12"
+                  title="Hour (1-12)"
+                />
+              </div>
 
-              <span className="font-bold text-xs">:</span>
+              <span className="font-bold text-xs text-[var(--foreground)]">:</span>
 
-              {/* Minutes */}
-              <select
-                value={Math.floor(currentMinutes / 5) * 5}
-                onChange={(e) => setTimePart(currentHours12, parseInt(e.target.value), currentPeriod as any)}
-                className="px-1.5 py-1 text-xs font-mono border border-[var(--border)] rounded-lg bg-white text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)] cursor-pointer"
-              >
-                {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-                  <option key={m} value={m}>{String(m).padStart(2, "0")}</option>
-                ))}
-              </select>
+              {/* Minute Input */}
+              <div className="relative">
+                <input
+                  ref={minuteInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={2}
+                  value={inputMinute}
+                  onFocus={(e) => {
+                    isMinuteFocused.current = true;
+                    e.target.select();
+                  }}
+                  onChange={(e) => handleMinuteChange(e.target.value)}
+                  onBlur={() => {
+                    isMinuteFocused.current = false;
+                    handleMinuteBlur();
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const next = (currentMinutes + 1) % 60;
+                      setInputMinute(String(next).padStart(2, "0"));
+                      setTimePart(currentHours12, next, currentPeriod);
+                    } else if (e.key === "ArrowDown") {
+                      e.preventDefault();
+                      const prev = currentMinutes <= 0 ? 59 : currentMinutes - 1;
+                      setInputMinute(String(prev).padStart(2, "0"));
+                      setTimePart(currentHours12, prev, currentPeriod);
+                    } else if (e.key === "Backspace" && inputMinute === "") {
+                      hourInputRef.current?.focus();
+                      hourInputRef.current?.select();
+                    }
+                  }}
+                  className="w-10 h-7 text-center font-mono text-xs font-bold border border-[var(--border)] rounded-lg bg-white text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] shadow-2xs transition select-all"
+                  placeholder="00"
+                  title="Minute (00-59)"
+                />
+              </div>
 
               {/* AM / PM Toggle */}
-              <div className="flex border border-[var(--border)] rounded-sm overflow-hidden ml-1 p-0.5 bg-[var(--muted)]/30">
+              <div className="flex border border-[var(--border)] rounded-lg overflow-hidden ml-1 p-0.5 bg-[var(--muted)]/40 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setTimePart(currentHours12, currentMinutes, "AM")}
-                  className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded transition cursor-pointer ${
+                  className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-md transition cursor-pointer ${
                     currentPeriod === "AM" ? "bg-[var(--primary)] text-white shadow-2xs" : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   }`}
                 >
@@ -309,7 +462,7 @@ export function DateTimePicker({
                 <button
                   type="button"
                   onClick={() => setTimePart(currentHours12, currentMinutes, "PM")}
-                  className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded transition cursor-pointer ${
+                  className={`px-2 py-0.5 text-[10px] font-mono font-bold rounded-md transition cursor-pointer ${
                     currentPeriod === "PM" ? "bg-[var(--primary)] text-white shadow-2xs" : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                   }`}
                 >
@@ -325,12 +478,7 @@ export function DateTimePicker({
               type="button"
               onClick={() => {
                 const now = new Date();
-                const y = now.getFullYear();
-                const m = String(now.getMonth() + 1).padStart(2, "0");
-                const d = String(now.getDate()).padStart(2, "0");
-                const h = String(now.getHours()).padStart(2, "0");
-                const minVal = String(now.getMinutes()).padStart(2, "0");
-                onChange(`${y}-${m}-${d}T${h}:${minVal}`);
+                onChange(formatLocalDateTime(now));
               }}
               className="text-[var(--primary)] font-mono hover:underline cursor-pointer text-[11px]"
             >
@@ -339,7 +487,18 @@ export function DateTimePicker({
 
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                if (!isValidDate) {
+                  const base = minDate || viewDate || new Date();
+                  const newY = base.getFullYear();
+                  const newM = String(base.getMonth() + 1).padStart(2, "0");
+                  const newD = String(base.getDate()).padStart(2, "0");
+                  const hh = String(currentHours24).padStart(2, "0");
+                  const mm = String(currentMinutes).padStart(2, "0");
+                  onChange(`${newY}-${newM}-${newD}T${hh}:${mm}`);
+                }
+                setOpen(false);
+              }}
               className="px-3 py-1 bg-[var(--primary)] text-white rounded-lg font-mono text-[11px] font-bold shadow-2xs hover:bg-[#0f766e] cursor-pointer"
             >
               Done
@@ -585,7 +744,9 @@ export interface TabsProps {
 
 export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
   return (
-    <div className={`flex items-center border-b border-[var(--border)] overflow-x-auto ${className}`}>
+    <div
+      className={`flex items-center border-b border-[var(--border)] overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${className}`}
+    >
       {tabs.map((tab) => (
         <Fragment key={tab.id}>
           <button

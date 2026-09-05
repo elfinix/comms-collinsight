@@ -24,11 +24,11 @@ import {
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
   ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, ExternalLink, ArrowRight, MessageSquareQuote,
-  Wallet, CreditCard, Coins, X, Loader2,
+  Wallet, CreditCard, Coins, X, Loader2, Clock, MapPin, Video
 } from "lucide-react";
 import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, eventTypes, expenditureCategories,
-  Event, EventStatus, resolvePdfUrl,
+  Event, EventStatus, resolvePdfUrl, formatCardSchedule, isWebUrl, toWebUrl
 } from "../../services/dataService";
 import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -50,17 +50,6 @@ function formatNumberWithCommas(num: number | string): string {
   return parts.length > 1 ? `${integerPart}.${parts[1]}` : integerPart;
 }
 
-function isWebUrl(str?: string): boolean {
-  if (!str) return false;
-  const t = str.trim();
-  return /^(https?:\/\/|www\.)/i.test(t) || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/i.test(t);
-}
-
-function toWebUrl(str: string): string {
-  const t = str.trim();
-  if (/^https?:\/\//i.test(t)) return t;
-  return `https://${t}`;
-}
 
 function newEventShell(createdBy: string, orgId: string, defaultTypeId: string = ""): Omit<Event, "id"> {
   return {
@@ -461,7 +450,7 @@ export default function StudentEvents() {
 
       {isLoading ? (
         <div className="space-y-6 mb-6">
-          <SkeletonToolbox />
+          <SkeletonToolbox variant="two-tier" />
           {view === "grid" ? (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -607,7 +596,36 @@ export default function StudentEvents() {
                     <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode === "Online/Virtual" ? "Virtual" : e.mode}</span>
                   </div>
                   <h3 className="font-bold text-[var(--foreground)] leading-snug">{e.name}</h3>
-                  <p className="text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)} · {e.location}</p>
+                  <div className="space-y-1.5 text-xs text-[var(--muted-foreground)]">
+                    <div className="flex items-center gap-1.5">
+                      <Clock size={13} className="flex-shrink-0 text-[var(--muted-foreground)]" />
+                      <span className="truncate">{formatCardSchedule(e.dateStart, e.dateEnd)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {e.mode === "Online/Virtual" ? (
+                        <Video size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                      ) : (
+                        <MapPin size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                      )}
+                      {isWebUrl(e.location) ? (
+                        <a
+                          href={toWebUrl(e.location)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[var(--primary)] hover:underline inline-flex items-center gap-1 truncate font-medium break-all"
+                          title={e.location}
+                          onClick={(evt) => evt.stopPropagation()}
+                        >
+                          <span className="truncate">{e.location}</span>
+                          <ExternalLink size={11} className="flex-shrink-0" />
+                        </a>
+                      ) : (
+                        <span className="truncate" title={e.location || (e.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}>
+                          {e.location || (e.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                   <p className="text-sm font-mono text-[var(--primary)] font-extrabold">{formatCurrency(e.proposedBudget)}</p>
                   {e.status === "Pending Revision" && (() => {
                     const activeFb = getActiveRevisionFeedback(e.id);
@@ -1638,7 +1656,7 @@ export default function StudentEvents() {
               </>
             ) : (
               <>
-                Once submitted, <strong>"{submitConfirm?.name}"</strong> will be sent to the Faculty Adviser for review and will no longer be editable until returned.
+                Once submitted, <strong>"{submitConfirm?.name}"</strong> will be sent to the Faculty Adviser for review and will no longer be editable unless returned.
               </>
             )}
           </p>

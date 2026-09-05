@@ -77,7 +77,7 @@ export default function DeanDashboard() {
             <StatCard
               label="Pending Approval"
               value={pending.length}
-              sub="Requires endorsement & dispatch"
+              sub="For endorsement & dispatch"
               icon={<Clock size={18} />}
               color="bg-amber-500 text-white"
         />
