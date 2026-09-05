@@ -131,6 +131,7 @@ CREATE TABLE public.events (
   apf_url TEXT,
   appendices JSONB DEFAULT '[]'::jsonb,
   clearance_details TEXT,
+  clearance_doc_ref TEXT,
   remarks JSONB DEFAULT '[]'::jsonb,
   status TEXT NOT NULL DEFAULT 'Created' CHECK (
     status IN (

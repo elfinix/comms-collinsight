@@ -510,14 +510,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setEventStatus = (eventId: string, status: EventStatus, feedback?: string) => {
     const targetEvt = evts.find((e) => e.id === eventId);
+    const cleanId = eventId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
+    const generatedDocRef = status === "Approved"
+      ? (targetEvt?.clearanceDocRef || `CLR-${cleanId}-${new Date(targetEvt?.dateStart || Date.now()).getFullYear()}`)
+      : undefined;
+
     setEvts((p) =>
       p.map((e) => {
         if (e.id !== eventId) return e;
-        return { ...e, status };
+        return {
+          ...e,
+          status,
+          ...(generatedDocRef ? { clearanceDocRef: generatedDocRef } : {}),
+        };
       })
     );
 
-    supabaseApi.updateEvent(eventId, { status }).catch((err) =>
+    const updatePayload: Partial<Event> = { status };
+    if (generatedDocRef) {
+      updatePayload.clearanceDocRef = generatedDocRef;
+    }
+
+    supabaseApi.updateEvent(eventId, updatePayload).catch((err) =>
       console.warn("Supabase setEventStatus error:", err)
     );
 

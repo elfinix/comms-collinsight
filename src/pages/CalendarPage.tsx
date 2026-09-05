@@ -10,7 +10,7 @@ import {
   Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet
 } from "lucide-react";
 import {
-  getEventTypeById, formatDate, formatCurrency, statusColors, Event, Transaction,
+  getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, Transaction,
   isWebUrl, toWebUrl, resolvePdfUrl
 } from "../services/mockData";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
@@ -61,20 +61,7 @@ const MONTH_NAMES = [
 ];
 
 function formatTimeRange(startStr: string, endStr: string) {
-  try {
-    const s = new Date(startStr);
-    const e = new Date(endStr);
-    const startFormatted = s.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const startTime = s.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
-    const endTime = e.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
-    return `${startFormatted} · ${startTime} – ${endTime}`;
-  } catch {
-    return `${startStr} – ${endStr}`;
-  }
+  return formatEventSchedule(startStr, endStr);
 }
 
 function CalendarGrid({
@@ -746,7 +733,7 @@ export default function CalendarPage() {
                       {selectedEvent.status}
                     </span>
                     <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
-                      {selectedEvent.mode === "Online/Virtual" ? "Online" : selectedEvent.mode}
+                      {selectedEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}
                     </span>
                   </div>
                 </div>

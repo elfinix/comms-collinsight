@@ -7,10 +7,10 @@ import { Button, Dialog, Input, Textarea, Select, Tabs, Card, CardHeader, CardBo
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
   ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, ExternalLink, ArrowRight, MessageSquareQuote,
-  Wallet, CreditCard, Coins, X,
+  Wallet, CreditCard, Coins, X, Loader2,
 } from "lucide-react";
 import {
-  getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, statusColors, eventTypes, expenditureCategories,
+  getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, eventTypes, expenditureCategories,
   Event, EventStatus, resolvePdfUrl,
 } from "../../services/mockData";
 import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
@@ -137,18 +137,35 @@ export default function StudentEvents() {
 
   const isDateRangeValid = !draft.dateStart || !draft.dateEnd || new Date(draft.dateEnd) > new Date(draft.dateStart);
 
-  // Organization Remaining Available Budget Calculation
-  const orgApprovedEvents = events.filter((e) => e.organizationId === orgId && ["Approved", "Completed", "Closed"].includes(e.status));
-  const orgTxns = transactions.filter((t) => orgApprovedEvents.some((e) => e.id === t.eventId) && !t.deleted);
-  const totalOrgSpent = orgTxns.reduce((sum, t) => sum + t.amount, 0);
-  const allocatedBudget = org?.allocatedBudget ?? 0;
-  const remainingBudget = Math.max(0, allocatedBudget - totalOrgSpent);
+  // Organization Budget and Allocated Budget Calculation
+  const organizationBudget = org?.allocatedBudget ?? 0;
+  const orgAllEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
 
-  // Available budget headroom when editing an existing event
-  const isEditEventApproved = editEvent && ["Approved", "Completed", "Closed"].includes(editEvent.status);
-  const editAvailableBudget = isEditEventApproved
-    ? remainingBudget + (editEvent.proposedBudget ?? 0)
-    : remainingBudget;
+  // Total allocated among proposed events so far (active proposed + closed spent)
+  const currentAllocatedBudget = orgAllEvents.reduce((sum, e) => {
+    if (e.status === "Closed") {
+      const eventTxns = transactions.filter((t) => t.eventId === e.id && !t.deleted);
+      const spent = eventTxns.reduce((s, t) => s + t.amount, 0);
+      return sum + spent;
+    }
+    return sum + (e.proposedBudget || 0);
+  }, 0);
+
+  const remainingBudget = Math.max(0, organizationBudget - currentAllocatedBudget);
+
+  // Available budget headroom when editing an existing event (exclude this event's current allocation)
+  const otherEventsAllocated = orgAllEvents
+    .filter((e) => e.id !== editEvent?.id)
+    .reduce((sum, e) => {
+      if (e.status === "Closed") {
+        const eventTxns = transactions.filter((t) => t.eventId === e.id && !t.deleted);
+        const spent = eventTxns.reduce((s, t) => s + t.amount, 0);
+        return sum + spent;
+      }
+      return sum + (e.proposedBudget || 0);
+    }, 0);
+
+  const editAvailableBudget = Math.max(0, organizationBudget - otherEventsAllocated);
 
   const isDetailsValid = !!(
     draft.name.trim() &&
@@ -403,7 +420,7 @@ export default function StudentEvents() {
   const viewTabsDef = [
     { id: "details", label: "Event Details" },
     { id: "compliance", label: "Event Compliance" },
-    { id: "clearance", label: "Event Clearance" },
+    { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
   ];
@@ -927,8 +944,8 @@ export default function StudentEvents() {
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p><p className="font-bold text-[var(--foreground)] mt-0.5">{draft.name || "—"}</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p><p className="font-medium mt-0.5">{getEventType(draft.typeId)?.name || "—"}</p></div>
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{draft.description || "—"}</p></div>
-                    <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Date & Time</p><p className="font-medium mt-0.5">{draft.dateStart && draft.dateEnd ? `${formatDateTime(draft.dateStart)} – ${formatDateTime(draft.dateEnd)}` : draft.dateStart ? formatDateTime(draft.dateStart) : "—"}</p></div>
-                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{draft.mode === "Online/Virtual" ? "Meeting Link & Mode" : "Location & Mode"}</p><p className="font-medium mt-0.5">{draft.location || "—"} ({draft.mode === "Online/Virtual" ? "Virtual" : draft.mode})</p></div>
+                    <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(draft.dateStart, draft.dateEnd)}</p></div>
+                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{draft.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{draft.location || (draft.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({draft.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p><p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(draft.proposedBudget)}</p></div>
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {draft.apfUrl}</p></div>
                   </div>
@@ -957,18 +974,21 @@ export default function StudentEvents() {
                 <Button
                   variant="outline"
                   onClick={() => setCreateTab(createTab === "clearance" ? "compliance" : "details")}
+                  disabled={isUploading}
                 >
                   ← Back
                 </Button>
               )}
             </div>
             <div className="flex gap-2 items-center">
-              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)} disabled={isUploading}>
+                Cancel
+              </Button>
               
               {createTab === "details" && (
                 <Button
                   onClick={() => setCreateTab("compliance")}
-                  disabled={!isDetailsValid}
+                  disabled={!isDetailsValid || isUploading}
                   title={!isDetailsValid ? "Fill out all mandatory fields to proceed" : undefined}
                 >
                   Next: Compliance →
@@ -978,7 +998,7 @@ export default function StudentEvents() {
               {createTab === "compliance" && (
                 <Button
                   onClick={() => setCreateTab("clearance")}
-                  disabled={!isComplianceValid}
+                  disabled={!isComplianceValid || isUploading}
                   title={!draft.apfUrl ? "Upload the Activity Proposal Form (APF) to proceed" : undefined}
                 >
                   Next: Clearance →
@@ -986,8 +1006,16 @@ export default function StudentEvents() {
               )}
 
               {createTab === "clearance" && (
-                <Button onClick={handleSaveDraft} disabled={!draft.name}>
-                  <CheckCircle size={15} /> Save as Draft
+                <Button onClick={handleSaveDraft} disabled={!draft.name || isUploading}>
+                  {isUploading ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" /> Saving Draft...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={15} /> Save as Draft
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -1272,8 +1300,8 @@ export default function StudentEvents() {
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p><p className="font-bold text-[var(--foreground)] mt-0.5">{editEvent.name || "—"}</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p><p className="font-medium mt-0.5">{getEventType(editEvent.typeId)?.name || "—"}</p></div>
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{editEvent.description || "—"}</p></div>
-                      <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Date & Time</p><p className="font-medium mt-0.5">{editEvent.dateStart && editEvent.dateEnd ? `${formatDateTime(editEvent.dateStart)} – ${formatDateTime(editEvent.dateEnd)}` : editEvent.dateStart ? formatDateTime(editEvent.dateStart) : "—"}</p></div>
-                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{editEvent.mode === "Online/Virtual" ? "Meeting Link & Mode" : "Location & Mode"}</p><p className="font-medium mt-0.5">{editEvent.location || "—"} ({editEvent.mode === "Online/Virtual" ? "Virtual" : editEvent.mode})</p></div>
+                      <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(editEvent.dateStart, editEvent.dateEnd)}</p></div>
+                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{editEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{editEvent.location || (editEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({editEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p><p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(editEvent.proposedBudget)}</p></div>
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {editEvent.apfUrl}</p></div>
                     </div>
@@ -1297,18 +1325,21 @@ export default function StudentEvents() {
                   <Button
                     variant="outline"
                     onClick={() => setEditTab(editTab === "clearance" ? "compliance" : "details")}
+                    disabled={isUploading}
                   >
                     ← Back
                   </Button>
                 )}
               </div>
               <div className="flex gap-2 items-center">
-                <Button variant="outline" onClick={() => setEditEvent(null)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setEditEvent(null)} disabled={isUploading}>
+                  Cancel
+                </Button>
                 
                 {editTab === "details" && (
                   <Button
                     onClick={() => setEditTab("compliance")}
-                    disabled={!isEditDetailsValid}
+                    disabled={!isEditDetailsValid || isUploading}
                     title={!isEditDetailsValid ? "Fill out all mandatory fields to proceed" : undefined}
                   >
                     Next: Compliance →
@@ -1318,7 +1349,7 @@ export default function StudentEvents() {
                 {editTab === "compliance" && (
                   <Button
                     onClick={() => setEditTab("clearance")}
-                    disabled={!isEditComplianceValid}
+                    disabled={!isEditComplianceValid || isUploading}
                     title={!editEvent.apfUrl ? "Upload the Activity Proposal Form (APF) to proceed" : undefined}
                   >
                     Next: Clearance →
@@ -1326,8 +1357,16 @@ export default function StudentEvents() {
                 )}
 
                 {editTab === "clearance" && (
-                  <Button onClick={handleSaveEdit} disabled={!editEvent.name}>
-                    <CheckCircle size={15} /> Save Changes
+                  <Button onClick={handleSaveEdit} disabled={!editEvent.name || isUploading}>
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" /> Saving Changes...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={15} /> Save Changes
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
@@ -1355,15 +1394,17 @@ export default function StudentEvents() {
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p>{getEventType(viewEvent.typeId)?.name}</p></div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p className="leading-relaxed">{viewEvent.description}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{getEventType(viewEvent.typeId)?.name || "General Event"}</p></div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p className="leading-relaxed">{viewEvent.description || "—"}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Proposed Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Virtual" : viewEvent.mode}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Date Start</p><p>{formatDateTime(viewEvent.dateStart)}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Date End</p><p>{formatDateTime(viewEvent.dateEnd)}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p className="font-medium">{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p></div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p>
+                    <p className="font-medium">{formatEventSchedule(viewEvent.dateStart, viewEvent.dateEnd)}</p>
+                  </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
-                      {viewEvent.mode === "Online/Virtual" ? "Meeting Link" : "Location"}
+                      {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
                     {isWebUrl(viewEvent.location) ? (
                       <a
@@ -1376,7 +1417,7 @@ export default function StudentEvents() {
                         <ExternalLink size={13} className="flex-shrink-0" />
                       </a>
                     ) : (
-                      <p className="font-medium">{viewEvent.location || "—"}</p>
+                      <p className="font-medium">{viewEvent.location || (viewEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
                     )}
                   </div>
                   <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p><p>{viewEvent.requisites || "—"}</p></div>

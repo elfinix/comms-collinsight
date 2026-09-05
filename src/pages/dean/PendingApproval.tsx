@@ -3,9 +3,10 @@ import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
+import { dispatchClearanceEmail } from "../../services/mailerService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
@@ -26,26 +27,30 @@ export default function DeanPendingApproval() {
   const [showApproveRemarks, setShowApproveRemarks] = useState(false);
   const [showRequestChange, setShowRequestChange] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleApprove() {
-    if (!viewEvent) return;
+    if (!viewEvent || isSubmitting) return;
+    setIsSubmitting(true);
     const trimmed = feedback.trim();
     setEventStatus(viewEvent.id, "Approved", trimmed || undefined);
 
     const org = organizations.find((o) => o.id === viewEvent.organizationId);
     const orgName = org?.name || org?.code || "Organization";
+    const typeName = eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "Academic Seminar";
+    const deanUser = users.find((u) => u.role === "dean");
+    const deanName = deanUser
+      ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
+      : "Dr. Marilou Castro Villanueva, Ph.D.";
 
-    // Generate genuine vector Clearance PDF and upload to Supabase Storage
+    const targetApprovedEvent: Event = { ...viewEvent, status: "Approved" };
+
+    // 1. Generate genuine vector Clearance PDF and upload to Supabase Storage (Persistent Archive)
     try {
       const clearanceDocName = `Event_Clearance_${viewEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-      const deanUser = users.find((u) => u.role === "dean");
-      const deanName = deanUser
-        ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-        : "Dr. Marilou Castro Villanueva, Ph.D.";
-
-      const targetApprovedEvent: Event = { ...viewEvent, status: "Approved" };
       const pdfBlob = generateClearancePdfBlob(targetApprovedEvent, {
         organizationName: orgName,
+        eventTypeName: typeName,
         deanName,
         viewerRole: "dean",
       });
@@ -60,11 +65,34 @@ export default function DeanPendingApproval() {
         fileName: clearanceDocName,
       });
     } catch (e) {
-      console.warn("Storage upload notice:", e);
+      console.warn("[DeanApproval] Storage upload notice:", e);
     }
 
+    // 2. Concurrently Dispatch Official Email with Clearance, APF & Appendices
+    let emailStatusMessage = "";
+    try {
+      const emailResult = await dispatchClearanceEmail({
+        event: targetApprovedEvent,
+        organizationName: orgName,
+        eventTypeName: typeName,
+        deanName,
+        feedback: trimmed || undefined,
+      });
+
+      if (emailResult.success) {
+        emailStatusMessage = `Official clearance and attached documents dispatched to the SDS office.`;
+      } else {
+        console.warn("[DeanApproval] Email notice:", emailResult.error);
+        emailStatusMessage = "Clearance recorded (mailer notice logged).";
+      }
+    } catch (mailErr) {
+      console.error("[DeanApproval] Mailer dispatch exception:", mailErr);
+      emailStatusMessage = "Clearance recorded.";
+    }
+
+    setIsSubmitting(false);
     const targetEvent = { ...viewEvent, status: "Approved" as const };
-    toast.success("Executive Approval Granted", `'${viewEvent.name}' officially approved by the College Dean.`, {
+    toast.success("Executive Clearance Approved", `'${viewEvent.name}' officially approved. ${emailStatusMessage}`, {
       action: {
         label: "Click here to view event details",
         onClick: () => {
@@ -104,7 +132,7 @@ export default function DeanPendingApproval() {
   const viewTabs = [
     { id: "details", label: "Event Details" },
     { id: "compliance", label: "Event Compliance" },
-    { id: "clearance", label: "Event Clearance" },
+    { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
   ];
@@ -306,11 +334,11 @@ export default function DeanPendingApproval() {
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p></div>
                   <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p>{viewEvent.description}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online" : viewEvent.mode}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Date</p><p>{formatDateTime(viewEvent.dateStart)}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p><p className="font-medium">{formatEventSchedule(viewEvent.dateStart, viewEvent.dateEnd)}</p></div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
-                      {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Location"}
+                      {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
                     {isWebUrl(viewEvent.location) ? (
                       <a
@@ -401,14 +429,14 @@ export default function DeanPendingApproval() {
                 )}
                 {viewTab === "clearance" && viewEvent.status === "For Approval" && (
                   <>
-                    <Button variant="danger" onClick={() => setShowRequestChange(true)}>
+                    <Button variant="danger" onClick={() => setShowRequestChange(true)} disabled={isSubmitting}>
                       <RotateCcw size={14} /> Request Change
                     </Button>
-                    <Button variant="secondary" onClick={() => setShowApproveRemarks(true)}>
+                    <Button variant="secondary" onClick={() => setShowApproveRemarks(true)} disabled={isSubmitting}>
                       <MessageSquare size={14} /> Approve with Remarks
                     </Button>
-                    <Button variant="success" onClick={handleApprove} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
-                      <CheckCircle size={14} /> Approve & Send to SDS
+                    <Button variant="success" onClick={handleApprove} disabled={isSubmitting} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+                      <CheckCircle size={14} /> {isSubmitting ? "Approving & Dispatching..." : "Approve & Dispatch"}
                     </Button>
                   </>
                 )}
@@ -420,12 +448,12 @@ export default function DeanPendingApproval() {
 
       <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
-          <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance. APF and clearance will be emailed to SDS.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance. APF, Clearance, and Appendices will be emailed to SDS.</p>
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Optional notes..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
-            <Button variant="outline" onClick={() => setShowApproveRemarks(false)}>Cancel</Button>
-            <Button variant="success" onClick={handleApprove} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
-              <CheckCircle size={14} /> Approve
+            <Button variant="outline" onClick={() => setShowApproveRemarks(false)} disabled={isSubmitting}>Cancel</Button>
+            <Button variant="success" onClick={handleApprove} disabled={isSubmitting} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+              <CheckCircle size={14} /> {isSubmitting ? "Approving & Dispatching..." : "Approve & Dispatch"}
             </Button>
           </div>
         </div>

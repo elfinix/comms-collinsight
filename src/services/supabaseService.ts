@@ -97,6 +97,7 @@ export function mapEventFromDb(row: any): Event {
     apfUrl: row.apf_url || undefined,
     appendices: Array.isArray(row.appendices) ? row.appendices : [],
     clearanceDetails: row.clearance_details || undefined,
+    clearanceDocRef: row.clearance_doc_ref || undefined,
     remarks: Array.isArray(row.remarks) ? row.remarks : [],
     status: row.status || "Created",
     revenue: row.revenue !== null && row.revenue !== undefined ? Number(row.revenue) : undefined,
@@ -233,6 +234,7 @@ export const supabaseApi = {
       apf_url: event.apfUrl || null,
       appendices: event.appendices || [],
       clearance_details: event.clearanceDetails || null,
+      clearance_doc_ref: event.clearanceDocRef || null,
       remarks: event.remarks || [],
       status: event.status,
       revenue: event.revenue || 0,
@@ -259,6 +261,7 @@ export const supabaseApi = {
     if (updates.apfUrl !== undefined) dbPayload.apf_url = updates.apfUrl;
     if (updates.appendices !== undefined) dbPayload.appendices = updates.appendices;
     if (updates.clearanceDetails !== undefined) dbPayload.clearance_details = updates.clearanceDetails;
+    if (updates.clearanceDocRef !== undefined) dbPayload.clearance_doc_ref = updates.clearanceDocRef;
     if (updates.remarks !== undefined) dbPayload.remarks = updates.remarks;
     if (updates.status !== undefined) dbPayload.status = updates.status;
     if (updates.revenue !== undefined) dbPayload.revenue = updates.revenue;

@@ -194,6 +194,7 @@ export default function AdminUsers() {
 
     toast.success("User Account Created", `'${form.firstName} ${form.lastName}' has been added.`);
     setForm(emptyUser());
+    setShowAddPassword(false);
     setShowAdd(false);
   }
 
@@ -224,6 +225,7 @@ export default function AdminUsers() {
     }
 
     toast.success("User Updated", `Profile and roles for '${editUser.firstName} ${editUser.lastName}' were saved.`);
+    setShowAddPassword(false);
     setEditUser(null);
   }
 
@@ -242,6 +244,7 @@ export default function AdminUsers() {
         <Button
           onClick={() => {
             setForm(emptyUser());
+            setShowAddPassword(false);
             setShowAdd(true);
           }}
           className="gap-1.5 shadow-2xs"
@@ -485,7 +488,10 @@ export default function AdminUsers() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setEditUser({ ...u })}
+                                onClick={() => {
+                                  setShowAddPassword(false);
+                                  setEditUser({ ...u });
+                                }}
                                 className="text-xs h-8 gap-1.5 font-medium shadow-2xs"
                               >
                                 <Pencil size={12} /> Edit
@@ -520,7 +526,10 @@ export default function AdminUsers() {
           user: form,
           setUser: (u: any) => setForm(u),
           onSave: handleAdd,
-          onClose: () => setShowAdd(false),
+          onClose: () => {
+            setShowAddPassword(false);
+            setShowAdd(false);
+          },
           isNew: true,
         },
         editUser && {
@@ -528,7 +537,10 @@ export default function AdminUsers() {
           user: editUser,
           setUser: (u: any) => setEditUser(u),
           onSave: handleEditSave,
-          onClose: () => setEditUser(null),
+          onClose: () => {
+            setShowAddPassword(false);
+            setEditUser(null);
+          },
           isNew: false,
         },
       ]

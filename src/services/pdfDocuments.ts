@@ -57,7 +57,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const deanName = options?.deanName || "Dr. Marilou Castro Villanueva, Ph.D.";
 
   const cleanId = event.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
-  const docRef = `CLR-${cleanId}-${new Date(event.dateStart || Date.now()).getFullYear()}`;
+  const docRef = event.clearanceDocRef || `CLR-${cleanId}-${new Date(event.dateStart || Date.now()).getFullYear()}`;
   const generatedDate = formatDateTime(new Date().toISOString());
 
   const doc = new jsPDF({
@@ -290,7 +290,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8.5);
   const splitDesc = doc.splitTextToSize(cleanDescription, contentWidth - 10);
-  const descBoxH = Math.max(22, splitDesc.length * 5.2 + 8.5);
+  const descBoxH = Math.max(22, splitDesc.length * 4.5 + 8.5);
 
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);

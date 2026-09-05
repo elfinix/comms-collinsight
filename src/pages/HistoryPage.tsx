@@ -9,7 +9,7 @@ import {
   ArrowUpNarrowWide, ArrowDownWideNarrow, Trash2, Edit2, DollarSign
 } from "lucide-react";
 import {
-  formatDate, formatDateTime, formatCurrency, statusColors, getEventTypeById,
+  formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getEventTypeById,
   Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass
 } from "../services/mockData";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
@@ -32,7 +32,7 @@ const ACTION_FILTERS: { id: ActionFilterType; label: string }[] = [
 
 export default function HistoryPage() {
   const { currentUser } = useAuth();
-  const { auditTrail, events, users, transactions } = useApp();
+  const { auditTrail, events, eventTypes, users, transactions } = useApp();
 
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRangeType>("7days"); // Default: Last 7 days
@@ -174,7 +174,7 @@ export default function HistoryPage() {
   const dialogTabs = [
     { id: "details", label: "Event Details" },
     { id: "compliance", label: "Event Compliance" },
-    { id: "clearance", label: "Event Clearance" },
+    { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     ...(role === "student" ? [{ id: "finance", label: "Finance" }] : []),
   ];
@@ -629,7 +629,7 @@ export default function HistoryPage() {
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p>
-                    <p>{getEventTypeById(selectedEvent.typeId)?.name || "—"}</p>
+                    <p className="font-medium">{eventTypes.find((t) => t.id === selectedEvent.typeId)?.name || getEventTypeById(selectedEvent.typeId)?.name || "General Event"}</p>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
@@ -641,19 +641,15 @@ export default function HistoryPage() {
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p>
-                    <p>{selectedEvent.mode === "Online/Virtual" ? "Online" : selectedEvent.mode}</p>
+                    <p>{selectedEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p>
                   </div>
-                  <div>
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Date Start</p>
-                    <p>{formatDateTime(selectedEvent.dateStart)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Date End</p>
-                    <p>{formatDateTime(selectedEvent.dateEnd)}</p>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p>
+                    <p className="font-medium">{formatEventSchedule(selectedEvent.dateStart, selectedEvent.dateEnd)}</p>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
-                      {selectedEvent.mode === "Online/Virtual" ? "Platform / Link" : "Location"}
+                      {selectedEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
                     {isWebUrl(selectedEvent.location) ? (
                       <a
@@ -666,7 +662,7 @@ export default function HistoryPage() {
                         <ExternalLink size={12} className="flex-shrink-0 text-[var(--primary)]" />
                       </a>
                     ) : (
-                      <p className="font-medium">{selectedEvent.location || "—"}</p>
+                      <p className="font-medium">{selectedEvent.location || (selectedEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
                     )}
                   </div>
                   <div className="sm:col-span-2">
@@ -730,7 +726,7 @@ export default function HistoryPage() {
               {dialogTab === "clearance" && (
                 <EventClearanceTab
                   event={selectedEvent}
-                  eventTypeName={getEventTypeById(selectedEvent.typeId)?.name}
+                  eventTypeName={eventTypes.find((t) => t.id === selectedEvent.typeId)?.name || getEventTypeById(selectedEvent.typeId)?.name}
                 />
               )}
 

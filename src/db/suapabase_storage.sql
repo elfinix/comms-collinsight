@@ -77,3 +77,13 @@ INSERT INTO public.exported_reports (id, title, doc_ref, category, organization_
   ('rep-001', 'AY 2026-2027 Midyear Directorate Analytics Report', 'REP-DEAN-CITE-2026', 'Directorate Summary', 'College Administration', 'Dr. Marilou Castro Villanueva, Ph.D.', '2026-08-28T09:30:00Z', 'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/reports/College%20Administration/2026-08-28/REP-DEAN-CITE-2026_Analytics_Report.pdf', 'College Administration/2026-08-28/REP-DEAN-CITE-2026_Analytics_Report.pdf', 'PDF'),
   ('rep-002', 'System Usage & Activity Analytics Overview', 'SYS-RPT-883012', 'System Usage', 'Administration', 'Team COLLinSight CITE', '2026-08-29T14:15:00Z', 'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/reports/Administration/2026-08-29/SYS-RPT-883012_System_Report.pdf', 'Administration/2026-08-29/SYS-RPT-883012_System_Report.pdf', 'PDF')
 ON CONFLICT (id) DO NOTHING;
+
+-- 5. Event Clearance Document Reference Tracking Migration
+ALTER TABLE public.events 
+  ADD COLUMN IF NOT EXISTS clearance_doc_ref TEXT;
+
+-- Backfill existing approved/closed events with their standard clearance reference code
+UPDATE public.events
+SET clearance_doc_ref = 'CLR-' || UPPER(SUBSTRING(REGEXP_REPLACE(id, '[^a-zA-Z0-9]', '', 'g') FROM 1 FOR 6)) || '-' || EXTRACT(YEAR FROM date_start)
+WHERE clearance_doc_ref IS NULL AND status IN ('Approved', 'Completed', 'Closed');
+

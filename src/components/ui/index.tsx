@@ -1,4 +1,4 @@
-import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, useState, useEffect, useRef } from "react";
+import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, useState, useEffect, useRef, Fragment } from "react";
 
 // --- Button ---
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -358,17 +358,51 @@ export function DateTimePicker({
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  autoGrow?: boolean;
 }
 
-export function Textarea({ label, error, className = "", ...props }: TextareaProps) {
+export function Textarea({
+  label,
+  error,
+  className = "",
+  autoGrow = true,
+  onChange,
+  value,
+  rows = 3,
+  ...props
+}: TextareaProps) {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const adjustHeight = () => {
+    const el = textareaRef.current;
+    if (el && autoGrow) {
+      el.style.height = "auto";
+      const scrollH = el.scrollHeight;
+      const minHeight = (rows || 3) * 24 + 18;
+      const targetHeight = Math.max(minHeight, Math.min(scrollH, 200));
+      el.style.height = `${targetHeight}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
   return (
     <div className="flex flex-col gap-1">
       {label && <label className="text-sm font-medium text-[var(--foreground)]">{label}</label>}
       <textarea
-        className={`w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg bg-white text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition resize-none ${className}`}
+        ref={textareaRef}
+        rows={rows}
+        value={value}
+        onChange={(e) => {
+          adjustHeight();
+          onChange?.(e);
+        }}
+        className={`w-full px-3 py-2 text-sm border border-[var(--border)] rounded-xl bg-white text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition-all max-h-[200px] overflow-y-auto ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && <p className="text-xs text-red-500 font-medium mt-0.5">{error}</p>}
     </div>
   );
 }
@@ -535,8 +569,14 @@ export function Dialog({ open, onClose, title, children, size = "md", className 
 }
 
 // --- Tabs ---
-interface Tab { id: string; label: string; icon?: ReactNode; disabled?: boolean }
-interface TabsProps {
+export interface Tab {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  dividerAfter?: boolean;
+}
+export interface TabsProps {
   tabs: Tab[];
   activeTab: string;
   onChange: (id: string) => void;
@@ -545,23 +585,28 @@ interface TabsProps {
 
 export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
   return (
-    <div className={`flex border-b border-[var(--border)] ${className}`}>
+    <div className={`flex items-center border-b border-[var(--border)] overflow-x-auto ${className}`}>
       {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          disabled={tab.disabled}
-          onClick={() => !tab.disabled && onChange(tab.id)}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
-            tab.disabled
-              ? "border-transparent text-[var(--muted-foreground)] opacity-40 cursor-not-allowed select-none"
-              : activeTab === tab.id
-              ? "border-[var(--primary)] text-[var(--primary)] font-bold bg-[var(--primary)]/5 cursor-pointer"
-              : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 cursor-pointer"
-          }`}
-        >
-          {tab.icon}
-          {tab.label}
-        </button>
+        <Fragment key={tab.id}>
+          <button
+            type="button"
+            disabled={tab.disabled}
+            onClick={() => !tab.disabled && onChange(tab.id)}
+            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px flex-shrink-0 ${
+              tab.disabled
+                ? "border-transparent text-[var(--muted-foreground)] opacity-40 cursor-not-allowed select-none"
+                : activeTab === tab.id
+                ? "border-[var(--primary)] text-[var(--primary)] font-bold bg-[var(--primary)]/5 cursor-pointer"
+                : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 cursor-pointer"
+            }`}
+          >
+            {tab.icon}
+            {tab.label}
+          </button>
+          {tab.dividerAfter && (
+            <div className="h-4 w-[1px] bg-[var(--border)] self-center mx-2 flex-shrink-0" />
+          )}
+        </Fragment>
       ))}
     </div>
   );

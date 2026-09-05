@@ -108,6 +108,7 @@ export interface Event {
   apfUrl?: string;
   appendices?: string[];
   clearanceDetails?: string;
+  clearanceDocRef?: string;
   remarks?: string[];
   status: EventStatus;
   revenue?: number;
@@ -985,6 +986,51 @@ export function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+export function formatEventSchedule(dateStart?: string, dateEnd?: string): string {
+  if (!dateStart) return "—";
+  try {
+    const s = new Date(dateStart);
+    if (isNaN(s.getTime())) return dateStart;
+
+    const startDateStr = s.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+    const hasTime = dateStart.includes("T") || dateStart.includes(":");
+    const startTimeStr = hasTime ? s.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+
+    if (!dateEnd || dateEnd === dateStart) {
+      return startTimeStr ? `${startDateStr} · ${startTimeStr}` : startDateStr;
+    }
+
+    const e = new Date(dateEnd);
+    if (isNaN(e.getTime())) {
+      return startTimeStr ? `${startDateStr} · ${startTimeStr}` : startDateStr;
+    }
+
+    const endDateStr = e.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+    const endTimeStr = (dateEnd.includes("T") || dateEnd.includes(":")) ? e.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
+
+    const isSameDay = s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate();
+
+    if (isSameDay) {
+      if (startTimeStr && endTimeStr) {
+        return `${startDateStr} · ${startTimeStr} – ${endTimeStr}`;
+      } else if (startTimeStr) {
+        return `${startDateStr} · ${startTimeStr}`;
+      } else {
+        return startDateStr;
+      }
+    } else {
+      // Multi-day event spanning different dates
+      if (startTimeStr && endTimeStr) {
+        return `${startDateStr}, ${startTimeStr} – ${endDateStr}, ${endTimeStr}`;
+      } else {
+        return `${startDateStr} – ${endDateStr}`;
+      }
+    }
+  } catch {
+    return dateStart + (dateEnd ? ` – ${dateEnd}` : "");
+  }
+}
+
 export const statusColors: Record<EventStatus, string> = {
   Created: "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
   "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
@@ -1079,7 +1125,8 @@ export function printClearanceDocument(event: Event, organizationName?: string, 
   const orgCode = org?.code || "CITE";
   const type = getEventTypeById(event.typeId);
   const typeName = eventTypeName || type?.name || "Institutional Event";
-  const docRef = `CLR-${event.id.toUpperCase()}-2026`;
+  const cleanId = event.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
+  const docRef = event.clearanceDocRef || `CLR-${cleanId}-${new Date(event.dateStart || Date.now()).getFullYear()}`;
   const formattedDate = event.dateStart && event.dateEnd
     ? `${formatDateTime(event.dateStart)} – ${formatDateTime(event.dateEnd)}`
     : event.dateStart

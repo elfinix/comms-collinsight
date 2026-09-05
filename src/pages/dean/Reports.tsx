@@ -44,7 +44,7 @@ export default function DeanReports() {
   const viewTabs = [
     { id: "details", label: "Details" },
     { id: "compliance", label: "Compliance Docs" },
-    { id: "clearance", label: "Event Clearance" },
+    { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
   ];

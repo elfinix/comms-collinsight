@@ -5,7 +5,8 @@ import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, Button, EmptyState } from "../../components/ui";
 import {
   Wallet, CreditCard, Coins, CalendarCheck, Search, Grid, List, ChevronDown,
-  ArrowDownWideNarrow, ArrowUpNarrowWide, ArrowRight, ArrowUpDown,
+  ArrowDownWideNarrow, ArrowUpNarrowWide, ArrowRight, ArrowUpDown, Building2, CheckCircle,
+  Lock, Clock,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from "recharts";
 import { formatCurrency, formatDate, statusColors, getCategoryById } from "../../services/mockData";
@@ -20,16 +21,31 @@ export default function StudentFinance() {
 
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
-  const approvedEvents = events.filter((e) => e.organizationId === orgId && ["Approved", "Completed", "Closed"].includes(e.status));
+  const orgEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
+  const approvedEvents = orgEvents.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
   const allTxns = transactions.filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted);
 
+  const organizationBudget = org?.allocatedBudget ?? 0;
   const totalSpent = allTxns.reduce((s, t) => s + t.amount, 0);
-  const allocatedBudget = org?.allocatedBudget ?? 0;
-  const remaining = allocatedBudget - totalSpent;
+
+  // Allocated Budget = total sum of committed funds among proposed events so far
+  // For Closed events, the unspent surplus has reverted to treasury, so committed cost is actual spent
+  const allocatedBudget = orgEvents.reduce((sum, e) => {
+    if (e.status === "Closed") {
+      const eventTxns = transactions.filter((t) => t.eventId === e.id && !t.deleted);
+      const spent = eventTxns.reduce((s, t) => s + t.amount, 0);
+      return sum + spent;
+    }
+    return sum + (e.proposedBudget || 0);
+  }, 0);
+
+  const remaining = organizationBudget - allocatedBudget;
 
   const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
+  const [approvedExpanded, setApprovedExpanded] = useState(true);
+  const [pendingExpanded, setPendingExpanded] = useState(false);
 
   useEffect(() => {
     setView(defaultView || "grid");
@@ -69,22 +85,26 @@ export default function StudentFinance() {
     };
   });
 
-  const enrichedApprovedEvents = approvedEvents.map((e) => {
+  const enrichedOrgEvents = orgEvents.map((e) => {
+    const isApproved = ["Approved", "Completed", "Closed"].includes(e.status);
     const eventTxnsList = transactions.filter((t) => t.eventId === e.id && !t.deleted);
-    const spent = eventTxnsList.reduce((s, t) => s + t.amount, 0);
-    const budget = e.proposedBudget;
-    const remaining = budget - spent;
-    const utilizationRate = budget > 0 ? (spent / budget) * 100 : 0;
+    const spent = isApproved ? eventTxnsList.reduce((s, t) => s + t.amount, 0) : 0;
+    const budget = e.proposedBudget || 0;
+    const rem = isApproved ? budget - spent : budget;
+    const utilizationRate = isApproved && budget > 0 ? (spent / budget) * 100 : 0;
+    const netSurplus = isApproved ? Math.max(0, rem) + (e.revenue || 0) : 0;
     return {
       ...e,
+      isApproved,
       spent,
-      remaining,
+      remaining: rem,
       utilizationRate,
+      netSurplus,
       txnCount: eventTxnsList.length,
     };
   });
 
-  const filteredApprovedEvents = enrichedApprovedEvents
+  const filteredEvents = enrichedOrgEvents
     .filter((e) => {
       if (search && !e.name.toLowerCase().includes(search.toLowerCase()) && !e.location.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
@@ -96,6 +116,10 @@ export default function StudentFinance() {
       if (typeof vb === "string") vb = vb.toLowerCase();
       return sortDir === "asc" ? (va > vb ? 1 : -1) : va < vb ? 1 : -1;
     });
+
+  const approvedGroup = filteredEvents.filter((e) => e.isApproved);
+  const pendingGroup = filteredEvents.filter((e) => !e.isApproved);
+  const totalPendingBudget = pendingGroup.reduce((s, e) => s + (e.proposedBudget || 0), 0);
 
   // Render modular ledger view when a specific event is selected
   if (selectedEvent) {
@@ -116,10 +140,10 @@ export default function StudentFinance() {
 
       {/* Org Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Organization Budget" value={formatCurrency(organizationBudget)} icon={<Building2 size={18} />} />
         <StatCard label="Allocated Budget" value={formatCurrency(allocatedBudget)} icon={<Wallet size={18} />} />
         <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
         <StatCard label="Remaining" value={formatCurrency(remaining)} icon={<Coins size={18} />} trend={remaining < 0 ? "down" : "up"} />
-        <StatCard label="Approved Events" value={approvedEvents.length} icon={<CalendarCheck size={18} />} />
       </div>
 
       {/* Charts */}
@@ -179,44 +203,30 @@ export default function StudentFinance() {
                       />
                     </PieChart>
                   </ResponsiveContainer>
-                  {/* Center Text inside Donut */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center z-0">
-                    <span className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Total</span>
-                    <span className="text-xs font-mono font-extrabold text-[var(--foreground)]">
-                      {totalSpent >= 1000 ? `₱${(totalSpent / 1000).toFixed(1)}k` : formatCurrency(totalSpent)}
-                    </span>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Total</span>
+                    <span className="text-sm font-extrabold font-mono text-[var(--foreground)] mt-0.5">{formatCurrency(totalSpent)}</span>
                   </div>
                 </div>
 
-                {/* Rich Category Breakdown Bars & List */}
-                <div className="sm:col-span-7 flex flex-col gap-2.5 max-h-[210px] overflow-y-auto pr-1">
-                  {byCategory.map((cat, i) => (
-                    <div key={i} className="group flex flex-col gap-1 p-1.5 rounded-xl hover:bg-[var(--muted)]/30 transition">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1.5 font-medium text-[var(--foreground)] truncate max-w-[120px]" title={cat.name}>
-                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                          <span className="truncate">{cat.name}</span>
-                        </span>
-                        <div className="flex items-center gap-2 font-mono flex-shrink-0">
-                          <span className="font-bold text-[var(--foreground)]">{formatCurrency(cat.value)}</span>
-                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded-md">
-                            {cat.pct.toFixed(0)}%
-                          </span>
-                        </div>
+                {/* Legend List */}
+                <div className="sm:col-span-7 flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-1">
+                  {byCategory.map((item, idx) => (
+                    <div key={idx} className="flex items-center justify-between text-xs py-1 border-b border-[var(--border)]/40 last:border-0">
+                      <div className="flex items-center gap-2 min-w-0 pr-2">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-2xs" style={{ backgroundColor: item.color }} />
+                        <span className="text-[var(--foreground)] font-medium truncate">{item.name}</span>
                       </div>
-                      {/* Mini Progress Bar */}
-                      <div className="w-full h-1.5 bg-[var(--muted)] rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${cat.pct}%`, backgroundColor: cat.color }}
-                        />
+                      <div className="flex items-center gap-3 font-mono shrink-0">
+                        <span className="font-bold text-[var(--foreground)]">{formatCurrency(item.value)}</span>
+                        <span className="text-[var(--muted-foreground)] text-[10px] w-9 text-right font-medium">{item.pct.toFixed(0)}%</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[190px] text-[var(--muted-foreground)] text-sm">No expenses recorded yet.</div>
+              <EmptyState title="No spending records" description="Expenses recorded on approved event ledgers will appear here." />
             )}
           </CardBody>
         </Card>
@@ -225,48 +235,48 @@ export default function StudentFinance() {
         <Card className="flex flex-col">
           <CardHeader className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
             <h2 className="font-semibold text-sm text-[var(--foreground)]">Spending per Event</h2>
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-2.5 h-2.5 rounded-xs bg-teal-300" /> Budget
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-600">
-                <span className="w-2.5 h-2.5 rounded-xs bg-teal-600" /> Spent
-              </span>
+            <div className="flex items-center gap-3 text-[10px] font-mono">
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-xs bg-[#4db8b0]" /> Budget</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-xs bg-[#0a6b64]" /> Spent</span>
             </div>
           </CardHeader>
           <CardBody className="flex-1 flex flex-col justify-center p-4">
-            {chartData.length === 0 || chartData.every((d) => d.budget === 0 && d.spent === 0) ? (
-              <div className="flex flex-col items-center justify-center h-[200px] text-center p-4">
-                <Wallet size={28} className="text-[var(--muted-foreground)] opacity-40 mb-1.5" />
-                <p className="text-xs font-semibold text-[var(--foreground)]">No event spending data</p>
-                <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Budget and disbursement comparisons will appear here.</p>
-              </div>
+            {chartData.length === 0 ? (
+              <EmptyState title="No approved events" description="Approved events will populate this chart." />
             ) : (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -15, bottom: 5 }}>
-                  <XAxis dataKey="shortName" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
-                  <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => `₱${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`} />
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                  <XAxis
+                    dataKey="shortName"
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                    axisLine={{ stroke: "var(--border)" }}
+                    tickLine={false}
+                    interval={0}
+                    angle={-15}
+                    textAnchor="end"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "var(--muted-foreground)" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `₱${v >= 1000 ? `${Math.round(v / 1000)}k` : v}`}
+                  />
                   <Tooltip
-                    wrapperStyle={{ zIndex: 50, pointerEvents: "none" }}
+                    cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                    wrapperStyle={{ zIndex: 50 }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
-                        const item = payload[0].payload;
+                        const data = payload[0].payload;
                         return (
-                          <div className="bg-white border border-slate-200/90 shadow-2xl p-3.5 rounded-2xl text-xs space-y-2 min-w-[200px] z-50">
-                            <p className="font-bold text-[var(--foreground)] leading-snug border-b border-[var(--border)] pb-1.5">{item.fullName}</p>
-                            <div className="space-y-1.5 font-mono">
-                              <div className="flex items-center justify-between gap-3 text-slate-600">
-                                <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
-                                </span>
-                                <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
-                              </div>
-                              <div className="flex items-center justify-between gap-3 text-slate-600">
-                                <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
-                                </span>
-                                <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
-                              </div>
+                          <div className="bg-white border border-slate-200/90 shadow-2xl px-3.5 py-2.5 rounded-xl text-xs space-y-1.5 z-50 min-w-[180px]">
+                            <p className="font-bold text-[var(--foreground)] truncate max-w-[200px]">{data.fullName}</p>
+                            <div className="flex items-center justify-between gap-4 font-mono text-[11px]">
+                              <span className="text-[#4db8b0] font-bold">Budget:</span>
+                              <span className="font-bold">{formatCurrency(data.budget)}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-4 font-mono text-[11px]">
+                              <span className="text-[#0a6b64] font-bold">Spent:</span>
+                              <span className="font-bold text-[#0a6b64]">{formatCurrency(data.spent)}</span>
                             </div>
                           </div>
                         );
@@ -274,8 +284,8 @@ export default function StudentFinance() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="budget" fill="#5eead4" radius={[4, 4, 0, 0]} name="Budget" />
-                  <Bar dataKey="spent" fill="#0d9488" radius={[4, 4, 0, 0]} name="Spent" />
+                  <Bar dataKey="budget" fill="#4db8b0" radius={[4, 4, 0, 0]} name="Budget" />
+                  <Bar dataKey="spent" fill="#0a6b64" radius={[4, 4, 0, 0]} name="Spent" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -283,7 +293,7 @@ export default function StudentFinance() {
         </Card>
       </div>
 
-      {/* UX-Friendly Toolbar (Search, Sort, View Toggle) */}
+      {/* UX-Friendly Toolbar (Search, Filter, Sort, View Toggle) */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 mb-6 shadow-2xs flex flex-col gap-4">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           {/* Search Input */}
@@ -291,7 +301,7 @@ export default function StudentFinance() {
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
             <input
               type="text"
-              placeholder="Search approved events or venues..."
+              placeholder="Search events or venues..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-8 py-2 text-sm border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition shadow-2xs"
@@ -367,102 +377,267 @@ export default function StudentFinance() {
         </div>
       </div>
 
-      {/* Approved Events (Grid / List Views) */}
-      {filteredApprovedEvents.length === 0 ? (
+      {/* Events (Approved first, Pending below) */}
+      {filteredEvents.length === 0 ? (
         <EmptyState
-          title="No approved events found"
-          description={search ? `No events match "${search}". Try another search term.` : "Approved events with financial ledgers will appear here."}
+          title="No events found"
+          description={search ? `No events match "${search}". Try another search term.` : "No events available for this organization."}
         />
-      ) : view === "grid" ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredApprovedEvents.map((e) => (
-            <div
-              key={e.id}
-              onClick={() => setSelectedEvent(e.id)}
-              className="bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--muted)]/30 border border-[var(--border)] rounded-2xl p-5 hover:shadow-md hover:border-[var(--primary)]/50 transition cursor-pointer flex flex-col gap-3 group"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>
-                <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-[var(--foreground)] leading-snug group-hover:text-[var(--primary)] transition line-clamp-1">{e.name}</h3>
-                <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{formatDate(e.dateStart)} · {e.location}</p>
+      ) : (
+        <div className="space-y-8">
+          {/* SECTION 1: APPROVED EVENTS (Default Extended) */}
+          {approvedGroup.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setApprovedExpanded((prev) => !prev)}
+                  className="flex items-center gap-2.5 text-left transition cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-xl bg-teal-100 text-teal-800 border border-teal-200 flex items-center justify-center transition-all group-hover:bg-teal-200 group-hover:border-teal-400 group-hover:text-teal-950 shadow-2xs">
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${approvedExpanded ? "rotate-0" : "-rotate-90"}`} />
+                  </div>
+                  <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition">Approved Events</h2>
+                  <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                    {approvedGroup.length}
+                  </span>
+                </button>
               </div>
 
-              {/* Financial Metrics Mini-Grid */}
-              <div className="grid grid-cols-2 gap-2 bg-[var(--muted)]/40 p-3 rounded-xl border border-[var(--border)] text-xs">
-                <div>
-                  <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p>
-                  <p className="font-mono font-bold text-[var(--foreground)] mt-0.5">{formatCurrency(e.proposedBudget)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Total Spent</p>
-                  <p className="font-mono font-bold text-teal-700 mt-0.5">{formatCurrency(e.spent)}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Remaining</p>
-                  <p className={`font-mono font-bold mt-0.5 ${e.remaining >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                    {formatCurrency(e.remaining)}
+              {approvedExpanded && (
+                view === "grid" ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {approvedGroup.map((e) => (
+                      <div
+                        key={e.id}
+                        onClick={() => setSelectedEvent(e.id)}
+                        className="bg-white border border-[var(--border)] rounded-2xl p-5 hover:shadow-md hover:border-[var(--primary)]/50 transition cursor-pointer flex flex-col gap-3 group"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>
+                          <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-[var(--foreground)] leading-snug group-hover:text-[var(--primary)] transition line-clamp-1">{e.name}</h3>
+                          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{formatDate(e.dateStart)} · {e.location}</p>
+                        </div>
+
+                        {/* Financial Metrics Mini-Grid */}
+                        <div className="grid grid-cols-2 gap-2 bg-[var(--muted)]/40 p-3 rounded-xl border border-[var(--border)] text-xs">
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p>
+                            <p className="font-mono font-bold text-[var(--foreground)] mt-0.5">{formatCurrency(e.proposedBudget)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Total Spent</p>
+                            <p className="font-mono font-bold text-teal-700 mt-0.5">{formatCurrency(e.spent)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Remaining</p>
+                            <p className={`font-mono font-bold mt-0.5 ${e.remaining >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                              {formatCurrency(e.remaining)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Utilization</p>
+                            <p className="font-mono font-bold text-[var(--primary)] mt-0.5">{e.utilizationRate.toFixed(1)}%</p>
+                          </div>
+                        </div>
+
+                        {/* If Closed, show Proposal Surplus Reconciled Banner */}
+                        {e.status === "Closed" && (
+                          <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
+                            <CheckCircle size={14} className="text-emerald-600 shrink-0" />
+                            <span className="leading-tight text-[11px]">
+                              Proposal Surplus Reconciled: <strong className="font-mono text-emerald-950 font-bold">{formatCurrency(e.remaining)}</strong>
+                            </span>
+                          </div>
+                        )}
+
+                        {/* Footer with Ledger CTA */}
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-[var(--border)]">
+                          <span className="text-xs font-mono text-[var(--muted-foreground)]">
+                            {e.txnCount} transaction{e.txnCount === 1 ? "" : "s"}
+                          </span>
+                          <span className="text-xs font-bold text-[var(--primary)] flex items-center gap-1 group-hover:translate-x-0.5 transition">
+                            Open Ledger <ArrowRight size={13} />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
+                            {["Event", "Date", "Budget", "Spent", "Remaining", "Status", "Actions"].map((h) => (
+                              <th key={h} className={`px-4 py-3 text-xs font-mono font-semibold text-[var(--muted-foreground)] ${h === "Actions" ? "text-right" : "text-left"}`}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border)]">
+                          {approvedGroup.map((e) => (
+                            <tr
+                              key={e.id}
+                              className="hover:bg-[var(--muted)]/30 transition cursor-pointer"
+                              onClick={() => setSelectedEvent(e.id)}
+                            >
+                              <td className="px-4 py-3 font-bold text-[var(--foreground)] max-w-[220px]">
+                                <div className="truncate">{e.name}</div>
+                                {e.status === "Closed" && (
+                                  <span className="text-[10px] font-mono text-emerald-700 font-semibold block mt-0.5">
+                                    Proposal Surplus Reconciled: {formatCurrency(e.remaining)}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 font-mono text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)}</td>
+                              <td className="px-4 py-3 font-mono text-xs font-semibold">{formatCurrency(e.proposedBudget)}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-teal-700 font-bold">{formatCurrency(e.spent)}</td>
+                              <td className={`px-4 py-3 font-mono text-xs font-semibold ${e.remaining >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                                {formatCurrency(e.remaining)}
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <Button size="sm" variant="outline" className="text-xs h-7 px-2.5 font-mono shadow-2xs">
+                                  Ledger <ArrowRight size={11} />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )
+              )}
+            </div>
+          )}
+
+          {/* SECTION 2: PENDING PROPOSALS (Default Collapsed, Ghost Card Styling) */}
+          {pendingGroup.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setPendingExpanded((prev) => !prev)}
+                  className="flex items-center gap-2.5 text-left transition cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-xl bg-amber-100 text-amber-800 border border-amber-300 flex items-center justify-center transition-all group-hover:bg-amber-200 group-hover:border-amber-400 group-hover:text-amber-950 shadow-2xs">
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${pendingExpanded ? "rotate-0" : "-rotate-90"}`} />
+                  </div>
+                  <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-amber-700 transition">Pending Proposals</h2>
+                  <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    {pendingGroup.length}
+                  </span>
+                </button>
+
+                <div className="flex items-center gap-3">
+                  <p className="text-xs text-[var(--muted-foreground)] font-mono hidden sm:block">
+                    Reserving <strong className="text-[var(--primary)] font-bold">{formatCurrency(totalPendingBudget)}</strong> in budget headroom
                   </p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Utilization</p>
-                  <p className="font-mono font-bold text-[var(--primary)] mt-0.5">{e.utilizationRate.toFixed(1)}%</p>
-                </div>
               </div>
 
-              {/* Footer with Ledger CTA */}
-              <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-[var(--border)]">
-                <span className="text-xs font-mono text-[var(--muted-foreground)]">
-                  {e.txnCount} transaction{e.txnCount === 1 ? "" : "s"}
-                </span>
-                <span className="text-xs font-bold text-[var(--primary)] flex items-center gap-1 group-hover:translate-x-0.5 transition">
-                  Open Ledger <ArrowRight size={13} />
-                </span>
-              </div>
+              {pendingExpanded && (
+                view === "grid" ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {pendingGroup.map((e) => (
+                      <div
+                        key={e.id}
+                        className="bg-[#f8fcfc] border-2 border-dashed border-slate-300 rounded-2xl p-5 shadow-2xs flex flex-col gap-3.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>
+                            {e.status}
+                          </span>
+                          <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</span>
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-[var(--foreground)] leading-snug line-clamp-1">{e.name}</h3>
+                          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{formatDate(e.dateStart)} · {e.location}</p>
+                        </div>
+
+                        {/* Financial Metrics Mini-Grid */}
+                        <div className="grid grid-cols-2 gap-2 bg-[var(--muted)]/40 p-3 rounded-xl border border-dashed border-[var(--border)] text-xs">
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Proposed Budget</p>
+                            <p className="font-mono font-bold text-[var(--primary)] text-sm mt-0.5">{formatCurrency(e.proposedBudget)}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Total Spent</p>
+                            <p className="font-mono font-medium text-slate-400 dark:text-slate-500 mt-0.5">—</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Remaining</p>
+                            <p className="font-mono font-medium text-slate-400 dark:text-slate-500 mt-0.5">—</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold uppercase tracking-wider">Utilization</p>
+                            <p className="font-mono font-medium text-slate-400 dark:text-slate-500 mt-0.5">—</p>
+                          </div>
+                        </div>
+
+                        {/* Notice */}
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
+                          <Clock size={14} className="text-amber-600 shrink-0" />
+                          <span>Ledger locked · Activates upon Dean approval</span>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-[var(--border)]">
+                          <span className="text-xs font-mono text-[var(--muted-foreground)]">Budget Reserved</span>
+                          <span className="text-xs font-semibold text-[var(--muted-foreground)] flex items-center gap-1.5">
+                            <Lock size={12} /> Locked
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Card>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
+                            {["Event", "Date", "Proposed Budget", "Spent", "Remaining", "Status", "Actions"].map((h) => (
+                              <th key={h} className={`px-4 py-3 text-xs font-mono font-semibold text-[var(--muted-foreground)] ${h === "Actions" ? "text-right" : "text-left"}`}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--border)]">
+                          {pendingGroup.map((e) => (
+                            <tr key={e.id}>
+                              <td className="px-4 py-3 font-semibold text-[var(--foreground)] max-w-[220px]">
+                                <div className="truncate">{e.name}</div>
+                                <span className="text-[10px] font-mono text-amber-700 font-medium block mt-0.5">Pending Dean Approval</span>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)}</td>
+                              <td className="px-4 py-3 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-slate-400 dark:text-slate-500">—</td>
+                              <td className="px-4 py-3 font-mono text-xs text-slate-400 dark:text-slate-500">—</td>
+                              <td className="px-4 py-3">
+                                <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <span className="text-xs font-mono text-[var(--muted-foreground)] inline-flex items-center gap-1">
+                                  <Lock size={11} /> Locked
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )
+              )}
             </div>
-          ))}
+          )}
         </div>
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
-                  {["Event", "Date", "Budget", "Spent", "Remaining", "Status", "Actions"].map((h) => (
-                    <th key={h} className={`px-4 py-3 text-xs font-mono font-semibold text-[var(--muted-foreground)] ${h === "Actions" ? "text-right" : "text-left"}`}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {filteredApprovedEvents.map((e) => (
-                  <tr
-                    key={e.id}
-                    className="hover:bg-[var(--muted)]/30 transition cursor-pointer"
-                    onClick={() => setSelectedEvent(e.id)}
-                  >
-                    <td className="px-4 py-3 font-bold text-[var(--foreground)] max-w-[220px] truncate">{e.name}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)}</td>
-                    <td className="px-4 py-3 font-mono text-xs font-semibold">{formatCurrency(e.proposedBudget)}</td>
-                    <td className="px-4 py-3 font-mono text-xs text-teal-700 font-bold">{formatCurrency(e.spent)}</td>
-                    <td className={`px-4 py-3 font-mono text-xs font-semibold ${e.remaining >= 0 ? "text-emerald-700" : "text-red-600"}`}>
-                      {formatCurrency(e.remaining)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button size="sm" variant="outline" className="text-xs h-7 px-2.5 font-mono shadow-2xs">
-                        Ledger <ArrowRight size={11} />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
       )}
     </div>
   );

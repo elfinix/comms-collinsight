@@ -699,10 +699,14 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             </span>
           </CardHeader>
           <CardBody className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-medium text-[var(--muted-foreground)] block mb-1">Total Gross Revenue</span>
                 <span className="text-lg font-extrabold text-teal-900 font-mono">{formatCurrency(activeEvent.revenue)}</span>
+              </div>
+              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                <span className="text-[11px] font-medium text-[var(--muted-foreground)] block mb-1">Proposal Surplus</span>
+                <span className="text-lg font-extrabold text-teal-800 font-mono">{formatCurrency(remaining)}</span>
               </div>
               <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-medium text-[var(--muted-foreground)] block mb-1">Net Treasury Surplus</span>

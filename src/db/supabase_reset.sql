@@ -116,7 +116,7 @@ INSERT INTO public.expenditure_categories (id, name, description, deleted) VALUE
 -- 7. Events
 INSERT INTO public.events (
   id, organization_id, name, type_id, description, proposed_budget, requisites,
-  date_start, date_end, mode, location, apf_url, appendices, clearance_details, remarks,
+  date_start, date_end, mode, location, apf_url, appendices, clearance_details, clearance_doc_ref, remarks,
   status, revenue, liquidated_by, liquidated_at, created_at, created_by, deleted
 ) VALUES
   (
@@ -127,6 +127,7 @@ INSERT INTO public.events (
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_cloud_workshop.pdf',
     '["Program Flow & Schedule", "Speaker Profile & Certifications", "Safety & Security Protocol"]'::jsonb,
     'Official Clearance Granted by SDS. Online credentials configured.',
+    'CLR-F10000-2026',
     '["Meeting link generated", "Virtual lab assistant assigned", "Approved by CITE Dean"]'::jsonb,
     'Approved',
     0.00, NULL, NULL, '2026-08-15T02:00:00Z', '51000000-0000-0000-0000-000000000001', false
@@ -138,6 +139,7 @@ INSERT INTO public.events (
     '2026-09-24T00:00:00Z', '2026-09-26T08:00:00Z', 'Online', 'Online via Zoom Meetings',
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_web_bootcamp.pdf',
     '["Syllabus and Project Brief", "Resource Budget Breakdown", "Speaker Endorsement"]'::jsonb,
+    NULL,
     NULL,
     '["Webinar stream link and breakout rooms configured"]'::jsonb,
     'For Approval',
@@ -151,6 +153,7 @@ INSERT INTO public.events (
     NULL,
     '["Security Speaker Profile", "Interactive CTF Rules"]'::jsonb,
     NULL,
+    NULL,
     '[]'::jsonb,
     'For Review',
     0.00, NULL, NULL, '2026-08-25T06:00:00Z', '51000000-0000-0000-0000-000000000001', false
@@ -163,6 +166,7 @@ INSERT INTO public.events (
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_assembly_2026.pdf',
     '["Activity Mechanics", "Food & Beverage Distribution Matrix", "Post-Event Liquidation Template"]'::jsonb,
     'Event successfully concluded and liquidated. Full financial report reconciled.',
+    'CLR-F10000-2026',
     '["Reconciled with Dean Office", "All expenditures accounted"]'::jsonb,
     'Closed',
     1200.00, 'Maria D. Lopez', '2026-08-25T07:30:00Z', '2026-08-01T01:00:00Z', '51000000-0000-0000-0000-000000000001', false
@@ -175,6 +179,7 @@ INSERT INTO public.events (
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_iot_workshop.pdf',
     '["Component Safety Guidelines", "Hardware Requisition Sheet", "Trainer Portfolio"]'::jsonb,
     'Clearance granted. Lab 2 reserved.',
+    'CLR-F10000-2026',
     '["Hardware components procured", "Lab safety officer assigned"]'::jsonb,
     'Approved',
     0.00, NULL, NULL, '2026-08-18T05:00:00Z', '51000000-0000-0000-0000-000000000005', false
@@ -186,6 +191,7 @@ INSERT INTO public.events (
     '2026-10-24T00:00:00Z', '2026-10-25T09:00:00Z', 'FTF', 'University Gymnasium',
     NULL,
     '["Tournament Bracket & Rulebook", "Emergency Protocol", "Prize Structure Matrix"]'::jsonb,
+    NULL,
     NULL,
     '["Budget exceeds standard allocation; revision requested for prize pool"]'::jsonb,
     'Pending Revision',
@@ -199,6 +205,7 @@ INSERT INTO public.events (
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_sixsigma_seminar.pdf',
     '["Certified Six Sigma Black Belt Profile", "Evaluation Instrument"]'::jsonb,
     'Clearance granted. Virtual meeting room scheduled.',
+    'CLR-F10000-2026',
     '["Speaker link confirmed", "Certificate templates ready"]'::jsonb,
     'Approved',
     0.00, NULL, NULL, '2026-08-10T04:00:00Z', '51000000-0000-0000-0000-000000000007', false
@@ -210,6 +217,7 @@ INSERT INTO public.events (
     '2026-10-28T01:00:00Z', '2026-10-28T09:00:00Z', 'FTF', 'CITE Innovation Room',
     NULL,
     '["Case Study Brief", "Rubric for Evaluation", "Judge Invitation Letter"]'::jsonb,
+    NULL,
     NULL,
     '[]'::jsonb,
     'Created',

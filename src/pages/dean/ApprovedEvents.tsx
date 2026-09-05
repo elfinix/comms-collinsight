@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, StatCard, Dialog, Tabs, SignatoryProgress, Button } from "../../components/ui";
 import { CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video, LayoutGrid, List } from "lucide-react";
 import {
-  formatCurrency, formatDate, formatDateTime, statusColors, Event,
+  formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, Event,
   getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../../services/mockData";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -11,7 +11,7 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanApprovedEvents() {
-  const { events, transactions, organizations, defaultView, auditTrail, eventSignatories } = useApp();
+  const { events, eventTypes, transactions, organizations, defaultView, auditTrail, eventSignatories } = useApp();
 
   const getApprovalTimestamp = (eventId: string, createdAt: string) => {
     const deanSig = (eventSignatories || []).find(
@@ -46,7 +46,7 @@ export default function DeanApprovedEvents() {
   const viewTabs = [
     { id: "details", label: "Details" },
     { id: "compliance", label: "Compliance Docs" },
-    { id: "clearance", label: "Event Clearance" },
+    { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
   ];
@@ -270,7 +270,7 @@ export default function DeanApprovedEvents() {
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p>
-                    <p className="font-medium">{getEventTypeById(viewEvent.typeId)?.name || "—"}</p>
+                    <p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
@@ -282,21 +282,17 @@ export default function DeanApprovedEvents() {
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p>
-                    <p className="font-medium">{viewEvent.mode === "Online/Virtual" ? "Online" : viewEvent.mode}</p>
+                    <p className="font-medium">{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Date & Time</p>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p>
                     <p className="font-medium">
-                      {viewEvent.dateStart && viewEvent.dateEnd
-                        ? `${formatDateTime(viewEvent.dateStart)} – ${formatDateTime(viewEvent.dateEnd)}`
-                        : viewEvent.dateStart
-                        ? formatDateTime(viewEvent.dateStart)
-                        : "—"}
+                      {formatEventSchedule(viewEvent.dateStart, viewEvent.dateEnd)}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
-                      {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Location"}
+                      {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
                     {isWebUrl(viewEvent.location) ? (
                       <a
@@ -309,7 +305,7 @@ export default function DeanApprovedEvents() {
                         <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                       </a>
                     ) : (
-                      <p className="font-medium">{viewEvent.location || "—"}</p>
+                      <p className="font-medium">{viewEvent.location || (viewEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
                     )}
                   </div>
                   <div className="sm:col-span-2">

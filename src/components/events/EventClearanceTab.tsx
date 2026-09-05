@@ -1,5 +1,5 @@
 import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Eye } from "lucide-react";
-import { formatCurrency, formatDateTime, isWebUrl, toWebUrl, Event } from "../../services/mockData";
+import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event } from "../../services/mockData";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";
@@ -32,6 +32,7 @@ export default function EventClearanceTab({
   const resolvedOrgName = organizationName || org?.name || "Student Organization";
   const resolvedOrgCode = org?.code || "CITE";
   const resolvedTypeName = eventTypeName || typeObj?.name || "Institutional Event";
+  const isOnline = event.mode === "Online/Virtual" || (event.mode as string) === "Online";
 
   // Feedbacks / Signatory actions for this event, sorted newest first
   const relevantSignatories = (eventSignatories || [])
@@ -192,18 +193,14 @@ export default function EventClearanceTab({
             <p className="font-medium mt-0.5">{resolvedTypeName}</p>
           </div>
           <div className="sm:col-span-2">
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Date & Time</p>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p>
             <p className="font-medium mt-0.5">
-              {event.dateStart && event.dateEnd
-                ? `${formatDateTime(event.dateStart)} – ${formatDateTime(event.dateEnd)}`
-                : event.dateStart
-                ? formatDateTime(event.dateStart)
-                : "—"}
+              {formatEventSchedule(event.dateStart, event.dateEnd)}
             </p>
           </div>
           <div className="sm:col-span-2">
             <p className="font-mono text-[var(--muted-foreground)] font-bold">
-              {event.mode === "Online/Virtual" ? "Platform / Meeting Link" : "Venue / Location"}
+              {isOnline ? "Platform / Link" : "Venue / Location"}
             </p>
             {isWebUrl(event.location) ? (
               <a
@@ -216,7 +213,7 @@ export default function EventClearanceTab({
                 <ExternalLink size={12} className="flex-shrink-0" />
               </a>
             ) : (
-              <p className="font-medium mt-0.5">{event.location || "—"}</p>
+              <p className="font-medium mt-0.5">{event.location || (isOnline ? "Online Platform" : "Venue TBD")}</p>
             )}
           </div>
           <div>
