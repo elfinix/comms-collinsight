@@ -1,6 +1,5 @@
-import { Event, formatCurrency, formatDate, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, getEventTypeById } from "./mockData";
+import { Event, formatCurrency, formatDate, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, getEventTypeById, resolvePdfUrl } from "./dataService";
 import { generateClearancePdfBlob } from "./pdfDocuments";
-import { resolvePdfUrl } from "./mockData";
 
 export interface ClearanceEmailAttachment {
   filename: string;

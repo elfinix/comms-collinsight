@@ -11,7 +11,7 @@ import {
 import {
   formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getEventTypeById,
   Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass
-} from "../services/mockData";
+} from "../services/dataService";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../components/events/EventClearanceTab";
 import EventFinanceTab from "../components/events/EventFinanceTab";

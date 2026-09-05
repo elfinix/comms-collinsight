@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody } from "../../components/ui";
 import { Users, Building2, Calendar, Shield, Landmark, Clock, ArrowRight, GraduationCap, UserCheck, Award } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { formatDate, getActionBadgeClass, formatCurrency } from "../../services/mockData";
+import { formatDate, getActionBadgeClass, formatCurrency } from "../../services/dataService";
 
 const PIE_COLORS = [
   "#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981",

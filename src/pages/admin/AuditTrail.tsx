@@ -8,7 +8,7 @@ import {
   ScrollText, FileText, ArrowRight, Activity, Building2, CheckCircle,
   ChevronDown, Loader2
 } from "lucide-react";
-import { formatDateTime, getActionBadgeClass, Event, statusColors } from "../../services/mockData";
+import { formatDateTime, getActionBadgeClass, Event, statusColors } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";

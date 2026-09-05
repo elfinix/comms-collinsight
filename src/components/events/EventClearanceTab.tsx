@@ -1,5 +1,5 @@
 import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Eye } from "lucide-react";
-import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event } from "../../services/mockData";
+import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event } from "../../services/dataService";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";

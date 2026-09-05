@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card } from "../../components/ui";
 import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
-import { Organization, formatCurrency } from "../../services/mockData";
+import { Organization, formatCurrency } from "../../services/dataService";
 
 export default function AdminOrganizations() {
   const { organizations, departments, users, addOrganization, updateOrganization, deleteOrganization, updateUser } = useApp();

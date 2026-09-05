@@ -2,7 +2,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, CardBody, Button } from "../../components/ui";
 import { FileText, Mail, CheckCircle, Clock } from "lucide-react";
-import { formatDate, statusColors } from "../../services/mockData";
+import { formatDate, statusColors } from "../../services/dataService";
 
 export default function SDSWorkspace() {
   const { currentUser } = useAuth();

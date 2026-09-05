@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Input, PasswordInput, Button } from "../components/ui";
 import { Landmark, ArrowLeft, AlertCircle } from "lucide-react";
-import { users as fallbackUsers } from "../services/mockData";
+import { users as fallbackUsers } from "../services/dataService";
 
 export default function LoginPage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);

@@ -518,7 +518,7 @@ export function CardHeader({
       <div className={`px-5 py-4 border-b border-[var(--border)]/70 bg-[var(--muted)]/25 rounded-t-2xl flex items-center justify-between gap-4 ${className}`}>
         <div>
           {title && <h3 className="font-bold text-base text-[var(--foreground)] tracking-tight">{title}</h3>}
-          {subtitle && <p className="text-xs text-[var(--muted-foreground)] font-mono mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{subtitle}</p>}
         </div>
         {action && <div className="flex items-center gap-2">{action}</div>}
       </div>

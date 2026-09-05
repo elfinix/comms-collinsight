@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import {
   formatCurrency, formatDate, Event
-} from "../../services/mockData";
+} from "../../services/dataService";
 import { printLiquidationDocument } from "../../services/pdfDocuments";
 
 interface EventFinanceTabProps {

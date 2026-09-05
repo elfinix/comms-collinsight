@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCategoryById } from "./mockData";
+import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCategoryById } from "./dataService";
 
 export interface ClearancePdfOptions {
   organizationName?: string;

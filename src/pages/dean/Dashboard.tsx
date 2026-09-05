@@ -2,7 +2,7 @@ import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody } from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Landmark, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { formatCurrency, statusColors, formatDate } from "../../services/mockData";
+import { formatCurrency, statusColors, formatDate } from "../../services/dataService";
 
 export default function DeanDashboard() {
   const { events, transactions, organizations } = useApp();

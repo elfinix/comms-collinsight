@@ -8,7 +8,7 @@ import {
   FileDown, BarChart2, Calendar, Wallet, CreditCard,
   ChevronDown, ArrowUpDown, ArrowUpNarrowWide, ArrowDownWideNarrow, Filter, TrendingUp
 } from "lucide-react";
-import { formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById, getCategoryById } from "../../services/mockData";
+import { formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById, getCategoryById } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";

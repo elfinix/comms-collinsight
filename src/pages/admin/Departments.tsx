@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Card } from "../../components/ui";
 import { Plus, Pencil, Trash2, Search, Save, X, AlertTriangle, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
-import { Department } from "../../services/mockData";
+import { Department } from "../../services/dataService";
 
 export default function AdminDepartments() {
   const { departments, organizations, addDepartment, updateDepartment, deleteDepartment } = useApp();

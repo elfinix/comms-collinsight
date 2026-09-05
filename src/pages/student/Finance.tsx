@@ -9,7 +9,7 @@ import {
   Lock, Clock,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis } from "recharts";
-import { formatCurrency, formatDate, statusColors, getCategoryById } from "../../services/mockData";
+import { formatCurrency, formatDate, statusColors, getCategoryById } from "../../services/dataService";
 import FinanceLedgerView from "./FinanceLedgerView";
 
 const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#ef4444", "#10b981", "#f97316"];

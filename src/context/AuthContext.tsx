@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { User, users as fallbackUsers } from "../services/mockData";
+import { User, users as fallbackUsers } from "../services/dataService";
 import { supabase } from "../services/supabaseClient";
 import { mapUserFromDb, supabaseApi } from "../services/supabaseService";
 

@@ -1,3 +1,9 @@
+/**
+ * @deprecated This module is deprecated in favor of `dataService.ts`.
+ * Please import types, models, and utility functions from `../services/dataService`.
+ * This file is retained solely for legacy seed data reference.
+ */
+
 export type UserRole = "student" | "adviser" | "dean" | "admin";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";

@@ -2,7 +2,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Activity, ShieldCheck } from "lucide-react";
-import { formatCurrency, formatDate, statusColors } from "../../services/mockData";
+import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
 
 export default function AdviserDashboard() {
   const { currentUser } = useAuth();

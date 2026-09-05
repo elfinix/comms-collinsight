@@ -13,7 +13,7 @@ import {
   initialExportedReports,
   EventSignatory,
   eventSignatories as initialEventSignatories,
-} from "../services/mockData";
+} from "../services/dataService";
 import { supabaseApi } from "../services/supabaseService";
 
 interface AppContextType {

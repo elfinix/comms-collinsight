@@ -11,7 +11,7 @@ import {
 import {
   formatCurrency, formatDate, formatDateTime, statusColors,
   getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl
-} from "../../services/mockData";
+} from "../../services/dataService";
 import {
   uploadEventAttachment,
   buildAttachmentPath,

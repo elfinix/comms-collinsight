@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { Card, CardHeader, CardBody, Button, StatCard, Dialog } from "../../components/ui";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Calendar, Activity, Building2, FileDown, ExternalLink, FileText, CheckCircle } from "lucide-react";
-import { formatCurrency, formatDateTime, formatDate } from "../../services/mockData";
+import { formatCurrency, formatDateTime, formatDate } from "../../services/dataService";
 import { uploadGeneratedReport, getPublicStorageUrl } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";

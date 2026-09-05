@@ -7,7 +7,7 @@ import {
   User as UserIcon, Building2, Calendar, Moon, Sun, RefreshCw, UploadCloud,
   Trash2, CheckCircle, AlertCircle, ShieldCheck, Sliders, Lock, Sparkles, Layers, LayoutGrid, List
 } from "lucide-react";
-import { formatDate, Gender } from "../../services/mockData";
+import { formatDate, Gender } from "../../services/dataService";
 import { uploadUserMedia } from "../../services/storageService";
 
 function formatMiddleInitial(middleName?: string): string {

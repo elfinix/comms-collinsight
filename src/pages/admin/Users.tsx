@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card, UserAvatar } from "../../components/ui";
 import { Plus, Pencil, Trash2, Search, Users, Save, X, Building2, KeyRound, Copy, Check, RefreshCw, RotateCcw, Eye, EyeOff, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown, Layers, Filter } from "lucide-react";
-import { User } from "../../services/mockData";
+import { User } from "../../services/dataService";
 
 const ROLES = [
   { value: "student", label: "Student Officer" },

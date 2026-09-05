@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
 import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Shapes, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { formatCurrency, formatDate, statusColors } from "../../services/mockData";
+import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
 
 const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981"];
 

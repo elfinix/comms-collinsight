@@ -13,7 +13,7 @@ import {
 import {
   getEventTypeById,
   formatDate, formatEventSchedule, formatCurrency, statusColors, Event, Transaction, isWebUrl, toWebUrl, resolvePdfUrl
-} from "../services/mockData";
+} from "../services/dataService";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../services/storageService";
 

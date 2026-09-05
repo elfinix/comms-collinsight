@@ -1,14 +1,21 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, StatCard, Dialog, Tabs, SignatoryProgress, Button } from "../../components/ui";
-import { CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video, LayoutGrid, List } from "lucide-react";
+import {
+  CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video,
+  LayoutGrid, List, Search, Filter, ArrowUpDown, ChevronDown, ArrowUpNarrowWide, ArrowDownWideNarrow,
+  Building2, X, RotateCcw
+} from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, Event,
   getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl
-} from "../../services/mockData";
+} from "../../services/dataService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
+
+const STATUS_FILTERS = ["All", "Approved", "Completed", "Closed"] as const;
+type StatusFilterType = (typeof STATUS_FILTERS)[number];
 
 export default function DeanApprovedEvents() {
   const { events, eventTypes, transactions, organizations, defaultView, auditTrail, eventSignatories } = useApp();
@@ -28,12 +35,19 @@ export default function DeanApprovedEvents() {
     return new Date(createdAt).getTime();
   };
 
-  const approved = events
-    .filter((e) => ["Approved", "Completed", "Closed"].includes(e.status))
-    .sort((a, b) => getApprovalTimestamp(b.id, b.createdAt) - getApprovalTimestamp(a.id, a.createdAt));
+  const baseApproved = useMemo(() => {
+    return events.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
+  }, [events]);
 
-  const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
+  const totalSpent = useMemo(() => {
+    return transactions.filter((t) => baseApproved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
+  }, [transactions, baseApproved]);
 
+  const [search, setSearch] = useState("");
+  const [orgFilter, setOrgFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("All");
+  const [sortKey, setSortKey] = useState<"dateApproved" | "createdAt" | "name" | "proposedBudget" | "dateStart">("dateApproved");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
 
   useEffect(() => {
@@ -42,6 +56,67 @@ export default function DeanApprovedEvents() {
 
   const [viewEvent, setViewEvent] = useState<Event | null>(null);
   const [viewTab, setViewTab] = useState("details");
+
+  const filteredApproved = useMemo(() => {
+    return baseApproved
+      .filter((e) => {
+        // Status filter
+        if (statusFilter !== "All" && e.status !== statusFilter) return false;
+
+        // Org filter
+        if (orgFilter !== "all" && e.organizationId !== orgFilter) return false;
+
+        // Search query
+        if (search.trim()) {
+          const q = search.toLowerCase();
+          const org = organizations.find((o) => o.id === e.organizationId);
+          const type = eventTypes.find((t) => t.id === e.typeId) || getEventTypeById(e.typeId);
+          const matchName = e.name.toLowerCase().includes(q);
+          const matchDesc = e.description?.toLowerCase().includes(q) || false;
+          const matchLoc = e.location?.toLowerCase().includes(q) || false;
+          const matchOrg = org?.name.toLowerCase().includes(q) || org?.code.toLowerCase().includes(q) || false;
+          const matchType = type?.name.toLowerCase().includes(q) || false;
+          if (!matchName && !matchDesc && !matchLoc && !matchOrg && !matchType) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        let valA: any = 0;
+        let valB: any = 0;
+
+        if (sortKey === "dateApproved") {
+          valA = getApprovalTimestamp(a.id, a.createdAt);
+          valB = getApprovalTimestamp(b.id, b.createdAt);
+        } else if (sortKey === "createdAt") {
+          valA = new Date(a.createdAt).getTime();
+          valB = new Date(b.createdAt).getTime();
+        } else if (sortKey === "name") {
+          valA = a.name.toLowerCase();
+          valB = b.name.toLowerCase();
+        } else if (sortKey === "proposedBudget") {
+          valA = a.proposedBudget;
+          valB = b.proposedBudget;
+        } else if (sortKey === "dateStart") {
+          valA = new Date(a.dateStart).getTime();
+          valB = new Date(b.dateStart).getTime();
+        }
+
+        if (valA < valB) return sortDir === "asc" ? -1 : 1;
+        if (valA > valB) return sortDir === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [baseApproved, search, orgFilter, statusFilter, sortKey, sortDir, organizations, eventTypes, auditTrail, eventSignatories]);
+
+  const isFiltered = search.trim() !== "" || orgFilter !== "all" || statusFilter !== "All";
+
+  function handleResetFilters() {
+    setSearch("");
+    setOrgFilter("all");
+    setStatusFilter("All");
+    setSortKey("dateApproved");
+    setSortDir("desc");
+  }
 
   const viewTabs = [
     { id: "details", label: "Details" },
@@ -58,50 +133,189 @@ export default function DeanApprovedEvents() {
           <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">Approved Events</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">All approved events across CITE organizations (read-only).</p>
         </div>
-
-        {approved.length > 0 && (
-          <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setView("grid")}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                view === "grid"
-                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-              }`}
-              title="Grid View"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                view === "list"
-                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-              }`}
-              title="List View"
-            >
-              <List size={15} />
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard label="Approved Events" value={approved.length} icon={<CalendarCheck size={18} />} />
+        <StatCard label="Approved Events" value={baseApproved.length} icon={<CalendarCheck size={18} />} />
         <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
         <StatCard label="Closed Events" value={events.filter((e) => e.status === "Closed").length} icon={<CheckCircle size={18} />} />
       </div>
 
-      {approved.length === 0 ? (
+      {/* CollInsight Interactive Toolbox */}
+      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
+        {/* Tier 1: Search, Org Filter, Sort & View Toggles */}
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="relative flex-1 min-w-[240px]">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+            <input
+              type="text"
+              placeholder="Search by event title, location, description, or organization..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--background)] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-0.5 rounded cursor-pointer"
+                title="Clear Search"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Organization Filter Dropdown */}
+            <div className="relative flex items-center">
+              <Building2 size={13} className="absolute left-3 text-[var(--muted-foreground)] pointer-events-none" />
+              <select
+                value={orgFilter}
+                onChange={(e) => setOrgFilter(e.target.value)}
+                className="pl-8 pr-7 py-2 text-xs font-medium border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer appearance-none shadow-2xs hover:border-[var(--primary)]/40 transition"
+              >
+                <option value="all">All Organizations</option>
+                {organizations.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.name} ({o.code})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 text-[var(--muted-foreground)] pointer-events-none" />
+            </div>
+
+            {/* Sort Key Dropdown */}
+            <div className="relative flex items-center">
+              <ArrowUpDown size={13} className="absolute left-3 text-[var(--muted-foreground)] pointer-events-none" />
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as any)}
+                className="pl-8 pr-7 py-2 text-xs font-medium border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer appearance-none shadow-2xs hover:border-[var(--primary)]/40 transition"
+              >
+                <option value="dateApproved">Date Approved</option>
+                <option value="createdAt">Date Created</option>
+                <option value="dateStart">Event Schedule</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="proposedBudget">Proposed Budget</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 text-[var(--muted-foreground)] pointer-events-none" />
+            </div>
+
+            {/* Asc / Desc Toggle Button */}
+            <button
+              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+              className="w-8.5 h-8.5 flex items-center justify-center border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 hover:border-[var(--primary)]/40 transition cursor-pointer shadow-2xs"
+              title={sortDir === "asc" ? "Ascending — Click to sort Descending" : "Descending — Click to sort Ascending"}
+            >
+              {sortDir === "asc" ? (
+                <ArrowUpNarrowWide size={15} className="text-[var(--primary)]" />
+              ) : (
+                <ArrowDownWideNarrow size={15} className="text-[var(--primary)]" />
+              )}
+            </button>
+
+            {/* Grid / List View Toggle */}
+            <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setView("grid")}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  view === "grid"
+                    ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                }`}
+                title="Grid View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  view === "list"
+                    ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                }`}
+                title="Table / List View"
+              >
+                <List size={15} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-[var(--border)]/70" />
+
+        {/* Tier 2: Status Pills Filter */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] mr-1 flex items-center gap-1">
+              <Filter size={12} /> Status:
+            </span>
+            {STATUS_FILTERS.map((s) => {
+              const isActive = statusFilter === s;
+              const count = s === "All"
+                ? baseApproved.length
+                : baseApproved.filter((e) => e.status === s).length;
+
+              return (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`px-3 py-1 text-xs font-medium rounded-full transition cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
+                      : "bg-[var(--muted)]/50 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  <span>{s}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-[var(--border)]/60 text-[var(--muted-foreground)]"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {isFiltered && (
+            <button
+              onClick={handleResetFilters}
+              className="text-xs font-semibold text-[var(--primary)] hover:underline cursor-pointer ml-auto flex items-center gap-1"
+            >
+              <RotateCcw size={12} /> Reset Filters
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Events Presentation */}
+      {filteredApproved.length === 0 ? (
         <Card>
-          <div className="p-12 text-center text-[var(--muted-foreground)]">No approved events yet.</div>
+          <div className="p-12 text-center text-[var(--muted-foreground)] space-y-3">
+            <div className="w-12 h-12 rounded-full bg-[var(--muted)]/50 flex items-center justify-center mx-auto text-[var(--muted-foreground)]">
+              <CalendarCheck size={24} />
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-[var(--foreground)]">
+                {isFiltered ? "No events matching your filters" : "No approved events yet"}
+              </p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                {isFiltered
+                  ? "Try resetting your search criteria or choosing a different organization/status."
+                  : "Events endorsed and cleared by the Dean will appear here."}
+              </p>
+            </div>
+            {isFiltered && (
+              <Button size="sm" variant="outline" onClick={handleResetFilters} className="mt-2 text-xs">
+                Reset All Filters
+              </Button>
+            )}
+          </div>
         </Card>
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {approved.map((e) => {
+          {filteredApproved.map((e) => {
             const org = organizations.find((o) => o.id === e.organizationId);
             const orgColor = org?.logoColor || "#0d9488";
             const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
@@ -188,7 +402,7 @@ export default function DeanApprovedEvents() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
-                {approved.map((e) => {
+                {filteredApproved.map((e) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
                   const orgColor = org?.logoColor || "#0d9488";
                   const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);

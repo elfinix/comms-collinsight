@@ -10,7 +10,7 @@ import {
   AuditEntry,
   OrganizationMember,
   EventSignatory,
-} from "./mockData";
+} from "./dataService";
 
 // ============================================================================
 // DATA MAPPERS (Database snake_case <--> Application camelCase)

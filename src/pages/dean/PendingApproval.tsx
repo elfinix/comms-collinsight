@@ -3,7 +3,7 @@ import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/dataService";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
 import { dispatchClearanceEmail } from "../../services/mailerService";

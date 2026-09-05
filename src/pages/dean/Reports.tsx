@@ -13,7 +13,7 @@ import {
 import {
   formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById,
   Event, isWebUrl, toWebUrl, resolvePdfUrl
-} from "../../services/mockData";
+} from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";

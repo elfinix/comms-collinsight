@@ -1,5 +1,5 @@
 import { useApp } from "../../context/AppContext";
-import { formatDateTime, Event, getActionBadgeClass } from "../../services/mockData";
+import { formatDateTime, Event, getActionBadgeClass } from "../../services/dataService";
 import {
   Clock, CheckCircle, RotateCcw, MessageSquareQuote, FileText,
   User, Shield, DollarSign, Send, ArrowRight, Edit2, Trash2

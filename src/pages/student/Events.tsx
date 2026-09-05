@@ -12,7 +12,7 @@ import {
 import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, eventTypes, expenditureCategories,
   Event, EventStatus, resolvePdfUrl,
-} from "../../services/mockData";
+} from "../../services/dataService";
 import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";

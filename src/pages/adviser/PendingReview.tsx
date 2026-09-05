@@ -4,7 +4,7 @@ import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, FileText, UploadCloud, Calendar, MapPin, Video, ExternalLink, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/mockData";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/dataService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
