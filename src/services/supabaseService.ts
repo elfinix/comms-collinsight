@@ -99,8 +99,6 @@ export function mapEventFromDb(row: any): Event {
     clearanceDetails: row.clearance_details || undefined,
     remarks: Array.isArray(row.remarks) ? row.remarks : [],
     status: row.status || "Created",
-    adviserFeedback: row.adviser_feedback || undefined,
-    deanFeedback: row.dean_feedback || undefined,
     revenue: row.revenue !== null && row.revenue !== undefined ? Number(row.revenue) : undefined,
     liquidatedBy: row.liquidated_by || undefined,
     liquidatedAt: row.liquidated_at || undefined,
@@ -182,6 +180,7 @@ export const supabaseApi = {
         eventsRes,
         txnsRes,
         auditRes,
+        sigsRes,
       ] = await Promise.all([
         supabase.from("departments").select("*").order("name"),
         supabase.from("organizations").select("*").order("name"),
@@ -191,6 +190,7 @@ export const supabaseApi = {
         supabase.from("events").select("*").order("date_start", { ascending: false }),
         supabase.from("transactions").select("*").order("created_at", { ascending: false }),
         supabase.from("audit_trail").select("*").order("timestamp", { ascending: false }),
+        supabase.from("event_signatories").select("*").order("created_at", { ascending: true }),
       ]);
 
       if (deptsRes.error) {
@@ -206,6 +206,7 @@ export const supabaseApi = {
         events: (eventsRes.data || []).map(mapEventFromDb),
         transactions: (txnsRes.data || []).map(mapTransactionFromDb),
         auditTrail: (auditRes.data || []).map(mapAuditEntryFromDb),
+        eventSignatories: (sigsRes.data || []).map(mapEventSignatoryFromDb),
       };
     } catch (err) {
       console.error("Supabase fetchAllState failed:", err);
@@ -234,8 +235,6 @@ export const supabaseApi = {
       clearance_details: event.clearanceDetails || null,
       remarks: event.remarks || [],
       status: event.status,
-      adviser_feedback: event.adviserFeedback || null,
-      dean_feedback: event.deanFeedback || null,
       revenue: event.revenue || 0,
       liquidated_by: event.liquidatedBy || null,
       liquidated_at: event.liquidatedAt || null,
@@ -262,8 +261,6 @@ export const supabaseApi = {
     if (updates.clearanceDetails !== undefined) dbPayload.clearance_details = updates.clearanceDetails;
     if (updates.remarks !== undefined) dbPayload.remarks = updates.remarks;
     if (updates.status !== undefined) dbPayload.status = updates.status;
-    if (updates.adviserFeedback !== undefined) dbPayload.adviser_feedback = updates.adviserFeedback;
-    if (updates.deanFeedback !== undefined) dbPayload.dean_feedback = updates.deanFeedback;
     if (updates.revenue !== undefined) dbPayload.revenue = updates.revenue;
     if (updates.liquidatedBy !== undefined) dbPayload.liquidated_by = updates.liquidatedBy;
     if (updates.liquidatedAt !== undefined) dbPayload.liquidated_at = updates.liquidatedAt;
@@ -274,6 +271,39 @@ export const supabaseApi = {
 
   async softDeleteEvent(id: string) {
     return supabase.from("events").update({ deleted: true }).eq("id", id);
+  },
+
+  // --------------------------------------------------------------------------
+  // Event Signatories API (Feedback & Approvals Iteration Bridge)
+  // --------------------------------------------------------------------------
+  async createEventSignatory(sig: EventSignatory) {
+    const dbPayload = {
+      id: sig.id,
+      event_id: sig.eventId,
+      user_id: sig.userId,
+      role: sig.role,
+      status: sig.status,
+      feedback: sig.feedback || null,
+      signed_at: sig.signedAt || new Date().toISOString(),
+      created_at: sig.createdAt || new Date().toISOString(),
+    };
+    return supabase.from("event_signatories").insert(dbPayload).select();
+  },
+
+  async updateEventSignatory(id: string, updates: Partial<EventSignatory>) {
+    const dbPayload: any = {};
+    if (updates.status !== undefined) dbPayload.status = updates.status;
+    if (updates.feedback !== undefined) dbPayload.feedback = updates.feedback;
+    if (updates.signedAt !== undefined) dbPayload.signed_at = updates.signedAt;
+    return supabase.from("event_signatories").update(dbPayload).eq("id", id).select();
+  },
+
+  async resolvePendingSignatories(eventId: string) {
+    return supabase
+      .from("event_signatories")
+      .update({ status: "Resolved" })
+      .eq("event_id", eventId)
+      .eq("status", "Revision Requested");
   },
 
   // --------------------------------------------------------------------------

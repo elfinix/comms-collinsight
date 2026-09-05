@@ -11,8 +11,27 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanApprovedEvents() {
-  const { events, transactions, organizations, defaultView } = useApp();
-  const approved = events.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
+  const { events, transactions, organizations, defaultView, auditTrail, eventSignatories } = useApp();
+
+  const getApprovalTimestamp = (eventId: string, createdAt: string) => {
+    const deanSig = (eventSignatories || []).find(
+      (s) => s.eventId === eventId && s.role === "dean" && s.status === "Approved"
+    );
+    if (deanSig?.signedAt) return new Date(deanSig.signedAt).getTime();
+    if (deanSig?.createdAt) return new Date(deanSig.createdAt).getTime();
+
+    const auditEntry = (auditTrail || []).find(
+      (a) => a.eventId === eventId && (a.action === "Approved Event" || a.action === "Executive Approval" || a.statusTo === "Approved")
+    );
+    if (auditEntry?.timestamp) return new Date(auditEntry.timestamp).getTime();
+
+    return new Date(createdAt).getTime();
+  };
+
+  const approved = events
+    .filter((e) => ["Approved", "Completed", "Closed"].includes(e.status))
+    .sort((a, b) => getApprovalTimestamp(b.id, b.createdAt) - getApprovalTimestamp(a.id, a.createdAt));
+
   const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");

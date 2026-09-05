@@ -69,7 +69,20 @@ function newEventShell(createdBy: string, orgId: string, defaultTypeId: string =
 
 export default function StudentEvents() {
   const { currentUser } = useAuth();
-  const { events, addEvent, updateEvent, deleteEvent, organizations, setEventStatus, addAuditEntry, eventTypes, transactions, defaultView } = useApp();
+  const {
+    events,
+    addEvent,
+    updateEvent,
+    deleteEvent,
+    organizations,
+    setEventStatus,
+    addAuditEntry,
+    eventTypes,
+    transactions,
+    defaultView,
+    eventSignatories,
+    resolvePendingSignatories,
+  } = useApp();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -78,6 +91,23 @@ export default function StudentEvents() {
   const orgEvents = events.filter((e) => e.organizationId === orgId);
 
   const getEventType = (id: string) => eventTypes.find((t) => t.id === id) || getEventTypeById(id);
+
+  // Helper to extract the active (most recent unresolved) revision request feedback
+  const getActiveRevisionFeedback = (eventId: string) => {
+    const sigs = (eventSignatories || [])
+      .filter((s) => s.eventId === eventId && s.status === "Revision Requested" && s.feedback && s.feedback.trim().length > 0)
+      .sort((a, b) => new Date(b.signedAt || b.createdAt || 0).getTime() - new Date(a.signedAt || a.createdAt || 0).getTime());
+    if (sigs.length > 0) {
+      const latest = sigs[0];
+      return {
+        title: latest.role === "dean" ? "College Dean's Feedback" : "Adviser's Feedback",
+        feedback: latest.feedback!,
+        role: latest.role,
+        date: latest.signedAt || latest.createdAt,
+      };
+    }
+    return null;
+  };
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
 
@@ -227,17 +257,26 @@ export default function StudentEvents() {
         }
       }
 
-      addEvent({
+      const createdEventObj: Event = {
         ...draft,
         id,
         apfUrl: finalApfUrl,
         appendices: finalAppendices,
-      });
+      };
+      addEvent(createdEventObj);
 
       setShowCreate(false);
       setApfFile(null);
       setAppendixFiles([]);
-      toast.success("Event Proposal Created", `'${draft.name}' was created and attachments uploaded.`);
+      toast.success("Event Proposal Created", `'${draft.name}' was created and attachments uploaded.`, {
+        action: {
+          label: "Click here to view event details",
+          onClick: () => {
+            setViewEvent(createdEventObj);
+            setViewTab("details");
+          },
+        },
+      });
     } catch (err: any) {
       console.error("Save draft error:", err);
       toast.error("Upload Warning", "Failed to upload attachments. Event was saved locally.");
@@ -287,13 +326,22 @@ export default function StudentEvents() {
         finalAppendices = existingAppendices;
       }
 
-      updateEvent(editEvent.id, {
+      const targetEvent: Event = {
         ...editEvent,
         apfUrl: finalApfUrl,
         appendices: finalAppendices,
+      };
+      updateEvent(editEvent.id, targetEvent);
+      toast.success("Event Proposal Updated", `Changes to '${editEvent.name}' were successfully saved.`, {
+        action: {
+          label: "Click here to view event details",
+          onClick: () => {
+            setViewEvent(targetEvent);
+            setViewTab("details");
+          },
+        },
       });
 
-      toast.success("Event Proposal Updated", `Changes to '${editEvent.name}' were successfully saved.`);
       setEditEvent(null);
       setEditApfFile(null);
       setEditAppendixFiles([]);
@@ -306,8 +354,27 @@ export default function StudentEvents() {
   }
 
   function handleSubmitToAdviser(evt: Event) {
+    const isRevision = evt.status === "Pending Revision";
+    if (isRevision) {
+      resolvePendingSignatories(evt.id);
+    }
     setEventStatus(evt.id, "For Review");
-    toast.success("Submitted for Review", `'${evt.name}' has been forwarded to the Faculty Adviser.`);
+    const targetEvent: Event = { ...evt, status: "For Review" };
+    toast.success(
+      isRevision ? "Proposal Resubmitted & Resolved" : "Submitted for Review",
+      isRevision
+        ? `Revisions for '${evt.name}' were resolved and resubmitted to Faculty Adviser for review.`
+        : `'${evt.name}' has been forwarded to the Faculty Adviser.`,
+      {
+        action: {
+          label: "Click here to view event details",
+          onClick: () => {
+            setViewEvent(targetEvent);
+            setViewTab("details");
+          },
+        },
+      }
+    );
     setSubmitConfirm(null);
   }
 
@@ -489,21 +556,21 @@ export default function StudentEvents() {
               <h3 className="font-bold text-[var(--foreground)] leading-snug">{e.name}</h3>
               <p className="text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)} · {e.location}</p>
               <p className="text-sm font-mono text-[var(--primary)] font-extrabold">{formatCurrency(e.proposedBudget)}</p>
-              {e.status === "Pending Revision" && (e.deanFeedback || e.adviserFeedback) && (
-                <div className="flex gap-2 bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-800">
-                  <AlertCircle size={14} className="flex-shrink-0 mt-0.5 text-orange-600" />
-                  <div className="min-w-0">
-                    <span className="font-bold mr-1">
-                      {e.deanFeedback ? "College Dean Feedback:" : "Faculty Adviser Feedback:"}
-                    </span>
-                    <span className="line-clamp-2 leading-relaxed" title={e.deanFeedback || e.adviserFeedback}>
-                      {(e.deanFeedback || e.adviserFeedback)!.length > 100
-                        ? `${(e.deanFeedback || e.adviserFeedback)!.slice(0, 100)}...`
-                        : (e.deanFeedback || e.adviserFeedback)}
-                    </span>
+              {e.status === "Pending Revision" && (() => {
+                const activeFb = getActiveRevisionFeedback(e.id);
+                if (!activeFb) return null;
+                return (
+                  <div className="flex gap-2 bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-800">
+                    <AlertCircle size={14} className="flex-shrink-0 mt-0.5 text-orange-600" />
+                    <div className="min-w-0">
+                      <span className="font-bold mr-1">{activeFb.title}:</span>
+                      <span className="line-clamp-2 leading-relaxed" title={activeFb.feedback}>
+                        {activeFb.feedback.length > 100 ? `${activeFb.feedback.slice(0, 100)}...` : activeFb.feedback}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
               {/* Right-aligned action buttons in exact sequence: [Delete] [Edit] [View] [Submit] */}
               <div className="flex items-center justify-end gap-1.5 mt-auto pt-3 border-t border-[var(--border)]">
                 {canDelete(e) && (
@@ -543,7 +610,8 @@ export default function StudentEvents() {
                     onClick={() => setSubmitConfirm(e)}
                     className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 rounded-lg shadow-2xs"
                   >
-                    <Send size={13.5} className="stroke-[1.8]" /> Submit
+                    <Send size={13.5} className="stroke-[1.8]" />
+                    {e.status === "Pending Revision" ? "Submit and Resolve" : "Submit"}
                   </Button>
                 )}
               </div>
@@ -587,7 +655,8 @@ export default function StudentEvents() {
                         </Button>
                         {canSubmit(e) && (
                           <Button size="sm" onClick={() => setSubmitConfirm(e)} className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 rounded-lg shadow-2xs">
-                            <Send size={13.5} className="stroke-[1.8]" /> Submit
+                            <Send size={13.5} className="stroke-[1.8]" />
+                            {e.status === "Pending Revision" ? "Submit and Resolve" : "Submit"}
                           </Button>
                         )}
                       </div>
@@ -935,29 +1004,25 @@ export default function StudentEvents() {
             </div>
 
             <div className="p-6">
-              {/* If pending revision, show feedback alert banner */}
-              {editEvent.status === "Pending Revision" && (editEvent.deanFeedback || editEvent.adviserFeedback) && (
-                <div className="mb-4 flex flex-col gap-2.5">
-                  {editEvent.deanFeedback && (
-                    <div className="flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-3.5 text-xs text-orange-800 shadow-2xs">
-                      <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-orange-950">College Dean's Feedback</p>
-                        <p className="mt-0.5 leading-relaxed">{editEvent.deanFeedback}</p>
+              {/* If pending revision, show active change request banner */}
+              {editEvent.status === "Pending Revision" && (() => {
+                const activeFb = getActiveRevisionFeedback(editEvent.id);
+                if (!activeFb) return null;
+                return (
+                  <div className="mb-4 flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-4 text-xs text-orange-800 shadow-2xs">
+                    <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-orange-950">{activeFb.title}</p>
+                        <span className="text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 px-2 py-0.2 rounded-full border border-amber-300">
+                          Active
+                        </span>
                       </div>
+                      <p className="mt-1 leading-relaxed whitespace-pre-wrap">{activeFb.feedback}</p>
                     </div>
-                  )}
-                  {editEvent.adviserFeedback && (
-                    <div className="flex gap-2.5 bg-orange-50 border border-orange-200 rounded-2xl p-3.5 text-xs text-orange-800 shadow-2xs">
-                      <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
-                      <div>
-                        <p className="font-bold text-orange-950">Faculty Adviser's Feedback</p>
-                        <p className="mt-0.5 leading-relaxed">{editEvent.adviserFeedback}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
 
               {/* Step 1: Event Details */}
               {editTab === "details" && (
@@ -1180,15 +1245,15 @@ export default function StudentEvents() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                const removedItem = file;
-                                setEditEvent((d) => (d ? { ...d, appendices: (d.appendices ?? []).filter((_, i) => i !== idx) } : null));
-                                setEditAppendixFiles((prev) => prev.filter((f) => f.name !== removedItem && !removedItem.endsWith(f.name)));
-                                if (editAppendicesInputRef.current) editAppendicesInputRef.current.value = "";
+                                setEditEvent((d) => d ? {
+                                  ...d,
+                                  appendices: d.appendices?.filter((_, i) => i !== idx),
+                                } : null);
                               }}
-                              className="text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition cursor-pointer ml-1 flex items-center justify-center"
-                              title="Remove attachment"
+                              className="text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded cursor-pointer transition"
+                              title="Remove appendix"
                             >
-                              <X size={13} />
+                              <X size={12} />
                             </button>
                           </span>
                         ))}
@@ -1315,18 +1380,26 @@ export default function StudentEvents() {
                     )}
                   </div>
                   <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p><p>{viewEvent.requisites || "—"}</p></div>
-                  {viewEvent.deanFeedback && (
-                    <div className="sm:col-span-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
-                      <p className="text-xs font-mono font-bold text-orange-800 mb-1">College Dean's Feedback</p>
-                      <p className="text-sm text-orange-900 leading-relaxed">{viewEvent.deanFeedback}</p>
-                    </div>
-                  )}
-                  {viewEvent.adviserFeedback && (
-                    <div className="sm:col-span-2 bg-orange-50 border border-orange-200 rounded-xl p-3">
-                      <p className="text-xs font-mono font-bold text-orange-800 mb-1">Faculty Adviser's Feedback</p>
-                      <p className="text-sm text-orange-900 leading-relaxed">{viewEvent.adviserFeedback}</p>
-                    </div>
-                  )}
+                  
+                  {/* Active Revision Feedback banner (shows only when pending revision) */}
+                  {viewEvent.status === "Pending Revision" && (() => {
+                    const activeFb = getActiveRevisionFeedback(viewEvent.id);
+                    if (!activeFb) return null;
+                    return (
+                      <div className="sm:col-span-2 bg-orange-50 border border-orange-200 rounded-xl p-3.5 flex gap-2.5 text-xs text-orange-800">
+                        <AlertCircle size={16} className="flex-shrink-0 text-orange-600 mt-0.5" />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-orange-950">{activeFb.title}</p>
+                            <span className="text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 px-2 py-0.2 rounded-full border border-amber-300">
+                              Active
+                            </span>
+                          </div>
+                          <p className="text-sm text-orange-900 leading-relaxed mt-1 whitespace-pre-wrap">{activeFb.feedback}</p>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {viewTab === "compliance" && (
@@ -1383,86 +1456,16 @@ export default function StudentEvents() {
                     eventTypeName={getEventType(viewEvent.typeId)?.name}
                   />
 
-                  {/* Faculty Adviser Feedback */}
-                  {viewEvent.adviserFeedback && (
-                    <div
-                      className={`border rounded-2xl p-4 ${
-                        viewEvent.status === "Pending Revision"
-                          ? "bg-orange-50/80 border-orange-200 text-orange-800"
-                          : "bg-emerald-50/80 border-emerald-200 text-emerald-900"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <MessageSquareQuote
-                          size={15}
-                          className={
-                            viewEvent.status === "Pending Revision"
-                              ? "text-orange-600"
-                              : "text-emerald-600"
-                          }
-                        />
-                        <p
-                          className={`text-xs font-mono font-bold ${
-                            viewEvent.status === "Pending Revision"
-                              ? "text-orange-800"
-                              : "text-emerald-800"
-                          }`}
-                        >
-                          Faculty Adviser's Feedback
-                        </p>
-                      </div>
-                      <p className="text-sm leading-relaxed pl-5 whitespace-pre-wrap">{viewEvent.adviserFeedback}</p>
-                    </div>
-                  )}
-
-                  {/* Dean Feedback / Executive Notes */}
-                  {viewEvent.deanFeedback && (
-                    <div
-                      className={`border rounded-2xl p-4 ${
-                        viewEvent.status === "Pending Revision"
-                          ? "bg-orange-50/80 border-orange-200 text-orange-800"
-                          : "bg-emerald-50/80 border-emerald-200 text-emerald-900"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <MessageSquareQuote
-                          size={15}
-                          className={
-                            viewEvent.status === "Pending Revision"
-                              ? "text-orange-600"
-                              : "text-emerald-600"
-                          }
-                        />
-                        <p
-                          className={`text-xs font-mono font-bold ${
-                            viewEvent.status === "Pending Revision"
-                              ? "text-orange-800"
-                              : "text-emerald-800"
-                          }`}
-                        >
-                          College Dean's Feedback
-                        </p>
-                      </div>
-                      <p className="text-sm leading-relaxed pl-5 whitespace-pre-wrap">{viewEvent.deanFeedback}</p>
-                    </div>
-                  )}
-
-                  {/* Signatory Remarks & Amendments */}
-                  {viewEvent.remarks && viewEvent.remarks.length > 0 ? (
-                    <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4">
-                      <p className="text-xs font-mono font-bold text-amber-800 mb-2">Remarks & Amendments by Signatories</p>
-                      <ul className="text-sm text-amber-800 list-disc list-inside space-y-1 pl-1">
+                  {/* Student Amendments & Adjustments */}
+                  {viewEvent.remarks && viewEvent.remarks.length > 0 && (
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs">
+                      <p className="text-xs font-mono font-bold text-[var(--foreground)] mb-2">Student Amendments & Adjustments</p>
+                      <ul className="text-xs text-[var(--muted-foreground)] list-disc list-inside space-y-1 pl-1">
                         {viewEvent.remarks.map((r, i) => (
-                          <li key={i}>{r}</li>
+                          <li key={i} className="leading-relaxed">{r}</li>
                         ))}
                       </ul>
                     </div>
-                  ) : (
-                    !viewEvent.adviserFeedback && !viewEvent.deanFeedback && (
-                      <div className="p-4 rounded-2xl bg-[var(--muted)]/20 border border-dashed border-[var(--border)] text-center text-xs text-[var(--muted-foreground)]">
-                        No signatory remarks logged yet.
-                      </div>
-                    )
                   )}
                 </div>
               )}
@@ -1499,15 +1502,30 @@ export default function StudentEvents() {
       </Dialog>
 
       {/* Submit Confirm */}
-      <Dialog open={!!submitConfirm} onClose={() => setSubmitConfirm(null)} title="Submit to Adviser?" size="sm" zIndex="z-[60]">
+      <Dialog
+        open={!!submitConfirm}
+        onClose={() => setSubmitConfirm(null)}
+        title={submitConfirm?.status === "Pending Revision" ? "Submit and Resolve?" : "Submit to Adviser?"}
+        size="sm"
+        zIndex="z-[60]"
+      >
         <div className="p-6 flex flex-col gap-4">
           <p className="text-sm text-[var(--foreground)]">
-            Once submitted, <strong>"{submitConfirm?.name}"</strong> will be sent to the Faculty Adviser for review and will no longer be editable until returned.
+            {submitConfirm?.status === "Pending Revision" ? (
+              <>
+                Once submitted, revisions on <strong>"{submitConfirm?.name}"</strong> will be marked as resolved and the proposal will be returned to the Faculty Adviser for review.
+              </>
+            ) : (
+              <>
+                Once submitted, <strong>"{submitConfirm?.name}"</strong> will be sent to the Faculty Adviser for review and will no longer be editable until returned.
+              </>
+            )}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setSubmitConfirm(null)}>Cancel</Button>
             <Button onClick={() => submitConfirm && handleSubmitToAdviser(submitConfirm)}>
-              <Send size={14} /> Submit to Adviser
+              <Send size={14} />
+              {submitConfirm?.status === "Pending Revision" ? "Submit and Resolve" : "Submit to Adviser"}
             </Button>
           </div>
         </div>

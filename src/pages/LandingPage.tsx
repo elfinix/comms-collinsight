@@ -392,21 +392,21 @@ export default function LandingPage() {
             {[
               {
                 initials: "SR",
-                name: "Sophia Rhyzelle",
+                name: "Sophia Ryzelle Beloro",
                 role: "Project Manager",
                 focus: "Component Systems & Documentation",
-                email: "srhyzelle@student.cite.edu.ph",
-                github: "#",
+                email: "sophiaryzelle.beloro@email.lcup.edu.ph",
+                github: "https://github.com/tabbyorangw3s",
                 gradient: "from-pink-500 to-rose-700",
                 delay: 0,
               },
               {
                 initials: "JC",
-                name: "John Mark Noel Cabuwagan",
+                name: "John Mark Noel Cabugawan",
                 role: "Lead Developer",
                 focus: "System Architecture & Integration",
-                email: "jmcabuwagan@student.cite.edu.ph",
-                github: "#",
+                email: "johnmarknoel.cabugawan@email.lcup.edu.ph",
+                github: "https://github.com/Bugords",
                 gradient: "from-[var(--primary)] to-[#062e2b]",
                 delay: 100,
               },
@@ -415,8 +415,8 @@ export default function LandingPage() {
                 name: "Rom Jerico Reyes",
                 role: "Quality Assurance",
                 focus: "Testing & Verification",
-                email: "rjreyes@student.cite.edu.ph",
-                github: "#",
+                email: "romjerico.reyes@email.lcup.edu.ph",
+                github: "https://github.com/romjericoreyes",
                 gradient: "from-blue-500 to-blue-800",
                 delay: 200,
               },
@@ -447,12 +447,18 @@ export default function LandingPage() {
                       </span>
                     </div>
                     <div className="flex gap-2 pt-4 border-t border-[var(--border)]">
-                      <a href={dev.github}
-                        className="flex-1 flex items-center justify-center gap-1.5 bg-[var(--primary)] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--accent)] transition">
+                      <a
+                        href={dev.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-[var(--primary)] text-white px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--accent)] transition"
+                      >
                         GitHub <ArrowUpRight size={12} />
                       </a>
-                      <a href={`mailto:${dev.email}`}
-                        className="flex items-center justify-center gap-1.5 border border-[var(--border)] text-[var(--foreground)] px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--muted)] transition">
+                      <a
+                        href={`mailto:${dev.email}`}
+                        className="flex items-center justify-center gap-1.5 border border-[var(--border)] text-[var(--foreground)] px-3 py-2 rounded-lg text-xs font-semibold hover:bg-[var(--muted)] transition"
+                      >
                         <Mail size={12} />
                       </a>
                     </div>

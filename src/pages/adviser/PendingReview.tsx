@@ -33,13 +33,6 @@ export default function AdviserPendingReview() {
     const targetEvent = { ...viewEvent, status: "For Approval" as const };
     const trimmed = feedback.trim();
     setEventStatus(viewEvent.id, "For Approval", trimmed || undefined);
-    const updatedRemarks = trimmed
-      ? [...(viewEvent.remarks ?? []), `[Adviser Remarks] ${trimmed}`]
-      : viewEvent.remarks;
-    updateEvent(viewEvent.id, {
-      remarks: updatedRemarks,
-      adviserFeedback: trimmed || undefined,
-    });
     toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`, {
       action: {
         label: "Click here to view event details",
@@ -59,11 +52,6 @@ export default function AdviserPendingReview() {
     const targetEvent = { ...viewEvent, status: "Pending Revision" as const };
     const trimmed = feedback.trim();
     setEventStatus(viewEvent.id, "Pending Revision", trimmed);
-    const updatedRemarks = [...(viewEvent.remarks ?? []), `[Adviser Remarks] Revision Requested: ${trimmed}`];
-    updateEvent(viewEvent.id, {
-      remarks: updatedRemarks,
-      adviserFeedback: trimmed,
-    });
     toast.warning("Revision Requested", `'${viewEvent.name}' returned to student officers with revision notes.`, {
       icon: "check",
       action: {
@@ -352,7 +340,7 @@ export default function AdviserPendingReview() {
                 {(viewTab === "details" || viewTab === "compliance") && (
                   <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>
                 )}
-                {viewTab === "clearance" && (
+                {viewTab === "clearance" && viewEvent.status === "For Review" && (
                   <>
                     <Button variant="danger" onClick={() => setShowRequestChange(true)}>
                       <RotateCcw size={14} /> Request Change

@@ -195,7 +195,7 @@ export default function PanelLayout({ children, navItems, panelLabel, orgName }:
 export function studentNavItems(pendingCount = 0): NavItem[] {
   return [
     { to: "/student/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
-    { to: "/student/events", label: "Events", icon: <Calendar size={16} /> },
+    { to: "/student/events", label: "Events", icon: <Calendar size={16} />, badge: pendingCount },
     { to: "/student/finance", label: "Finance", icon: <Wallet size={16} /> },
     { to: "/student/history", label: "History", icon: <History size={16} /> },
     { to: "/student/reports", label: "Reports", icon: <BarChart2 size={16} /> },
@@ -215,10 +215,10 @@ export function adviserNavItems(pendingCount = 0): NavItem[] {
   ];
 }
 
-export function deanNavItems(): NavItem[] {
+export function deanNavItems(pendingCount = 0): NavItem[] {
   return [
     { to: "/dean/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
-    { to: "/dean/pending", label: "Pending Approval", icon: <ClipboardList size={16} /> },
+    { to: "/dean/pending", label: "Pending Approval", icon: <ClipboardList size={16} />, badge: pendingCount },
     { to: "/dean/approved", label: "Approved Events", icon: <Calendar size={16} /> },
     { to: "/dean/history", label: "History", icon: <History size={16} /> },
     { to: "/dean/reports", label: "Reports", icon: <BarChart2 size={16} /> },

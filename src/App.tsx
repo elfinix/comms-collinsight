@@ -50,8 +50,9 @@ function StudentPanel() {
   const { events } = useApp();
   const { currentUser } = useAuth();
   const orgEvents = events.filter((e) => e.organizationId === currentUser?.organizationId);
+  const pendingRevisions = orgEvents.filter((e) => e.status === "Pending Revision").length;
   return (
-    <PanelLayout navItems={studentNavItems()} panelLabel="Student Panel" orgName={orgEvents.length > 0 ? undefined : undefined}>
+    <PanelLayout navItems={studentNavItems(pendingRevisions)} panelLabel="Student Panel">
       <Outlet />
     </PanelLayout>
   );
@@ -69,8 +70,10 @@ function AdviserPanel() {
 }
 
 function DeanPanel() {
+  const { events } = useApp();
+  const pending = events.filter((e) => e.status === "For Approval").length;
   return (
-    <PanelLayout navItems={deanNavItems()} panelLabel="Dean's Panel">
+    <PanelLayout navItems={deanNavItems(pending)} panelLabel="Dean's Panel">
       <Outlet />
     </PanelLayout>
   );

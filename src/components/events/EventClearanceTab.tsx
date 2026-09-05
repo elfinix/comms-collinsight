@@ -20,7 +20,7 @@ export default function EventClearanceTab({
   eventTypeName,
   onViewPdf,
 }: EventClearanceTabProps) {
-  const { organizations, eventTypes, users } = useApp();
+  const { organizations, eventTypes, users, eventSignatories } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
@@ -33,6 +33,15 @@ export default function EventClearanceTab({
   const resolvedOrgCode = org?.code || "CITE";
   const resolvedTypeName = eventTypeName || typeObj?.name || "Institutional Event";
 
+  // Feedbacks / Signatory actions for this event, sorted newest first
+  const relevantSignatories = (eventSignatories || [])
+    .filter((s) => s.eventId === event.id && s.feedback && s.feedback.trim().length > 0)
+    .sort((a, b) => {
+      const dateA = new Date(a.signedAt || a.createdAt || 0).getTime();
+      const dateB = new Date(b.signedAt || b.createdAt || 0).getTime();
+      return dateB - dateA;
+    });
+
   // Official Clearance Viewer from Database Storage (for approved events)
   const handleViewClearance = () => {
     try {
@@ -44,13 +53,14 @@ export default function EventClearanceTab({
         return;
       }
 
+      const approvedEvent = isApproved ? { ...event, status: "Approved" as const } : event;
       const openWindow = window.open(storageUrl, "_blank");
       if (!openWindow) {
         // Fallback to vector blob generation if popup blocked or offline
-        const pdfBlob = generateClearancePdfBlob(event, {
+        const pdfBlob = generateClearancePdfBlob(approvedEvent, {
           organizationName: resolvedOrgName,
           eventTypeName: resolvedTypeName,
-          viewerRole: currentUser?.role,
+          viewerRole: isApproved ? "dean" : currentUser?.role,
         });
         openPdfBlobInNewTab(pdfBlob, clearanceFileName);
       }
@@ -58,10 +68,11 @@ export default function EventClearanceTab({
     } catch (err: any) {
       console.error("Clearance storage open error:", err);
       // Fallback
-      const pdfBlob = generateClearancePdfBlob(event, {
+      const approvedEvent = isApproved ? { ...event, status: "Approved" as const } : event;
+      const pdfBlob = generateClearancePdfBlob(approvedEvent, {
         organizationName: resolvedOrgName,
         eventTypeName: resolvedTypeName,
-        viewerRole: currentUser?.role,
+        viewerRole: isApproved ? "dean" : currentUser?.role,
       });
       openPdfBlobInNewTab(pdfBlob, clearanceFileName);
     }
@@ -292,6 +303,85 @@ export default function EventClearanceTab({
           </div>
         </div>
       </div>
+
+      {/* ── 4. SIGNATORY FEEDBACK & COLLABORATION THREAD ── */}
+      {relevantSignatories.length > 0 && (
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-xs shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="font-bold text-[var(--foreground)] text-xs uppercase font-mono tracking-wider">
+              Feedback Thread
+            </p>
+            <span className="text-[10px] font-mono text-[var(--muted-foreground)]">
+              {relevantSignatories.length} {relevantSignatories.length === 1 ? "Entry" : "Entries"}
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {relevantSignatories.map((sig) => {
+              const isRevision = sig.status === "Revision Requested";
+              const isResolved = sig.status === "Resolved";
+              const isApproval = sig.status === "Approved" || sig.status === "Endorsed";
+              const signatoryName = sig.role === "dean"
+                ? "Dr. Marilou C. Villanueva, Ph.D."
+                : sig.role === "adviser"
+                ? "Engr. Eduardo S. Reyes, M.Sc."
+                : "Student Representative";
+              const roleTitle = sig.role === "dean" ? "College Dean, CITE" : sig.role === "adviser" ? `Faculty Adviser, ${resolvedOrgCode}` : "Student Officer";
+              const titlePrefix = sig.role === "dean" ? "College Dean's" : sig.role === "adviser" ? "Adviser's" : "Signatory";
+
+              return (
+                <div
+                  key={sig.id}
+                  className={`p-4 rounded-xl border transition ${
+                    isRevision
+                      ? "bg-amber-50/80 border-amber-300 text-amber-950 shadow-xs"
+                      : isResolved
+                      ? "bg-teal-50/60 border-teal-200 text-teal-950"
+                      : "bg-emerald-50/80 border-emerald-300 text-emerald-950 shadow-xs"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-xs">
+                        {isApproval ? `${titlePrefix} Endorsement Remarks` : `${titlePrefix} Feedback`}
+                      </span>
+                      <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
+                        {sig.signedAt || sig.createdAt ? formatDateTime(sig.signedAt || sig.createdAt!) : ""}
+                      </span>
+                    </div>
+
+                    {/* Status Chip / Badge */}
+                    {isRevision && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded-full border border-amber-400">
+                        <Clock size={10} /> Pending
+                      </span>
+                    )}
+                    {isResolved && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-300">
+                        <CheckCircle size={10} /> Resolved
+                      </span>
+                    )}
+                    {isApproval && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-300">
+                        <CheckCircle size={10} /> {sig.status}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs leading-relaxed whitespace-pre-wrap break-words font-medium">
+                    "{sig.feedback}"
+                  </p>
+
+                  <div className="mt-2.5 pt-2 border-t border-black/10 flex items-center justify-between text-[10px] font-mono text-[var(--muted-foreground)]">
+                    <span className="font-semibold">{signatoryName}</span>
+                    <span>{roleTitle}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -666,11 +666,11 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
         </div>
       </Card>
 
-      {/* Remarks & Amendments History Card (Clean sans typography) */}
+      {/* Student Amendments & Adjustments History Card (Clean sans typography) */}
       {activeEvent.remarks && activeEvent.remarks.length > 0 && (
         <Card className="mb-6">
           <CardHeader className="border-b border-[var(--border)] pb-2 flex items-center justify-between">
-            <h2 className="font-semibold text-sm text-[var(--foreground)]">Ledger Remarks & Amendments History</h2>
+            <h2 className="font-semibold text-sm text-[var(--foreground)]">Student Ledger Amendments & Adjustments History</h2>
             <span className="text-xs text-[var(--muted-foreground)] font-medium">{activeEvent.remarks.length} entries</span>
           </CardHeader>
           <CardBody className="p-4 flex flex-col gap-2.5">
@@ -760,7 +760,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                 </span>
               ) : (
                 <span className="text-[var(--muted-foreground)]">
-                  Remaining: <strong className="text-emerald-700 dark:text-emerald-400">{formatCurrency(remaining)}</strong>
+                  Remaining: <strong className="text-emerald-700 dark:text-emerald-600">{formatCurrency(remaining)}</strong>
                 </span>
               )}
             </div>
@@ -1298,9 +1298,11 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
           {/* Dialog Action Buttons */}
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
-            <Button variant="outline" size="sm" onClick={() => setShowPdfModal(false)}>Close</Button>
-            <Button variant="success" size="sm" onClick={handleTriggerOpenPdf} className="font-mono text-xs gap-1.5">
-              <ExternalLink size={13} /> Open PDF
+            <Button variant="outline" size="sm" onClick={() => setShowPdfModal(false)}>
+              Close
+            </Button>
+            <Button variant="success" size="sm" onClick={handleTriggerOpenPdf} className="gap-1.5">
+              <ExternalLink size={14} /> Open PDF
             </Button>
           </div>
         </div>

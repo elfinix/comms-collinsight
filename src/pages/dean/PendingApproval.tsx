@@ -43,9 +43,11 @@ export default function DeanPendingApproval() {
         ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
         : "Dr. Marilou Castro Villanueva, Ph.D.";
 
-      const pdfBlob = generateClearancePdfBlob(viewEvent, {
+      const targetApprovedEvent: Event = { ...viewEvent, status: "Approved" };
+      const pdfBlob = generateClearancePdfBlob(targetApprovedEvent, {
         organizationName: orgName,
         deanName,
+        viewerRole: "dean",
       });
 
       await uploadEventAttachment({
@@ -61,14 +63,7 @@ export default function DeanPendingApproval() {
       console.warn("Storage upload notice:", e);
     }
 
-    const updatedRemarks = trimmed
-      ? [...(viewEvent.remarks ?? []), `[Dean Remarks] ${trimmed}`]
-      : viewEvent.remarks;
-    const targetEvent = { ...viewEvent, status: "Approved" as const, remarks: updatedRemarks, deanFeedback: trimmed || undefined };
-    updateEvent(viewEvent.id, {
-      remarks: updatedRemarks,
-      deanFeedback: trimmed || undefined,
-    });
+    const targetEvent = { ...viewEvent, status: "Approved" as const };
     toast.success("Executive Approval Granted", `'${viewEvent.name}' officially approved by the College Dean.`, {
       action: {
         label: "Click here to view event details",
@@ -89,14 +84,8 @@ export default function DeanPendingApproval() {
     const targetEvent = {
       ...viewEvent,
       status: "Pending Revision" as const,
-      deanFeedback: trimmed,
     };
     setEventStatus(viewEvent.id, "Pending Revision", trimmed);
-    const updatedRemarks = [...(viewEvent.remarks ?? []), `[Dean Remarks] Revision Requested: ${trimmed}`];
-    updateEvent(viewEvent.id, {
-      remarks: updatedRemarks,
-      deanFeedback: trimmed,
-    });
     toast.warning("Revision Requested", `'${viewEvent.name}' returned for revisions with Dean instructions.`, {
       icon: "check",
       action: {
@@ -410,7 +399,7 @@ export default function DeanPendingApproval() {
                 {(viewTab === "details" || viewTab === "compliance") && (
                   <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>
                 )}
-                {viewTab === "clearance" && (
+                {viewTab === "clearance" && viewEvent.status === "For Approval" && (
                   <>
                     <Button variant="danger" onClick={() => setShowRequestChange(true)}>
                       <RotateCcw size={14} /> Request Change

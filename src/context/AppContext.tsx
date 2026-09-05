@@ -11,6 +11,8 @@ import {
   EventStatus,
   ExportedReport,
   initialExportedReports,
+  EventSignatory,
+  eventSignatories as initialEventSignatories,
 } from "../services/mockData";
 import { supabaseApi } from "../services/supabaseService";
 
@@ -24,6 +26,7 @@ interface AppContextType {
   expenditureCategories: ExpenditureCategory[];
   auditTrail: AuditEntry[];
   exportedReports: ExportedReport[];
+  eventSignatories: EventSignatory[];
   isLoading: boolean;
   isSupabaseConnected: boolean;
   refreshData: () => Promise<void>;
@@ -47,6 +50,8 @@ interface AppContextType {
   addCategory: (cat: ExpenditureCategory) => void;
   deleteCategory: (id: string) => void;
   setEventStatus: (eventId: string, status: EventStatus, feedback?: string) => void;
+  addEventSignatory: (sig: EventSignatory) => void;
+  resolvePendingSignatories: (eventId: string) => void;
   addAuditEntry: (entry: AuditEntry) => void;
   addExportedReport: (report: ExportedReport) => void;
   theme: "light" | "dark";
@@ -77,6 +82,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [etypes, setEtypes] = useState<EventType[]>([]);
   const [cats, setCats] = useState<ExpenditureCategory[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
+  const [eventSigs, setEventSigs] = useState<EventSignatory[]>(() => initialEventSignatories || []);
   const [reports, setReports] = useState<ExportedReport[]>(() => {
     try {
       const saved = localStorage.getItem("collinsight_exported_reports");
@@ -186,6 +192,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setEvts(liveData.events);
         setTxns(liveData.transactions);
         setAudit(liveData.auditTrail);
+        if (liveData.eventSignatories && liveData.eventSignatories.length > 0) {
+          setEventSigs(liveData.eventSignatories);
+        }
         setIsSupabaseConnected(true);
       }
     } catch (err) {
@@ -237,11 +246,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const updateEvent = (id: string, u: Partial<Event>) => {
-    let targetEvt: Event | undefined;
+    const targetEvt = evts.find((e) => e.id === id);
     setEvts((p) =>
       p.map((e) => {
         if (e.id !== id) return e;
-        targetEvt = e;
         return { ...e, ...u };
       })
     );
@@ -251,29 +259,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     if (targetEvt) {
       if (u.status === "Closed") {
-        const rev = u.revenue !== undefined ? u.revenue : (targetEvt as Event).revenue;
+        const rev = u.revenue !== undefined ? u.revenue : targetEvt.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
         addAuditEntry({
           id: generateId(),
           eventId: id,
-          organizationId: (targetEvt as Event).organizationId,
-          userId: (targetEvt as Event).createdBy || "51000000-0000-0000-0000-000000000001",
+          organizationId: targetEvt.organizationId,
+          userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
           actorRole: "student",
           action: "Event Closed",
-          details: `Finalized liquidation and closed event '${(targetEvt as Event).name}'${revStr}`,
-          statusFrom: (targetEvt as Event).status,
+          details: `Finalized liquidation and closed event '${targetEvt.name}'${revStr}`,
+          statusFrom: targetEvt.status,
           statusTo: "Closed",
           timestamp: new Date().toISOString(),
         });
-      } else if (!u.status || u.status === (targetEvt as Event).status) {
+      } else if (!u.status || u.status === targetEvt.status) {
         addAuditEntry({
           id: generateId(),
           eventId: id,
-          organizationId: (targetEvt as Event).organizationId,
-          userId: (targetEvt as Event).createdBy || "51000000-0000-0000-0000-000000000001",
+          organizationId: targetEvt.organizationId,
+          userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
           actorRole: "student",
           action: "Modified Proposal",
-          details: `Updated proposal details for '${u.name || (targetEvt as Event).name}'`,
+          details: `Updated proposal details for '${u.name || targetEvt.name}'`,
           timestamp: new Date().toISOString(),
         });
       }
@@ -474,45 +482,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const addEventSignatory = (sig: EventSignatory) => {
+    const sigWithId: EventSignatory = {
+      ...sig,
+      id: sig.id || generateId(),
+      signedAt: sig.signedAt || new Date().toISOString(),
+      createdAt: sig.createdAt || new Date().toISOString(),
+    };
+    setEventSigs((prev) => [sigWithId, ...prev.filter((s) => s.id !== sigWithId.id)]);
+    supabaseApi.createEventSignatory(sigWithId).catch((err) =>
+      console.warn("Supabase createEventSignatory error:", err)
+    );
+  };
+
+  const resolvePendingSignatories = (eventId: string) => {
+    setEventSigs((prev) =>
+      prev.map((s) =>
+        s.eventId === eventId && s.status === "Revision Requested"
+          ? { ...s, status: "Resolved" as const }
+          : s
+      )
+    );
+    supabaseApi.resolvePendingSignatories(eventId).catch((err) =>
+      console.warn("Supabase resolvePendingSignatories error:", err)
+    );
+  };
+
   const setEventStatus = (eventId: string, status: EventStatus, feedback?: string) => {
-    let targetEvt: Event | undefined;
+    const targetEvt = evts.find((e) => e.id === eventId);
     setEvts((p) =>
       p.map((e) => {
         if (e.id !== eventId) return e;
-        targetEvt = e;
-        const updates: Partial<Event> = { status };
-        if (feedback) {
-          if (status === "Pending Revision") {
-            if (e.status === "For Approval") {
-              updates.deanFeedback = feedback;
-            } else {
-              updates.adviserFeedback = feedback;
-            }
-          } else if (status === "For Approval") {
-            updates.adviserFeedback = feedback;
-          } else if (status === "Approved") {
-            updates.deanFeedback = feedback;
-          }
-        }
-        return { ...e, ...updates };
+        return { ...e, status };
       })
     );
 
-    const eventUpdates: Partial<Event> = { status };
-    if (feedback) {
-      if (status === "Pending Revision") {
-        if (targetEvt?.status === "For Approval") {
-          eventUpdates.deanFeedback = feedback;
-        } else {
-          eventUpdates.adviserFeedback = feedback;
-        }
-      } else if (status === "For Approval") {
-        eventUpdates.adviserFeedback = feedback;
-      } else if (status === "Approved") {
-        eventUpdates.deanFeedback = feedback;
-      }
-    }
-    supabaseApi.updateEvent(eventId, eventUpdates).catch((err) =>
+    supabaseApi.updateEvent(eventId, { status }).catch((err) =>
       console.warn("Supabase setEventStatus error:", err)
     );
 
@@ -523,6 +528,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const isSubmission = status === "For Review";
       const isCompleted = status === "Completed";
       const isClosed = status === "Closed";
+
+      // ── Event Signatory Iteration Record Creation ──
+      if (isRevision && feedback) {
+        const isFromDean = targetEvt.status === "For Approval";
+        const sigRole = isFromDean ? "dean" : "adviser";
+        const sigUserId = isFromDean
+          ? "e1000000-0000-0000-0000-000000000001"
+          : "ad100000-0000-0000-0000-000000000001";
+        addEventSignatory({
+          id: generateId(),
+          eventId,
+          userId: sigUserId,
+          role: sigRole,
+          status: "Revision Requested",
+          feedback,
+          signedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      } else if (isAdviserApproval) {
+        addEventSignatory({
+          id: generateId(),
+          eventId,
+          userId: "ad100000-0000-0000-0000-000000000001",
+          role: "adviser",
+          status: "Endorsed",
+          feedback: feedback || undefined,
+          signedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      } else if (isDeanApproval) {
+        addEventSignatory({
+          id: generateId(),
+          eventId,
+          userId: "e1000000-0000-0000-0000-000000000001",
+          role: "dean",
+          status: "Approved",
+          feedback: feedback || undefined,
+          signedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      } else if (isSubmission && targetEvt.status === "Pending Revision") {
+        resolvePendingSignatories(eventId);
+      }
 
       const actionName = isDeanApproval
         ? "Executive Approval"
@@ -542,36 +590,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "e1000000-0000-0000-0000-000000000001"
         : isAdviserApproval || isRevision
         ? "ad100000-0000-0000-0000-000000000001"
-        : (targetEvt as Event).createdBy;
+        : targetEvt.createdBy || "51000000-0000-0000-0000-000000000001";
 
       let actionDetails = "";
       if (isDeanApproval) {
-        actionDetails = `Granted executive approval for '${(targetEvt as Event).name}'`;
+        actionDetails = `Granted executive approval for '${targetEvt.name}'`;
       } else if (isAdviserApproval) {
-        actionDetails = `Endorsed and forwarded proposal '${(targetEvt as Event).name}' to Dean for approval`;
+        actionDetails = `Endorsed and forwarded proposal '${targetEvt.name}' to Dean for approval`;
       } else if (isRevision) {
-        actionDetails = `Requested revisions for proposal '${(targetEvt as Event).name}'`;
+        actionDetails = `Requested revisions for proposal '${targetEvt.name}'`;
       } else if (isSubmission) {
-        actionDetails = `Submitted proposal '${(targetEvt as Event).name}' to Adviser for review`;
+        actionDetails = `Submitted proposal '${targetEvt.name}' to Adviser for review`;
       } else if (isCompleted) {
-        actionDetails = `Completed event execution for '${(targetEvt as Event).name}'`;
+        actionDetails = `Completed event execution for '${targetEvt.name}'`;
       } else if (isClosed) {
-        const rev = (targetEvt as Event).revenue;
+        const rev = targetEvt.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
-        actionDetails = `Finalized liquidation and closed event '${(targetEvt as Event).name}'${revStr}`;
+        actionDetails = `Finalized liquidation and closed event '${targetEvt.name}'${revStr}`;
       } else {
-        actionDetails = `Updated status to '${status}' for '${(targetEvt as Event).name}'`;
+        actionDetails = `Updated status to '${status}' for '${targetEvt.name}'`;
       }
 
       addAuditEntry({
         id: generateId(),
-        eventId: (targetEvt as Event).id,
-        organizationId: (targetEvt as Event).organizationId,
+        eventId: targetEvt.id,
+        organizationId: targetEvt.organizationId,
         userId,
         actorRole: role,
         action: actionName,
         details: actionDetails,
-        statusFrom: (targetEvt as Event).status,
+        statusFrom: targetEvt.status,
         statusTo: status,
         remarks: feedback,
         timestamp: new Date().toISOString(),
@@ -599,6 +647,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         expenditureCategories: activeCats,
         auditTrail: audit,
         exportedReports: reports,
+        eventSignatories: eventSigs,
         addExportedReport,
         isLoading,
         isSupabaseConnected,
@@ -623,6 +672,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addCategory,
         deleteCategory,
         setEventStatus,
+        addEventSignatory,
+        resolvePendingSignatories,
         addAuditEntry,
         theme,
         setTheme,

@@ -125,22 +125,18 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
   const viewerRole = options?.viewerRole;
 
-  // Role-based signatory display rules:
-  // - Student viewer: Student signed, Adviser & Dean pending
-  // - Adviser viewer: Student & Adviser signed, Dean pending
-  // - Dean viewer (or approved event): All 3 signatories signed
-  let showAdviserSign = isApproved || event.status === "For Approval";
-  let showDeanSign = isApproved;
+  let showAdviserSign = false;
+  let showDeanSign = false;
 
-  if (viewerRole === "student" && !isApproved) {
-    showAdviserSign = false;
-    showDeanSign = false;
-  } else if (viewerRole === "adviser" && !isApproved) {
-    showAdviserSign = true;
-    showDeanSign = false;
-  } else if (viewerRole === "dean" || isApproved) {
+  if (isApproved || viewerRole === "dean") {
     showAdviserSign = true;
     showDeanSign = true;
+  } else if (event.status === "For Approval" || viewerRole === "adviser") {
+    showAdviserSign = true;
+    showDeanSign = false;
+  } else {
+    showAdviserSign = false;
+    showDeanSign = false;
   }
 
   // ── 2. EXECUTIVE STATUS BANNER (GENEROUS PADDING) ──────────────

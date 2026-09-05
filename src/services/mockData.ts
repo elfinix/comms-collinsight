@@ -87,9 +87,10 @@ export interface EventSignatory {
   eventId: string;
   userId: string;
   role: "student" | "adviser" | "dean" | "sds";
-  status: "Pending" | "Endorsed" | "Approved" | "Revision Requested";
+  status: "Pending" | "Endorsed" | "Approved" | "Revision Requested" | "Resolved";
   feedback?: string;
   signedAt?: string;
+  createdAt?: string;
 }
 
 export interface Event {
@@ -109,8 +110,6 @@ export interface Event {
   clearanceDetails?: string;
   remarks?: string[];
   status: EventStatus;
-  adviserFeedback?: string;
-  deanFeedback?: string;
   revenue?: number;
   liquidatedBy?: string;
   liquidatedAt?: string;
@@ -521,7 +520,6 @@ export const events: Event[] = [
     appendices: ["Catering_Quotations_Comparative.pdf", "Program_Flow_Draft.pdf"],
     clearanceDetails: "Annual department-wide general assembly and ceremonial induction of incoming class officers.",
     status: "Pending Revision",
-    adviserFeedback: "Please update the guest list and confirm the catering provider before resubmission.",
     createdAt: "2026-08-05T11:00:00",
     createdBy: "user-stu-1",
   },
@@ -604,6 +602,79 @@ export const events: Event[] = [
     status: "Completed",
     createdAt: "2026-07-28T16:00:00",
     createdBy: "user-adv-3",
+  },
+];
+
+export const eventSignatories: EventSignatory[] = [
+  {
+    id: "sig-1",
+    eventId: "evt-1",
+    userId: "user-adv-1",
+    role: "adviser",
+    status: "Endorsed",
+    feedback: "Strong technical relevance for 3rd and 4th-year students.",
+    signedAt: "2026-08-16T01:15:00",
+    createdAt: "2026-08-16T01:15:00",
+  },
+  {
+    id: "sig-2",
+    eventId: "evt-1",
+    userId: "user-dean",
+    role: "dean",
+    status: "Approved",
+    feedback: "Approved. Ensure virtual lab guidelines are maintained.",
+    signedAt: "2026-08-17T06:45:00",
+    createdAt: "2026-08-17T06:45:00",
+  },
+  {
+    id: "sig-3",
+    eventId: "evt-2",
+    userId: "user-adv-1",
+    role: "adviser",
+    status: "Endorsed",
+    feedback: "Endorsed. Great initiative for cross-year knowledge transfer.",
+    signedAt: "2026-08-21T02:00:00",
+    createdAt: "2026-08-21T02:00:00",
+  },
+  {
+    id: "sig-4",
+    eventId: "evt-6",
+    userId: "user-adv-2",
+    role: "adviser",
+    status: "Revision Requested",
+    feedback: "Please adjust the trophy expenditure and clarify external judge compensation.",
+    signedAt: "2026-08-23T03:00:00",
+    createdAt: "2026-08-23T03:00:00",
+  },
+  {
+    id: "sig-5",
+    eventId: "evt-5",
+    userId: "user-adv-1",
+    role: "adviser",
+    status: "Revision Requested",
+    feedback: "Please update the guest list and confirm the catering provider before resubmission.",
+    signedAt: "2026-08-06T10:00:00",
+    createdAt: "2026-08-06T10:00:00",
+  },
+  {
+    id: "sig-6",
+    eventId: "evt-8",
+    userId: "user-adv-3",
+    role: "adviser",
+    status: "Endorsed",
+    feedback: "Highly recommended for industrial engineering accreditation.",
+    signedAt: "2026-08-15T09:00:00",
+    createdAt: "2026-08-15T09:00:00",
+  },
+  {
+    id: "sig-7",
+    eventId: "evt-8",
+    userId: "user-dean",
+    role: "dean",
+    status: "Approved",
+    feedback: "Approved for professional development credit.",
+    signedAt: "2026-08-16T11:00:00",
+    createdAt: "2026-08-16T11:00:00",
   },
 ];
 
