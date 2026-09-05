@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { Card, CardHeader, CardBody, Button, StatCard, Dialog } from "../../components/ui";
+import { Card, CardHeader, CardBody, Button, StatCard, Dialog, RefreshButton, SkeletonStatCard, SkeletonChart } from "../../components/ui";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, Calendar, Activity, Building2, FileDown, ExternalLink, FileText, CheckCircle } from "lucide-react";
 import { formatCurrency, formatDateTime, formatDate } from "../../services/dataService";
@@ -11,7 +11,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function AdminReports() {
-  const { users, events, auditTrail, organizations, departments, exportedReports, addExportedReport } = useApp();
+  const { users, events, auditTrail, organizations, departments, exportedReports, addExportedReport, isLoading } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
 
@@ -336,89 +336,109 @@ export default function AdminReports() {
           <h1 className="text-2xl font-extrabold tracking-tight">System Reports</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">System-wide interaction and usage analytics.</p>
         </div>
-        <Button onClick={handleGenerateReport} disabled={isExporting} className="gap-1.5 h-9">
-          <FileDown size={14} /> {isExporting ? "Generating..." : "Generate & Export Report"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleGenerateReport} disabled={isExporting} className="gap-1.5 h-9">
+            <FileDown size={14} /> {isExporting ? "Generating..." : "Generate & Export Report"}
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Accounts" value={users.length} sub="Active users in system" icon={<Users size={18} />} />
-        <StatCard label="Events Organized" value={events.length} sub="Total event proposals" icon={<Calendar size={18} />} />
-        <StatCard label="Audit Entries" value={auditTrail.length} sub="System audit entries" icon={<Activity size={18} />} />
-        <StatCard label="Student Orgs" value={organizations.length} sub="Recognized bodies" icon={<Building2 size={18} />} />
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader title="System Activity (Last 7 Days)" subtitle="Audit trail volume per day" />
-          <CardBody>
-            <div className="h-64">
-              {activityByDay.every((d) => d.actions === 0) ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                  <p className="text-xs font-semibold text-[var(--foreground)]">No audit activity logged</p>
-                  <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">User interactions in the past 7 days will show here.</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={activityByDay}>
-                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
-                    <YAxis stroke="var(--muted-foreground)" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
-                    <Bar dataKey="actions" name="Actions Logged" fill="#0d9488" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardHeader title="Events per Organization" subtitle="Comparison of proposal frequency" />
-          <CardBody>
-            <div className="h-64">
-              {orgData.every((d) => d.users === 0 && d.events === 0) ? (
-                <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                  <p className="text-xs font-semibold text-[var(--foreground)]">No organizational metrics</p>
-                  <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Organization participation comparison will render here.</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={orgData}>
-                    <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
-                    <YAxis stroke="var(--muted-foreground)" fontSize={11} />
-                    <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
-                    <Bar dataKey="users" fill="#0d9488" radius={[4, 4, 0, 0]} name="Users" />
-                    <Bar dataKey="events" fill="#0284c7" radius={[4, 4, 0, 0]} name="Events" />
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader title="User Account Distribution by Role" subtitle="System composition breakdown" />
-        <CardBody>
-          <div className="grid sm:grid-cols-4 gap-4">
-            {(["student", "adviser", "dean", "admin"] as const).map((role) => {
-              const count = users.filter((u) => u.role === role).length;
-              const colors = {
-                student: "bg-teal-50 text-teal-800 border border-teal-200",
-                adviser: "bg-sky-50 text-sky-800 border border-sky-200",
-                dean: "bg-purple-50 text-purple-800 border border-purple-200",
-                admin: "bg-amber-50 text-amber-800 border border-amber-200",
-              };
-              return (
-                <div key={role} className={`${colors[role]} rounded-xl p-5 text-center shadow-2xs`}>
-                  <p className="text-3xl font-extrabold font-mono">{count}</p>
-                  <p className="text-xs font-mono font-bold mt-1 uppercase tracking-wider">{role}s</p>
-                  <p className="text-xs mt-1 opacity-75 font-mono">{Math.round((count / (users.length || 1)) * 100)}% of total</p>
-                </div>
-              );
-            })}
+      {isLoading ? (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
           </div>
-        </CardBody>
-      </Card>
+          <div className="grid md:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard label="Total Accounts" value={users.length} sub="Active users in system" icon={<Users size={18} />} />
+            <StatCard label="Events Organized" value={events.length} sub="Total event proposals" icon={<Calendar size={18} />} />
+            <StatCard label="Audit Entries" value={auditTrail.length} sub="System audit entries" icon={<Activity size={18} />} />
+            <StatCard label="Student Orgs" value={organizations.length} sub="Recognized bodies" icon={<Building2 size={18} />} />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader title="System Activity (Last 7 Days)" subtitle="Audit trail volume per day" />
+              <CardBody>
+                <div className="h-64">
+                  {activityByDay.every((d) => d.actions === 0) ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                      <p className="text-xs font-semibold text-[var(--foreground)]">No audit activity logged</p>
+                      <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">User interactions in the past 7 days will show here.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={activityByDay}>
+                        <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
+                        <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                        <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
+                        <Bar dataKey="actions" name="Actions Logged" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardHeader title="Events per Organization" subtitle="Comparison of proposal frequency" />
+              <CardBody>
+                <div className="h-64">
+                  {orgData.every((d) => d.users === 0 && d.events === 0) ? (
+                    <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                      <p className="text-xs font-semibold text-[var(--foreground)]">No organizational metrics</p>
+                      <p className="text-[11px] text-[var(--muted-foreground)] mt-0.5">Organization participation comparison will render here.</p>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={orgData}>
+                        <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
+                        <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                        <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
+                        <Bar dataKey="users" fill="#0d9488" radius={[4, 4, 0, 0]} name="Users" />
+                        <Bar dataKey="events" fill="#0284c7" radius={[4, 4, 0, 0]} name="Events" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader title="User Account Distribution by Role" subtitle="System composition breakdown" />
+            <CardBody>
+              <div className="grid sm:grid-cols-4 gap-4">
+                {(["student", "adviser", "dean", "admin"] as const).map((role) => {
+                  const count = users.filter((u) => u.role === role).length;
+                  const colors = {
+                    student: "bg-teal-50 text-teal-800 border border-teal-200",
+                    adviser: "bg-sky-50 text-sky-800 border border-sky-200",
+                    dean: "bg-purple-50 text-purple-800 border border-purple-200",
+                    admin: "bg-amber-50 text-amber-800 border border-amber-200",
+                  };
+                  return (
+                    <div key={role} className={`${colors[role]} rounded-xl p-5 text-center shadow-2xs`}>
+                      <p className="text-3xl font-extrabold font-mono">{count}</p>
+                      <p className="text-xs font-mono font-bold mt-1 uppercase tracking-wider">{role}s</p>
+                      <p className="text-xs mt-1 opacity-75 font-mono">{Math.round((count / (users.length || 1)) * 100)}% of total</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+        </>
+      )}
 
       {/* ── REPORT PREVIEW & ACTION DIALOG ── */}
       {previewPdfUrl && (

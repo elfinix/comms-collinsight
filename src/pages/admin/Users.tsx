@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Button, Dialog, Input, Select, Card, UserAvatar } from "../../components/ui";
+import { Button, Dialog, Input, Select, Card, UserAvatar, RefreshButton, SkeletonTable, SkeletonToolbox } from "../../components/ui";
 import { Plus, Pencil, Trash2, Search, Users, Save, X, Building2, KeyRound, Copy, Check, RefreshCw, RotateCcw, Eye, EyeOff, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown, Layers, Filter } from "lucide-react";
 import { User } from "../../services/dataService";
 
@@ -48,7 +48,7 @@ function emptyUser(): Omit<User, "id"> {
 }
 
 export default function AdminUsers() {
-  const { users, organizations, addUser, updateUser, deleteUser, updateOrganization } = useApp();
+  const { users, organizations, addUser, updateUser, deleteUser, updateOrganization, isLoading } = useApp();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -241,17 +241,28 @@ export default function AdminUsers() {
             Manage credentials, appoint student executive officers, and assign organizational responsibilities.
           </p>
         </div>
-        <Button
-          onClick={() => {
-            setForm(emptyUser());
-            setShowAddPassword(false);
-            setShowAdd(true);
-          }}
-          className="gap-1.5 shadow-2xs"
-        >
-          <Plus size={15} /> Add User
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => {
+              setForm(emptyUser());
+              setShowAddPassword(false);
+              setShowAdd(true);
+            }}
+            className="gap-1.5 shadow-2xs"
+          >
+            <Plus size={15} /> Add User
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
+
+      {isLoading ? (
+        <div className="space-y-6">
+          <SkeletonToolbox />
+          <SkeletonTable rows={6} cols={5} />
+        </div>
+      ) : (
+        <>
 
       {/* Filter, Group, & Sort Toolbar */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
@@ -518,6 +529,8 @@ export default function AdminUsers() {
           </table>
         </div>
       </Card>
+        </>
+      )}
 
       {/* Add / Edit User Dialog */}
       {[

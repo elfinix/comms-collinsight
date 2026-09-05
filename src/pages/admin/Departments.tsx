@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Button, Dialog, Input, Card } from "../../components/ui";
+import { Button, Dialog, Input, Card, RefreshButton, SkeletonTable, SkeletonToolbox } from "../../components/ui";
 import { Plus, Pencil, Trash2, Search, Save, X, AlertTriangle, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
 import { Department } from "../../services/dataService";
 
 export default function AdminDepartments() {
-  const { departments, organizations, addDepartment, updateDepartment, deleteDepartment } = useApp();
+  const { departments, organizations, addDepartment, updateDepartment, deleteDepartment, isLoading } = useApp();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<"name" | "code">("name");
@@ -77,55 +77,65 @@ export default function AdminDepartments() {
             Configure collegiate departments under the College of Information Technology & Engineering.
           </p>
         </div>
-        <Button onClick={() => { setForm({ name: "", code: "", color: "#0d9488", description: "" }); setShowAdd(true); }} className="gap-1.5 shadow-2xs">
-          <Plus size={15} /> Add Department
-        </Button>
-      </div>
-
-      {/* Filter & Sort Toolbar */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[240px]">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search departments by code or title..."
-              className="w-full pl-9 pr-3 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
-            />
-          </div>
-
-          {/* Sort Selector */}
-          <div className="relative">
-            <select
-              value={sortKey}
-              onChange={(e) => setSortKey(e.target.value as any)}
-              className="pl-8 pr-3.5 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none shadow-2xs cursor-pointer appearance-none"
-            >
-              <option value="name">Sort: Department Name</option>
-              <option value="code">Sort: Department Code</option>
-            </select>
-            <ArrowUpDown size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
-          </div>
-
-          {/* Sort Direction Toggle Button */}
-          <button
-            type="button"
-            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-            className="p-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 transition cursor-pointer shadow-2xs flex items-center justify-center flex-shrink-0"
-            title={sortDir === "asc" ? "Ascending — Click for Descending" : "Descending — Click for Ascending"}
-          >
-            {sortDir === "asc" ? (
-              <ArrowUpWideNarrow size={14} className="text-[var(--primary)]" />
-            ) : (
-              <ArrowDownWideNarrow size={14} className="text-[var(--primary)]" />
-            )}
-          </button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => { setForm({ name: "", code: "", color: "#0d9488", description: "" }); setShowAdd(true); }} className="gap-1.5 shadow-2xs">
+            <Plus size={15} /> Add Department
+          </Button>
+          <RefreshButton />
         </div>
       </div>
 
-      {/* Table Card */}
-      <Card>
+      {isLoading ? (
+        <div className="space-y-6">
+          <SkeletonToolbox />
+          <SkeletonTable rows={5} cols={4} />
+        </div>
+      ) : (
+        <>
+          {/* Filter & Sort Toolbar */}
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 min-w-[240px]">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search departments by code or title..."
+                  className="w-full pl-9 pr-3 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
+                />
+              </div>
+
+              {/* Sort Selector */}
+              <div className="relative">
+                <select
+                  value={sortKey}
+                  onChange={(e) => setSortKey(e.target.value as any)}
+                  className="pl-8 pr-3.5 py-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none shadow-2xs cursor-pointer appearance-none"
+                >
+                  <option value="name">Sort: Department Name</option>
+                  <option value="code">Sort: Department Code</option>
+                </select>
+                <ArrowUpDown size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+              </div>
+
+              {/* Sort Direction Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                className="p-2 text-xs border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 transition cursor-pointer shadow-2xs flex items-center justify-center flex-shrink-0"
+                title={sortDir === "asc" ? "Ascending — Click for Descending" : "Descending — Click for Ascending"}
+              >
+                {sortDir === "asc" ? (
+                  <ArrowUpWideNarrow size={14} className="text-[var(--primary)]" />
+                ) : (
+                  <ArrowDownWideNarrow size={14} className="text-[var(--primary)]" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Table Card */}
+          <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -201,6 +211,8 @@ export default function AdminDepartments() {
           </table>
         </div>
       </Card>
+        </>
+      )}
 
       {/* Add Department Dialog */}
       <Dialog open={showAdd} onClose={() => setShowAdd(false)} title="Add Department" size="md">

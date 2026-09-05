@@ -1,12 +1,22 @@
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
-import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
+import {
+  StatCard,
+  Card,
+  CardHeader,
+  CardBody,
+  SignatoryProgress,
+  RefreshButton,
+  SkeletonStatCard,
+  SkeletonChart,
+  SkeletonTable,
+} from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Activity, ShieldCheck } from "lucide-react";
 import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
 
 export default function AdviserDashboard() {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, expenditureCategories } = useApp();
+  const { events, transactions, organizations, expenditureCategories, isLoading } = useApp();
 
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
@@ -47,53 +57,66 @@ export default function AdviserDashboard() {
               <ShieldCheck size={13} /> Faculty Adviser Portal
             </span>
           </div>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)] mt-1.5 tracking-tight">
-            Welcome, Prof. {currentUser?.lastName}!
-          </h1>
+          <div className="mt-1.5">
+            <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">
+              Welcome, Prof. {currentUser?.lastName}!
+            </h1>
+          </div>
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
             Advising Organization: <strong className="text-[var(--foreground)]">{org?.name ?? "Student Guild"}</strong> ({org?.code})
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-right shadow-2xs">
-            <p className="text-[10px] font-mono uppercase text-[var(--muted-foreground)] font-bold">Allocated Budget</p>
-            <p className="text-sm font-extrabold font-mono text-[var(--primary)]">{formatCurrency(org?.allocatedBudget ?? 0)}</p>
-          </div>
-        </div>
+        <RefreshButton />
       </div>
 
-      {/* Metrics Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Pending Review"
-          value={pending.length}
-          sub="Requires your endorsement"
-          icon={<Clock size={18} />}
-          color="bg-amber-500 text-white"
-        />
-        <StatCard
-          label="Total Proposals"
-          value={orgEvents.length}
-          sub="Annual submissions"
-          icon={<Calendar size={18} />}
-          color="bg-[var(--primary)] text-white"
-        />
-        <StatCard
-          label="Endorsed & Approved"
-          value={approved.length}
-          sub="Cleared activities"
-          icon={<CheckCircle size={18} />}
-          color="bg-emerald-600 text-white"
-        />
-        <StatCard
-          label="Total Disbursed"
-          value={formatCurrency(totalSpent)}
-          sub={`of ${formatCurrency(org?.allocatedBudget ?? 0)} allocation`}
-          icon={<Wallet size={18} />}
-          color="bg-sky-600 text-white"
-        />
-      </div>
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <SkeletonTable rows={4} cols={5} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Metrics Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Pending Review"
+              value={pending.length}
+              sub="Requires your endorsement"
+              icon={<Clock size={18} />}
+              color="bg-amber-500 text-white"
+            />
+            <StatCard
+              label="Total Proposals"
+              value={orgEvents.length}
+              sub="Annual submissions"
+              icon={<Calendar size={18} />}
+              color="bg-[var(--primary)] text-white"
+            />
+            <StatCard
+              label="Endorsed & Approved"
+              value={approved.length}
+              sub="Cleared activities"
+              icon={<CheckCircle size={18} />}
+              color="bg-emerald-600 text-white"
+            />
+            <StatCard
+              label="Total Disbursed"
+              value={formatCurrency(totalSpent)}
+              sub={`of ${formatCurrency(org?.allocatedBudget ?? 0)} allocation`}
+              icon={<Wallet size={18} />}
+              color="bg-sky-600 text-white"
+            />
+          </div>
 
       {/* Pending Review Table Card */}
       <Card>
@@ -145,8 +168,7 @@ export default function AdviserDashboard() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Budget Snapshot */}
         <Card variant="gradient" className="flex flex-col justify-between">
-          <div>
-            <CardHeader
+          <CardHeader
               title="Budget Snapshot"
               subtitle="Guild annual fund allocation & utilization"
               action={
@@ -210,8 +232,7 @@ export default function AdviserDashboard() {
                 )}
               </div>
             </CardBody>
-          </div>
-        </Card>
+          </Card>
 
         {/* Recent Activities */}
         <Card>
@@ -231,6 +252,8 @@ export default function AdviserDashboard() {
           </CardBody>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
-import { Card, Dialog, Tabs, SignatoryProgress, Button } from "../components/ui";
+import { Card, Dialog, Tabs, SignatoryProgress, Button, RefreshButton, SkeletonTable, Skeleton, SkeletonToolbox } from "../components/ui";
 import {
   History, Search, Filter, Clock, CheckCircle, RotateCcw,
   FileText, ArrowRight, Eye, Calendar, ExternalLink, Video, MapPin,
@@ -32,7 +32,7 @@ const ACTION_FILTERS: { id: ActionFilterType; label: string }[] = [
 
 export default function HistoryPage() {
   const { currentUser } = useAuth();
-  const { auditTrail, events, eventTypes, users, transactions } = useApp();
+  const { auditTrail, events, eventTypes, users, transactions, isLoading } = useApp();
 
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRangeType>("7days"); // Default: Last 7 days
@@ -189,9 +189,13 @@ export default function HistoryPage() {
             Track and review all recorded actions, approvals, and event journeys.
           </p>
         </div>
+        <RefreshButton />
       </div>
 
-      {/* 2-Tier UX-Friendly Toolbar */}
+      {isLoading ? (
+        <SkeletonToolbox variant="two-tier" />
+      ) : (
+      /* 2-Tier UX-Friendly Toolbar */
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-xs space-y-3">
         {/* Tier 1: Search, Date Range Filter & View Toggle Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
@@ -330,9 +334,20 @@ export default function HistoryPage() {
           </span>
         </div>
       </div>
+      )}
 
       {/* Content View: Timeline (Default) or Table */}
-      {viewMode === "timeline" ? (
+      {isLoading ? (
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-2xs space-y-6">
+          <div className="space-y-4">
+            <Skeleton className="h-6 w-1/4 rounded-md" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </div>
+        </div>
+      ) : viewMode === "timeline" ? (
         /* Timeline View */
         <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-2xs space-y-6">
           {visibleEntries.length === 0 ? (

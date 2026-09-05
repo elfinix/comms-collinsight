@@ -28,6 +28,7 @@ interface AppContextType {
   exportedReports: ExportedReport[];
   eventSignatories: EventSignatory[];
   isLoading: boolean;
+  isRefreshing: boolean;
   isSupabaseConnected: boolean;
   refreshData: () => Promise<void>;
   addEvent: (event: Event) => void;
@@ -93,6 +94,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -180,7 +182,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Fetch live state directly from Supabase as single source of truth
   const refreshData = useCallback(async () => {
-    setIsLoading(true);
+    setIsRefreshing(true);
+    const start = Date.now();
     try {
       const liveData = await supabaseApi.fetchAllState();
       if (liveData) {
@@ -199,8 +202,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error("Failed to load Supabase state:", err);
+      throw err;
     } finally {
+      // Ensure smooth spin transition with minimum 400ms visual duration
+      const elapsed = Date.now() - start;
+      if (elapsed < 400) {
+        await new Promise((r) => setTimeout(r, 400 - elapsed));
+      }
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
@@ -664,6 +674,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         eventSignatories: eventSigs,
         addExportedReport,
         isLoading,
+        isRefreshing,
         isSupabaseConnected,
         refreshData,
         addEvent,

@@ -1,6 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
-import { Card, CardHeader, StatCard, Dialog, Tabs, SignatoryProgress, Button } from "../../components/ui";
+import {
+  Card,
+  CardHeader,
+  StatCard,
+  Dialog,
+  Tabs,
+  SignatoryProgress,
+  Button,
+  RefreshButton,
+  SkeletonStatCard,
+  SkeletonEventCard,
+  SkeletonTable,
+  SkeletonToolbox,
+} from "../../components/ui";
 import {
   CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, Calendar, MapPin, Video,
   LayoutGrid, List, Search, Filter, ArrowUpDown, ChevronDown, ArrowUpNarrowWide, ArrowDownWideNarrow,
@@ -18,7 +31,7 @@ const STATUS_FILTERS = ["All", "Approved", "Completed", "Closed"] as const;
 type StatusFilterType = (typeof STATUS_FILTERS)[number];
 
 export default function DeanApprovedEvents() {
-  const { events, eventTypes, transactions, organizations, defaultView, auditTrail, eventSignatories } = useApp();
+  const { events, eventTypes, transactions, organizations, defaultView, auditTrail, eventSignatories, isLoading } = useApp();
 
   const getApprovalTimestamp = (eventId: string, createdAt: string) => {
     const deanSig = (eventSignatories || []).find(
@@ -133,13 +146,34 @@ export default function DeanApprovedEvents() {
           <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">Approved Events</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">All approved events across CITE organizations (read-only).</p>
         </div>
+        <RefreshButton />
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard label="Approved Events" value={baseApproved.length} icon={<CalendarCheck size={18} />} />
-        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
-        <StatCard label="Closed Events" value={events.filter((e) => e.status === "Closed").length} icon={<CheckCircle size={18} />} />
-      </div>
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <SkeletonToolbox />
+          {view === "grid" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonEventCard key={i} />
+              ))}
+            </div>
+          ) : (
+            <SkeletonTable rows={6} cols={7} />
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatCard label="Approved Events" value={baseApproved.length} icon={<CalendarCheck size={18} />} />
+            <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
+            <StatCard label="Closed Events" value={events.filter((e) => e.status === "Closed").length} icon={<CheckCircle size={18} />} />
+          </div>
 
       {/* CollInsight Interactive Toolbox */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
@@ -457,6 +491,8 @@ export default function DeanApprovedEvents() {
             </table>
           </div>
         </Card>
+      )}
+        </>
       )}
 
       {/* Event Details Dialog */}

@@ -1,11 +1,20 @@
 import { useApp } from "../../context/AppContext";
-import { StatCard, Card, CardHeader, CardBody } from "../../components/ui";
+import {
+  StatCard,
+  Card,
+  CardHeader,
+  CardBody,
+  RefreshButton,
+  SkeletonStatCard,
+  SkeletonTable,
+  SkeletonChart,
+} from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Landmark, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { formatCurrency, statusColors, formatDate } from "../../services/dataService";
 
 export default function DeanDashboard() {
-  const { events, transactions, organizations } = useApp();
+  const { events, transactions, organizations, isLoading } = useApp();
 
   const allEvents = events;
   const pending = allEvents.filter((e) => e.status === "For Approval");
@@ -34,30 +43,43 @@ export default function DeanDashboard() {
               <Landmark size={13} /> College Dean Executive Portal
             </span>
           </div>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)] mt-1.5 tracking-tight">
-            CITE Executive Overview
-          </h1>
+          <div className="mt-1.5">
+            <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">
+              CITE Executive Overview
+            </h1>
+          </div>
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
             Cross-organizational governance, APF clearances, and budgetary oversight.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-right shadow-2xs">
-            <p className="text-[10px] font-mono uppercase text-[var(--muted-foreground)] font-bold">Active Guilds</p>
-            <p className="text-sm font-extrabold font-mono text-[var(--primary)]">{organizations.length} Organizations</p>
-          </div>
-        </div>
+        <RefreshButton />
       </div>
 
-      {/* Metrics Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label="Pending Approval"
-          value={pending.length}
-          sub="Requires endorsement & dispatch"
-          icon={<Clock size={18} />}
-          color="bg-amber-500 text-white"
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <SkeletonTable rows={4} cols={5} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Metrics Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              label="Pending Approval"
+              value={pending.length}
+              sub="Requires endorsement & dispatch"
+              icon={<Clock size={18} />}
+              color="bg-amber-500 text-white"
         />
         <StatCard
           label="College Initiatives"
@@ -222,6 +244,8 @@ export default function DeanDashboard() {
           </CardBody>
         </Card>
       </div>
+        </>
+      )}
     </div>
   );
 }

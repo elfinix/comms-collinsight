@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Button, Dialog, Input, Card, CardHeader, CardBody } from "../../components/ui";
+import { Button, Dialog, Input, Card, CardHeader, CardBody, RefreshButton, SkeletonTable } from "../../components/ui";
 import { Plus, Trash2, Tag, Layers, X, Search, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
 
 export default function AdminConfigurations() {
-  const { eventTypes, expenditureCategories, addEventType, deleteEventType, addCategory, deleteCategory } = useApp();
+  const { eventTypes, expenditureCategories, addEventType, deleteEventType, addCategory, deleteCategory, isLoading } = useApp();
   const { toast } = useToast();
   const [showAddType, setShowAddType] = useState(false);
   const [showAddCat, setShowAddCat] = useState(false);
@@ -97,9 +97,17 @@ export default function AdminConfigurations() {
             Manage proposal event classifications and itemized financial expenditure categories.
           </p>
         </div>
+        <RefreshButton />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6 items-start">
+      {isLoading ? (
+        <div className="grid md:grid-cols-2 gap-6 items-start">
+          <SkeletonTable rows={5} cols={3} />
+          <SkeletonTable rows={5} cols={3} />
+        </div>
+      ) : (
+        <>
+          <div className="grid md:grid-cols-2 gap-6 items-start">
         {/* ── 1. EVENT TYPES CARD ── */}
         <Card className="flex flex-col">
           <CardHeader
@@ -302,6 +310,8 @@ export default function AdminConfigurations() {
           </CardBody>
         </Card>
       </div>
+        </>
+      )}
 
       {/* Add Event Type Dialog */}
       <Dialog open={showAddType} onClose={() => setShowAddType(false)} title="Add Event Classification Type" size="md">

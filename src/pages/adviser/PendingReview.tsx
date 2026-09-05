@@ -2,7 +2,18 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Button, Dialog, Tabs, Card, SignatoryProgress, EmptyState, Textarea } from "../../components/ui";
+import {
+  Button,
+  Dialog,
+  Tabs,
+  Card,
+  SignatoryProgress,
+  EmptyState,
+  Textarea,
+  RefreshButton,
+  SkeletonEventCard,
+  SkeletonTable,
+} from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, FileText, UploadCloud, Calendar, MapPin, Video, ExternalLink, LayoutGrid, List } from "lucide-react";
 import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/dataService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -11,7 +22,7 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function AdviserPendingReview() {
   const { currentUser } = useAuth();
-  const { events, eventTypes, setEventStatus, updateEvent, defaultView } = useApp();
+  const { events, eventTypes, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
   const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const pending = events.filter((e) => e.organizationId === orgId && e.status === "For Review");
@@ -85,37 +96,50 @@ export default function AdviserPendingReview() {
           </p>
         </div>
 
-        {pending.length > 0 && (
-          <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setView("grid")}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                view === "grid"
-                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-              }`}
-              title="Grid View"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setView("list")}
-              className={`p-1.5 rounded-lg transition-all cursor-pointer ${
-                view === "list"
-                  ? "bg-[var(--primary)] text-white shadow-xs font-bold"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-              }`}
-              title="List View"
-            >
-              <List size={15} />
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {pending.length > 0 && !isLoading && (
+            <div className="flex items-center gap-1 bg-[var(--card)] border border-[var(--border)] p-1 rounded-xl shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setView("grid")}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  view === "grid"
+                    ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                }`}
+                title="Grid View"
+              >
+                <LayoutGrid size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("list")}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  view === "list"
+                    ? "bg-[var(--primary)] text-white shadow-xs font-bold"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                }`}
+                title="List View"
+              >
+                <List size={15} />
+              </button>
+            </div>
+          )}
+          <RefreshButton />
+        </div>
       </div>
 
-      {pending.length === 0 ? (
+      {isLoading ? (
+        view === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonEventCard key={i} />
+            ))}
+          </div>
+        ) : (
+          <SkeletonTable rows={5} cols={5} />
+        )
+      ) : pending.length === 0 ? (
         <EmptyState icon={<CheckCircle size={40} />} title="All clear!" description="No pending proposals to review at this time." />
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { Card, Button, UserAvatar } from "../../components/ui";
+import { Card, Button, UserAvatar, RefreshButton, SkeletonTable, SkeletonToolbox } from "../../components/ui";
 import {
   History, Search, Filter, Clock, ArrowDownWideNarrow, ArrowUpNarrowWide,
   ScrollText, FileText, ArrowRight, Activity, Building2, CheckCircle,
@@ -30,7 +30,7 @@ const INITIAL_BATCH_SIZE = 25;
 const BATCH_INCREMENT = 20;
 
 export default function AdminAuditTrail() {
-  const { auditTrail, users, events, addExportedReport } = useApp();
+  const { auditTrail, users, events, addExportedReport, isLoading } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -484,10 +484,21 @@ export default function AdminAuditTrail() {
             Immutable tabular record of all system events, administrative mutations, approvals, and financial logs.
           </p>
         </div>
-        <Button onClick={handleExportPDF} variant="outline" className="gap-1.5 shadow-2xs font-semibold text-xs h-9">
-          <FileText size={15} /> Export PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleExportPDF} variant="outline" className="gap-1.5 shadow-2xs font-semibold text-xs h-9">
+            <FileText size={15} /> Export PDF
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
+
+      {isLoading ? (
+        <div className="space-y-6">
+          <SkeletonToolbox />
+          <SkeletonTable rows={8} cols={5} />
+        </div>
+      ) : (
+        <>
 
       {/* Filter Toolbar */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
@@ -678,6 +689,8 @@ export default function AdminAuditTrail() {
           </div>
         )}
       </Card>
+        </>
+      )}
     </div>
   );
 }

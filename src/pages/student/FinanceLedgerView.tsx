@@ -2,7 +2,7 @@ import { useState, useRef, ChangeEvent } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import { StatCard, Card, CardHeader, CardBody, Button, Dialog, Input, Select } from "../../components/ui";
+import { StatCard, Card, CardHeader, CardBody, Button, Dialog, Input, Select, RefreshButton } from "../../components/ui";
 import {
   Wallet, CreditCard, Coins, Scale, FileSpreadsheet, Plus, Edit2, Trash2, FileText, CheckCircle, UploadCloud,
   ArrowLeft, ChevronRight, Download, Eye, X, AlertTriangle,
@@ -450,6 +450,9 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
               Event Finance Ledger · {formatDate(activeEvent.dateStart)} · {activeEvent.location}
             </p>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <RefreshButton />
         </div>
       </div>
 

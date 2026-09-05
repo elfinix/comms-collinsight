@@ -1,7 +1,20 @@
 import { useState, useMemo } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Card, CardHeader, CardBody, Button, StatCard, Dialog, Tabs, SignatoryProgress } from "../../components/ui";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Button,
+  StatCard,
+  Dialog,
+  Tabs,
+  SignatoryProgress,
+  RefreshButton,
+  SkeletonStatCard,
+  SkeletonChart,
+  SkeletonTable,
+} from "../../components/ui";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid
 } from "recharts";
@@ -26,7 +39,7 @@ const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981", "#64748b"
 const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
 
 export default function DeanReports() {
-  const { events, transactions, users, organizations, exportedReports, addExportedReport } = useApp();
+  const { events, transactions, users, organizations, exportedReports, addExportedReport, isLoading } = useApp();
   const { toast } = useToast();
   const [tab, setTab] = useState<"events" | "finance">("events");
 
@@ -436,9 +449,12 @@ export default function DeanReports() {
           <h1 className="text-2xl font-bold text-[var(--foreground)]">Cross-Organizational Reports</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">System-wide analytics and financial audit records for all CITE organizations.</p>
         </div>
-        <Button variant="outline" onClick={handleExportPdf} className="gap-2 shadow-2xs">
-          <FileDown size={16} /> Export to PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportPdf} className="gap-2 shadow-2xs">
+            <FileDown size={16} /> Export to PDF
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
 
       {/* Tab Toggle */}
@@ -465,6 +481,22 @@ export default function DeanReports() {
         </button>
       </div>
 
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+          <SkeletonTable rows={6} cols={6} />
+        </div>
+      ) : (
+        <>
       {/* ── EVENTS TAB ── */}
       {tab === "events" && (
         <>
@@ -840,6 +872,8 @@ export default function DeanReports() {
           </table>
         </div>
       </Card>
+        </>
+      )}
 
       {/* Event Details Dialog */}
       {viewEvent && (

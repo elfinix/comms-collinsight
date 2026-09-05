@@ -1,6 +1,16 @@
 import { Link } from "react-router-dom";
 import { useApp } from "../../context/AppContext";
-import { StatCard, Card, CardHeader, CardBody } from "../../components/ui";
+import {
+  StatCard,
+  Card,
+  CardHeader,
+  CardBody,
+  RefreshButton,
+  Skeleton,
+  SkeletonStatCard,
+  SkeletonChart,
+  SkeletonTable,
+} from "../../components/ui";
 import { Users, Building2, Calendar, Shield, Landmark, Clock, ArrowRight, GraduationCap, UserCheck, Award } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { formatDate, getActionBadgeClass, formatCurrency } from "../../services/dataService";
@@ -11,7 +21,7 @@ const PIE_COLORS = [
 ];
 
 export default function AdminDashboard() {
-  const { events, users, departments, organizations: orgs, auditTrail } = useApp();
+  const { events, users, departments, organizations: orgs, auditTrail, isLoading } = useApp();
 
   const students = users.filter((u) => u.role === "student");
   const advisers = users.filter((u) => u.role === "adviser");
@@ -56,16 +66,62 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-right shadow-2xs">
-            <p className="text-[10px] font-mono uppercase text-[var(--muted-foreground)] font-bold">System Status</p>
-            <p className="text-sm font-extrabold font-mono text-emerald-600">● Operational</p>
-          </div>
-        </div>
+        <RefreshButton />
       </div>
 
-      {/* Metrics Strip */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <div className="grid md:grid-cols-2 gap-6 items-stretch">
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-2xs flex flex-col justify-between h-[420px]">
+              <div className="space-y-1.5">
+                <Skeleton className="h-5 w-44 rounded-md" />
+                <Skeleton className="h-3.5 w-64 rounded-md" />
+              </div>
+              <div className="flex items-center justify-center my-auto">
+                <Skeleton className="w-40 h-40 rounded-full" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-[var(--border)]">
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-full rounded" />
+              </div>
+            </div>
+
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 shadow-2xs flex flex-col justify-between h-[420px]">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1.5">
+                  <Skeleton className="h-5 w-40 rounded-md" />
+                  <Skeleton className="h-3.5 w-52 rounded-md" />
+                </div>
+                <Skeleton className="h-7 w-20 rounded-lg" />
+              </div>
+              <div className="space-y-3 my-auto">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--muted)]/30 border border-[var(--border)]/50">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="w-8 h-8 rounded-full" />
+                      <div className="space-y-1">
+                        <Skeleton className="h-3.5 w-32 rounded" />
+                        <Skeleton className="h-2.5 w-24 rounded" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <SkeletonTable rows={4} cols={5} />
+        </div>
+      ) : (
+        <>
+          {/* Metrics Strip */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Registered Users"
           value={users.length}
@@ -325,6 +381,8 @@ export default function AdminDashboard() {
           </div>
         </CardBody>
       </Card>
+        </>
+      )}
     </div>
   );
 }

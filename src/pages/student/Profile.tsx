@@ -2,7 +2,7 @@ import { useState, useRef, ChangeEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Card, CardHeader, CardBody, Button, Input, Select, PasswordInput, UserAvatar } from "../../components/ui";
+import { Card, CardHeader, CardBody, Button, Input, Select, PasswordInput, UserAvatar, RefreshButton, SkeletonProfile } from "../../components/ui";
 import {
   User as UserIcon, Building2, Calendar, Moon, Sun, RefreshCw, UploadCloud,
   Trash2, CheckCircle, AlertCircle, ShieldCheck, Sliders, Lock, Sparkles, Layers, LayoutGrid, List
@@ -23,7 +23,7 @@ export default function StudentProfile() {
   const {
     organizations, theme, setTheme, dataDensity, setDataDensity,
     tableDensity, setTableDensity, defaultView, setDefaultView,
-    updateUser
+    updateUser, isLoading
   } = useApp();
   const { toast } = useToast();
 
@@ -232,15 +232,22 @@ export default function StudentProfile() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Profile & Settings</h1>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">
-          Manage your official institutional profile, security credentials, and application preferences.
-        </p>
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Profile & Settings</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">
+            Manage your official institutional profile, security credentials, and application preferences.
+          </p>
+        </div>
+        <RefreshButton />
       </div>
 
-      {/* ── PROFILE BANNER CARD ─────────────────────────────────────────────── */}
-      <Card className="border-[var(--border)] overflow-hidden shadow-sm">
+      {isLoading ? (
+        <SkeletonProfile />
+      ) : (
+        <>
+          {/* ── PROFILE BANNER CARD ─────────────────────────────────────────────── */}
+          <Card className="border-[var(--border)] overflow-hidden shadow-sm">
         <div className="h-20 relative overflow-hidden bg-gradient-to-r from-slate-950 via-[#0a4843] to-slate-900 border-b border-teal-800/40">
           {/* Abstract subtle mesh & dot grid */}
           <div className="absolute inset-0 bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:14px_14px] opacity-15" />
@@ -710,6 +717,8 @@ export default function StudentProfile() {
           </div>
         </CardBody>
       </Card>
+        </>
+      )}
     </div>
   );
 }

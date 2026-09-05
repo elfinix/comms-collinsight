@@ -2,7 +2,17 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Card, CardHeader, CardBody, Button, StatCard } from "../../components/ui";
+import {
+  Card,
+  CardHeader,
+  CardBody,
+  Button,
+  StatCard,
+  RefreshButton,
+  SkeletonStatCard,
+  SkeletonChart,
+  SkeletonTable,
+} from "../../components/ui";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from "recharts";
 import {
   FileDown, BarChart2, Calendar, Wallet, CreditCard,
@@ -17,7 +27,7 @@ const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending
 
 export default function StudentReports() {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, users, expenditureCategories, exportedReports, addExportedReport } = useApp();
+  const { events, transactions, organizations, users, expenditureCategories, exportedReports, addExportedReport, isLoading } = useApp();
   const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
@@ -626,17 +636,36 @@ export default function StudentReports() {
           <h1 className="text-2xl font-bold text-[var(--foreground)]">Reports</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">Analytics and exportable reports for your organization.</p>
         </div>
-        <Button variant="outline" onClick={handleExportPdf}>
-          <FileDown size={16} /> Export to PDF
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleExportPdf}>
+            <FileDown size={16} /> Export to PDF
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Total Events" value={orgEvents.length} icon={<Calendar size={18} />} />
-        <StatCard label="Approved Events" value={approvedEvents.length} icon={<BarChart2 size={18} />} />
-        <StatCard label="Total Proposed Budget" value={formatCurrency(totalBudget)} icon={<Wallet size={18} />} />
-        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
-      </div>
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+          <SkeletonTable rows={5} cols={5} />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatCard label="Total Events" value={orgEvents.length} icon={<Calendar size={18} />} />
+            <StatCard label="Approved Events" value={approvedEvents.length} icon={<BarChart2 size={18} />} />
+            <StatCard label="Total Proposed Budget" value={formatCurrency(totalBudget)} icon={<Wallet size={18} />} />
+            <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
+          </div>
 
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <Card>
@@ -804,6 +833,8 @@ export default function StudentReports() {
           </table>
         </div>
       </Card>
+        </>
+      )}
     </div>
   );
 }

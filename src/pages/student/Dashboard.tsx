@@ -1,6 +1,17 @@
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
-import { StatCard, Card, CardHeader, CardBody, SignatoryProgress } from "../../components/ui";
+import {
+  StatCard,
+  Card,
+  CardHeader,
+  CardBody,
+  SignatoryProgress,
+  RefreshButton,
+  Skeleton,
+  SkeletonStatCard,
+  SkeletonTable,
+  SkeletonChart,
+} from "../../components/ui";
 import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Shapes, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
@@ -8,9 +19,10 @@ import { formatCurrency, formatDate, statusColors } from "../../services/dataSer
 const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981"];
 
 export default function StudentDashboard() {
-  const { currentUser } = useAuth();
-  const { events, transactions, organizations, eventTypes } = useApp();
+  const { currentUser: authUser } = useAuth();
+  const { events, transactions, organizations, eventTypes, users, isLoading } = useApp();
 
+  const currentUser = users.find((u) => u.id === authUser?.id) || authUser;
   const orgId = currentUser?.organizationId;
   const org = orgId ? organizations.find((o) => o.id === orgId) : null;
   const orgEvents = events.filter((e) => e.organizationId === orgId);
@@ -45,24 +57,44 @@ export default function StudentDashboard() {
               Student Officer Portal
             </span>
           </div>
-          <h1 className="text-2xl font-extrabold text-[var(--foreground)] mt-1.5 tracking-tight">
-            Welcome back, {currentUser?.firstName}!
-          </h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
-            <strong className="text-[var(--foreground)]">{currentUser?.position}</strong> · {org?.name ?? "Student Guild"} ({org?.code})
-          </p>
+          <div className="mt-1.5">
+            <h1 className="text-2xl font-extrabold text-[var(--foreground)] tracking-tight">
+              Welcome back, {currentUser?.firstName}!
+            </h1>
+          </div>
+          {isLoading && !org ? (
+            <div className="flex items-center gap-2 mt-1.5">
+              <Skeleton className="h-4 w-60 rounded" />
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+              <strong className="text-[var(--foreground)]">{currentUser?.position || "Student Officer"}</strong>
+              {org ? ` · ${org.name} (${org.code})` : ""}
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl px-4 py-2 text-right shadow-2xs">
-            <p className="text-[10px] font-mono uppercase text-[var(--muted-foreground)] font-bold">Current Budget</p>
-            <p className="text-sm font-extrabold font-mono text-[var(--primary)]">{formatCurrency(remainingBudget)}</p>
-          </div>
-        </div>
+        <RefreshButton />
       </div>
 
-      {/* Metrics StatCards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <SkeletonTable rows={4} cols={5} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Metrics StatCards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Proposals"
           value={orgEvents.length}
@@ -217,6 +249,8 @@ export default function StudentDashboard() {
           </table>
         </div>
       </Card>
+        </>
+      )}
     </div>
   );
 }

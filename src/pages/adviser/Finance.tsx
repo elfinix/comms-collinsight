@@ -1,7 +1,18 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
-import { StatCard, Card, CardHeader, CardBody, Button, EmptyState } from "../../components/ui";
+import {
+  StatCard,
+  Card,
+  CardHeader,
+  CardBody,
+  Button,
+  EmptyState,
+  RefreshButton,
+  SkeletonStatCard,
+  SkeletonChart,
+  SkeletonTable,
+} from "../../components/ui";
 import {
   Wallet, CreditCard, Coins, CalendarCheck, Search, Grid, List, ChevronDown,
   ArrowDownWideNarrow, ArrowUpNarrowWide, ArrowRight, ArrowUpDown, Building2, CheckCircle,
@@ -15,7 +26,7 @@ const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#ef4444", "#10b981"
 
 export default function AdviserFinance() {
   const { currentUser } = useAuth();
-  const { events, transactions, organizations, expenditureCategories, defaultView } = useApp();
+  const { events, transactions, organizations, expenditureCategories, defaultView, isLoading } = useApp();
 
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
@@ -132,18 +143,37 @@ export default function AdviserFinance() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-[var(--foreground)]">Finance Overview</h1>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">Read-only oversight of organization financial activities and event ledgers.</p>
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">Finance Overview</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">Read-only oversight of organization financial activities and event ledgers.</p>
+        </div>
+        <RefreshButton />
       </div>
 
-      {/* Org Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard label="Organization Budget" value={formatCurrency(organizationBudget)} icon={<Building2 size={18} />} />
-        <StatCard label="Allocated Budget" value={formatCurrency(allocatedBudget)} icon={<Wallet size={18} />} />
-        <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
-        <StatCard label="Remaining" value={formatCurrency(remaining)} icon={<Coins size={18} />} trend={remaining < 0 ? "down" : "up"} />
-      </div>
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <SkeletonChart />
+            <SkeletonChart />
+          </div>
+          <SkeletonTable rows={5} cols={6} />
+        </div>
+      ) : (
+        <>
+          {/* Org Metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <StatCard label="Organization Budget" value={formatCurrency(organizationBudget)} icon={<Building2 size={18} />} />
+            <StatCard label="Allocated Budget" value={formatCurrency(allocatedBudget)} icon={<Wallet size={18} />} />
+            <StatCard label="Total Spent" value={formatCurrency(totalSpent)} icon={<CreditCard size={18} />} />
+            <StatCard label="Remaining" value={formatCurrency(remaining)} icon={<Coins size={18} />} trend={remaining < 0 ? "down" : "up"} />
+          </div>
 
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -637,6 +667,8 @@ export default function AdviserFinance() {
             </div>
           )}
         </div>
+      )}
+        </>
       )}
     </div>
   );

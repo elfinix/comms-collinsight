@@ -3,7 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Button, Dialog, Input, Textarea, Select, Tabs, Card, CardHeader, CardBody, SignatoryProgress, EmptyState, DateTimePicker } from "../../components/ui";
+import {
+  Button,
+  Dialog,
+  Input,
+  Textarea,
+  Select,
+  Tabs,
+  Card,
+  CardHeader,
+  CardBody,
+  SignatoryProgress,
+  EmptyState,
+  DateTimePicker,
+  RefreshButton,
+  SkeletonEventCard,
+  SkeletonTable,
+  SkeletonToolbox,
+} from "../../components/ui";
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
   ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, ExternalLink, ArrowRight, MessageSquareQuote,
@@ -82,6 +99,7 @@ export default function StudentEvents() {
     defaultView,
     eventSignatories,
     resolvePendingSignatories,
+    isLoading,
   } = useApp();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -433,257 +451,319 @@ export default function StudentEvents() {
           <h1 className="text-2xl font-bold text-[var(--foreground)]">Events</h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">Manage and track your organization's events.</p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus size={16} /> Add Event
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={handleCreate}>
+            <Plus size={16} /> Add Event
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
 
-      {/* 2-Tier UX-Friendly Toolbar */}
-      <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-xs space-y-3 mb-6">
-        {/* Tier 1: Search & Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[220px]">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search events by title..."
-              className="w-full pl-9 pr-8 py-2 text-sm border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]"
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Sort Field with Leading Icon & Trailing Chevron */}
-            <div className="relative flex items-center">
-              <ArrowUpDown size={13} className="absolute left-3 text-[var(--muted-foreground)] pointer-events-none" />
-              <select
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value)}
-                className="pl-8 pr-7 py-2 text-xs font-medium border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer appearance-none shadow-2xs hover:border-[var(--primary)]/40 transition"
-              >
-                <option value="createdAt">Date Created</option>
-                <option value="name">Name (A-Z)</option>
-                <option value="proposedBudget">Proposed Budget</option>
-                <option value="dateStart">Event Date</option>
-              </select>
-              <ChevronDown size={12} className="absolute right-2.5 text-[var(--muted-foreground)] pointer-events-none" />
+      {isLoading ? (
+        <div className="space-y-6 mb-6">
+          <SkeletonToolbox />
+          {view === "grid" ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <SkeletonEventCard key={i} />
+              ))}
             </div>
-
-            {/* Asc / Desc Icon Toggle Button */}
-            <button
-              onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
-              className="w-8.5 h-8.5 flex items-center justify-center border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 hover:border-[var(--primary)]/40 transition cursor-pointer shadow-2xs"
-              title={sortDir === "asc" ? "Ascending — Click to sort Descending" : "Descending — Click to sort Ascending"}
-            >
-              {sortDir === "asc" ? (
-                <ArrowUpNarrowWide size={15} className="text-[var(--primary)]" />
-              ) : (
-                <ArrowDownWideNarrow size={15} className="text-[var(--primary)]" />
-              )}
-            </button>
-
-            <div className="flex border border-[var(--border)] rounded-xl overflow-hidden p-0.5 bg-[var(--muted)]/30">
-              <button
-                onClick={() => setView("grid")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer ${
-                  view === "grid"
-                    ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
-                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                }`}
-              >
-                <Grid size={13} />
-                <span>Grid</span>
-              </button>
-              <button
-                onClick={() => setView("list")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer ${
-                  view === "list"
-                    ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
-                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
-                }`}
-              >
-                <List size={13} />
-                <span>List</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-[var(--border)]/70" />
-
-        {/* Tier 2: Status Pills Filter */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] mr-1 flex items-center gap-1">
-              <Filter size={12} /> Status:
-            </span>
-            {STATUS_FILTERS.map((s) => {
-              const isActive = statusFilter === s;
-              const count = s === "All" ? orgEvents.length : orgEvents.filter((e) => e.status === s).length;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1 text-xs font-medium rounded-full transition cursor-pointer flex items-center gap-1.5 ${
-                    isActive
-                      ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
-                      : "bg-[var(--muted)]/50 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                  }`}
-                >
-                  <span>{s}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-[var(--border)]/60 text-[var(--muted-foreground)]"}`}>
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-
-          {statusFilter !== "All" && (
-            <button
-              onClick={() => setStatusFilter("All")}
-              className="text-xs font-medium text-[var(--primary)] hover:underline cursor-pointer ml-auto"
-            >
-              Reset Filter
-            </button>
+          ) : (
+            <SkeletonTable rows={6} cols={6} />
           )}
         </div>
-      </div>
-
-      {/* Events Grid / List */}
-      {filtered.length === 0 ? (
-        <EmptyState icon={<Plus size={40} />} title="No events yet" description="Create your first event proposal to get started." action={<Button onClick={handleCreate}><Plus size={14} /> Add Event</Button>} />
-      ) : view === "grid" ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((e) => (
-            <div key={e.id} className="bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-5 hover:shadow-md transition flex flex-col gap-3">
-              <div className="flex items-start justify-between gap-2">
-                <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>
-                <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode === "Online/Virtual" ? "Virtual" : e.mode}</span>
+      ) : (
+        <>
+          {/* 2-Tier UX-Friendly Toolbar */}
+          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-xs space-y-3 mb-6">
+            {/* Tier 1: Search & Controls */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1 min-w-[220px]">
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)] pointer-events-none" />
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search events by title..."
+                  className="w-full pl-9 pr-8 py-2 text-sm border border-[var(--border)] rounded-xl bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] transition text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[var(--muted-foreground)] hover:text-[var(--foreground)] p-1 cursor-pointer"
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
-              <h3 className="font-bold text-[var(--foreground)] leading-snug">{e.name}</h3>
-              <p className="text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)} · {e.location}</p>
-              <p className="text-sm font-mono text-[var(--primary)] font-extrabold">{formatCurrency(e.proposedBudget)}</p>
-              {e.status === "Pending Revision" && (() => {
-                const activeFb = getActiveRevisionFeedback(e.id);
-                if (!activeFb) return null;
-                return (
-                  <div className="flex gap-2 bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-800">
-                    <AlertCircle size={14} className="flex-shrink-0 mt-0.5 text-orange-600" />
-                    <div className="min-w-0">
-                      <span className="font-bold mr-1">{activeFb.title}:</span>
-                      <span className="line-clamp-2 leading-relaxed" title={activeFb.feedback}>
-                        {activeFb.feedback.length > 100 ? `${activeFb.feedback.slice(0, 100)}...` : activeFb.feedback}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
-              {/* Right-aligned action buttons in exact sequence: [Delete] [Edit] [View] [Submit] */}
-              <div className="flex items-center justify-end gap-1.5 mt-auto pt-3 border-t border-[var(--border)]">
-                {canDelete(e) && (
-                  <Button
-                    size="sm"
-                    variant="danger"
-                    onClick={() => setDeleteConfirm(e)}
-                    title="Delete Proposal"
-                    className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg shadow-2xs"
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Sort Field with Leading Icon & Trailing Chevron */}
+                <div className="relative flex items-center">
+                  <ArrowUpDown size={13} className="absolute left-3 text-[var(--muted-foreground)] pointer-events-none" />
+                  <select
+                    value={sortKey}
+                    onChange={(e) => setSortKey(e.target.value)}
+                    className="pl-8 pr-7 py-2 text-xs font-medium border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer appearance-none shadow-2xs hover:border-[var(--primary)]/40 transition"
                   >
-                    <Trash2 size={15} className="stroke-[1.8]" />
-                  </Button>
-                )}
-                {canEdit(e) && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenEdit(e)}
-                    title="Edit Proposal"
-                    className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]"
-                  >
-                    <Edit2 size={15} className="stroke-[1.8]" />
-                  </Button>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => { setViewEvent(e); setViewTab("details"); }}
-                  title="View Details"
-                  className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]"
+                    <option value="createdAt">Date Created</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="proposedBudget">Proposed Budget</option>
+                    <option value="dateStart">Event Date</option>
+                  </select>
+                  <ChevronDown size={12} className="absolute right-2.5 text-[var(--muted-foreground)] pointer-events-none" />
+                </div>
+
+                {/* Asc / Desc Icon Toggle Button */}
+                <button
+                  onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+                  className="w-8.5 h-8.5 flex items-center justify-center border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] hover:bg-[var(--muted)]/50 hover:border-[var(--primary)]/40 transition cursor-pointer shadow-2xs"
+                  title={sortDir === "asc" ? "Ascending — Click to sort Descending" : "Descending — Click to sort Ascending"}
                 >
-                  <Eye size={15} className="stroke-[1.8]" />
-                </Button>
-                {canSubmit(e) && (
-                  <Button
-                    size="sm"
-                    onClick={() => setSubmitConfirm(e)}
-                    className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 rounded-lg shadow-2xs"
+                  {sortDir === "asc" ? (
+                    <ArrowUpNarrowWide size={15} className="text-[var(--primary)]" />
+                  ) : (
+                    <ArrowDownWideNarrow size={15} className="text-[var(--primary)]" />
+                  )}
+                </button>
+
+                <div className="flex border border-[var(--border)] rounded-xl overflow-hidden p-0.5 bg-[var(--muted)]/30">
+                  <button
+                    onClick={() => setView("grid")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer ${
+                      view === "grid"
+                        ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
+                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    }`}
                   >
-                    <Send size={13.5} className="stroke-[1.8]" />
-                    {e.status === "Pending Revision" ? "Submit and Resolve" : "Submit"}
-                  </Button>
-                )}
+                    <Grid size={13} />
+                    <span>Grid</span>
+                  </button>
+                  <button
+                    onClick={() => setView("list")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer ${
+                      view === "list"
+                        ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
+                        : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    }`}
+                  >
+                    <List size={13} />
+                    <span>List</span>
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
-                  {["Event Name", "Type", "Date", "Budget", "Status", "Actions"].map((h) => (
-                    <th key={h} className={`px-5 py-3.5 text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)] ${h === "Actions" ? "text-right" : "text-left"}`}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {filtered.map((e) => (
-                  <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
-                    <td className="px-5 py-3.5 font-bold text-[var(--foreground)] max-w-[220px] truncate">{e.name}</td>
-                    <td className="px-5 py-3.5 text-xs text-[var(--muted-foreground)]">{getEventType(e.typeId)?.name}</td>
-                    <td className="px-5 py-3.5 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
-                    <td className="px-5 py-3.5 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
-                    <td className="px-5 py-3.5"><span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span></td>
-                    <td className="px-5 py-3.5 text-right">
-                      {/* Right-aligned action buttons in exact sequence: [Delete] [Edit] [View] [Submit] */}
-                      <div className="flex items-center justify-end gap-1.5">
-                        {canDelete(e) && (
-                          <Button size="sm" variant="danger" onClick={() => setDeleteConfirm(e)} title="Delete Proposal" className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg shadow-2xs">
-                            <Trash2 size={15} className="stroke-[1.8]" />
-                          </Button>
-                        )}
-                        {canEdit(e) && (
-                          <Button size="sm" variant="outline" onClick={() => handleOpenEdit(e)} title="Edit Proposal" className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]">
-                            <Edit2 size={15} className="stroke-[1.8]" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" onClick={() => { setViewEvent(e); setViewTab("details"); }} title="View Details" className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]">
-                          <Eye size={15} className="stroke-[1.8]" />
-                        </Button>
-                        {canSubmit(e) && (
-                          <Button size="sm" onClick={() => setSubmitConfirm(e)} className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 rounded-lg shadow-2xs">
-                            <Send size={13.5} className="stroke-[1.8]" />
-                            {e.status === "Pending Revision" ? "Submit and Resolve" : "Submit"}
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+            {/* Divider */}
+            <div className="border-t border-[var(--border)]/70" />
+
+            {/* Tier 2: Status Pills Filter */}
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] mr-1 flex items-center gap-1">
+                  <Filter size={12} /> Status:
+                </span>
+                {STATUS_FILTERS.map((s) => {
+                  const isActive = statusFilter === s;
+                  const count = s === "All" ? orgEvents.length : orgEvents.filter((e) => e.status === s).length;
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setStatusFilter(s)}
+                      className={`px-3 py-1 text-xs font-medium rounded-full transition cursor-pointer flex items-center gap-1.5 ${
+                        isActive
+                          ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
+                          : "bg-[var(--muted)]/50 text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                      }`}
+                    >
+                      <span>{s}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-[var(--border)]/60 text-[var(--muted-foreground)]"}`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {statusFilter !== "All" && (
+                <button
+                  onClick={() => setStatusFilter("All")}
+                  className="text-xs font-medium text-[var(--primary)] hover:underline cursor-pointer ml-auto"
+                >
+                  Reset Filter
+                </button>
+              )}
+            </div>
           </div>
-        </Card>
+
+          {filtered.length === 0 ? (
+            <EmptyState icon={<Plus size={40} />} title="No events yet" description="Create your first event proposal to get started." action={<Button onClick={handleCreate}><Plus size={14} /> Add Event</Button>} />
+          ) : view === "grid" ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map((e) => (
+                <div key={e.id} className="bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-5 hover:shadow-md transition flex flex-col gap-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode === "Online/Virtual" ? "Virtual" : e.mode}</span>
+                  </div>
+                  <h3 className="font-bold text-[var(--foreground)] leading-snug">{e.name}</h3>
+                  <p className="text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)} · {e.location}</p>
+                  <p className="text-sm font-mono text-[var(--primary)] font-extrabold">{formatCurrency(e.proposedBudget)}</p>
+                  {e.status === "Pending Revision" && (() => {
+                    const activeFb = getActiveRevisionFeedback(e.id);
+                    if (!activeFb) return null;
+                    return (
+                      <div className="flex gap-2 bg-orange-50 border border-orange-200 rounded-xl p-2.5 text-xs text-orange-800">
+                        <AlertCircle size={14} className="flex-shrink-0 mt-0.5 text-orange-600" />
+                        <div className="min-w-0">
+                          <span className="font-bold mr-1">{activeFb.title}:</span>
+                          <span className="line-clamp-2 leading-relaxed" title={activeFb.feedback}>
+                            {activeFb.feedback.length > 100 ? `${activeFb.feedback.slice(0, 100)}...` : activeFb.feedback}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  {/* Right-aligned action buttons in exact sequence: [Delete] [Edit] [View] [Submit] */}
+                  <div className="flex items-center justify-end gap-1.5 mt-auto pt-3 border-t border-[var(--border)]">
+                    {canDelete(e) && (
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setDeleteConfirm(e)}
+                        title="Delete Proposal"
+                        className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg shadow-2xs"
+                      >
+                        <Trash2 size={15} className="stroke-[1.8]" />
+                      </Button>
+                    )}
+                    {canEdit(e) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleOpenEdit(e)}
+                        title="Edit Proposal"
+                        className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]"
+                      >
+                        <Edit2 size={15} className="stroke-[1.8]" />
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setViewEvent(e);
+                        setViewTab("details");
+                      }}
+                      title="View Details"
+                      className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]"
+                    >
+                      <Eye size={15} className="stroke-[1.8]" />
+                    </Button>
+                    {canSubmit(e) && (
+                      <Button
+                        size="sm"
+                        onClick={() => setSubmitConfirm(e)}
+                        className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 rounded-lg shadow-2xs"
+                      >
+                        <Send size={13.5} className="stroke-[1.8]" />
+                        {e.status === "Pending Revision" ? "Submit and Resolve" : "Submit"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Card className="shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--muted)]/70 border-b border-[var(--border)] text-xs font-mono text-[var(--muted-foreground)]">
+                      <th className="px-5 py-3.5 text-left">Event Name</th>
+                      <th className="px-5 py-3.5 text-left">Date & Time</th>
+                      <th className="px-5 py-3.5 text-left">Location</th>
+                      <th className="px-5 py-3.5 text-left">Proposed Budget</th>
+                      <th className="px-5 py-3.5 text-left">Status</th>
+                      <th className="px-5 py-3.5 text-left min-w-[280px]">Signatory Flow</th>
+                      <th className="px-5 py-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {filtered.map((e) => (
+                      <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
+                        <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
+                        <td className="px-5 py-4 font-mono text-xs text-[var(--muted-foreground)] whitespace-nowrap">
+                          {formatDateTime(e.dateStart)}
+                        </td>
+                        <td className="px-5 py-4 text-xs text-[var(--muted-foreground)]">{e.location}</td>
+                        <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">
+                          {formatCurrency(e.proposedBudget)}
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>
+                            {e.status}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4">
+                          <SignatoryProgress status={e.status} />
+                        </td>
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {canDelete(e) && (
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => setDeleteConfirm(e)}
+                                title="Delete Proposal"
+                                className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg shadow-2xs"
+                              >
+                                <Trash2 size={15} className="stroke-[1.8]" />
+                              </Button>
+                            )}
+                            {canEdit(e) && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleOpenEdit(e)}
+                                title="Edit Proposal"
+                                className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]"
+                              >
+                                <Edit2 size={15} className="stroke-[1.8]" />
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setViewEvent(e);
+                                setViewTab("details");
+                              }}
+                              title="View Details"
+                              className="h-8 w-8 !p-0 flex items-center justify-center rounded-lg bg-white hover:bg-[var(--muted)]/60 shadow-2xs text-[var(--foreground)]"
+                            >
+                              <Eye size={15} className="stroke-[1.8]" />
+                            </Button>
+                            {canSubmit(e) && (
+                              <Button
+                                size="sm"
+                                onClick={() => setSubmitConfirm(e)}
+                                className="h-8 px-3 text-xs font-bold flex items-center gap-1.5 rounded-lg shadow-2xs"
+                              >
+                                <Send size={13.5} className="stroke-[1.8]" />
+                                {e.status === "Pending Revision" ? "Submit and Resolve" : "Submit"}
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </>
       )}
 
       {/* Create Event Dialog */}

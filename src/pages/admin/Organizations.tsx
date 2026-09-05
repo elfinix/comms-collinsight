@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
-import { Button, Dialog, Input, Select, Card } from "../../components/ui";
+import { Button, Dialog, Input, Select, Card, RefreshButton, SkeletonEventCard, SkeletonToolbox } from "../../components/ui";
 import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
 import { Organization, formatCurrency } from "../../services/dataService";
 
 export default function AdminOrganizations() {
-  const { organizations, departments, users, addOrganization, updateOrganization, deleteOrganization, updateUser } = useApp();
+  const { organizations, departments, users, addOrganization, updateOrganization, deleteOrganization, updateUser, isLoading } = useApp();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
@@ -131,10 +131,25 @@ export default function AdminOrganizations() {
             Manage recognized student bodies, annual budget allocations, and appointed faculty advisers.
           </p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-1.5 shadow-2xs">
-          <Plus size={15} /> Add Organization
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowAdd(true)} className="gap-1.5 shadow-2xs">
+            <Plus size={15} /> Add Organization
+          </Button>
+          <RefreshButton />
+        </div>
       </div>
+
+      {isLoading ? (
+        <div className="space-y-6">
+          <SkeletonToolbox />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <SkeletonEventCard key={i} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
 
       {/* Filter & Sort Toolbar */}
       <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-2xs space-y-3">
@@ -275,6 +290,8 @@ export default function AdminOrganizations() {
           );
         })}
       </div>
+        </>
+      )}
 
       {/* Add Organization Dialog */}
       <Dialog open={showAdd} onClose={() => setShowAdd(false)} title="Add Organization" size="lg">

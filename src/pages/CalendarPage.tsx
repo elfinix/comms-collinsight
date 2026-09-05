@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { useToast } from "../context/ToastContext";
-import { Dialog, SignatoryProgress } from "../components/ui";
+import { Dialog, SignatoryProgress, RefreshButton, SkeletonEventCard, SkeletonToolbox } from "../components/ui";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
@@ -271,6 +271,7 @@ export default function CalendarPage() {
     organizations,
     departments,
     expenditureCategories,
+    isLoading,
   } = useApp();
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -338,31 +339,37 @@ export default function CalendarPage() {
               <span className="text-[var(--foreground)] font-medium">Event Calendar</span>
             </div>
 
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-              <div>
-                <span className="inline-block text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold">
-                  CITE · LCUP
-                </span>
-                <h1 className="text-3xl lg:text-4xl font-extrabold mt-2 text-[var(--foreground)] tracking-tight">
-                  Campus Event Calendar
-                </h1>
-                <p className="mt-2 text-sm lg:text-base text-[var(--muted-foreground)] max-w-xl leading-relaxed">
-                  Explore approved activities, workshops, seminars, and ongoing organizational proposals across the college.
-                </p>
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <span className="inline-block text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold">
+                    CITE · LCUP
+                  </span>
+                  <h1 className="text-3xl lg:text-4xl font-extrabold mt-2 text-[var(--foreground)] tracking-tight">
+                    Campus Event Calendar
+                  </h1>
+                </div>
+                <RefreshButton />
               </div>
 
-              {/* Status Legend Pills */}
-              <div className="flex items-center gap-2 flex-wrap bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-2xs text-xs font-mono">
-                <span className="text-[var(--muted-foreground)] font-bold uppercase text-[10px] mr-1">Legend:</span>
-                <span className="bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded-full font-medium">
-                  Approved ({approvedCount})
-                </span>
-                <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium">
-                  For Review
-                </span>
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium">
-                  Completed
-                </span>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <p className="text-sm lg:text-base text-[var(--muted-foreground)] max-w-xl leading-relaxed">
+                  Explore approved activities, workshops, seminars, and ongoing organizational proposals across the college.
+                </p>
+
+                {/* Status Legend Pills */}
+                <div className="flex items-center gap-2 flex-wrap bg-[var(--card)] border border-[var(--border)] rounded-xl p-3 shadow-2xs text-xs font-mono">
+                  <span className="text-[var(--muted-foreground)] font-bold uppercase text-[10px] mr-1">Legend:</span>
+                  <span className="bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-0.5 rounded-full font-medium">
+                    Approved ({approvedCount})
+                  </span>
+                  <span className="bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full font-medium">
+                    For Review
+                  </span>
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-medium">
+                    Completed
+                  </span>
+                </div>
               </div>
             </div>
           </FadeSection>
@@ -383,6 +390,9 @@ export default function CalendarPage() {
         </FadeSection>
 
         {/* Toolbar & Filters */}
+        {isLoading ? (
+          <SkeletonToolbox variant="two-tier" />
+        ) : (
         <FadeSection className="flex flex-col gap-3">
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-3.5">
             {/* Top Row: Search, Org Dropdown, View Toggle */}
@@ -534,9 +544,19 @@ export default function CalendarPage() {
             )}
           </div>
         </FadeSection>
+        )}
 
         {/* Event Cards or List */}
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <SkeletonEventCard />
+            <SkeletonEventCard />
+            <SkeletonEventCard />
+            <SkeletonEventCard />
+            <SkeletonEventCard />
+            <SkeletonEventCard />
+          </div>
+        ) : filtered.length === 0 ? (
           <FadeSection>
             <div className="flex flex-col items-center justify-center py-24 gap-4 bg-[var(--card)] rounded-2xl border border-[var(--border)] text-center p-6">
               <CalendarIcon size={44} className="text-[var(--muted-foreground)] opacity-40 mb-1" />

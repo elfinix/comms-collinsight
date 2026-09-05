@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useApp } from "../context/AppContext";
 import { useToast } from "../context/ToastContext";
-import { Dialog, SignatoryProgress, UserAvatar } from "../components/ui";
+import { Dialog, SignatoryProgress, UserAvatar, RefreshButton, SkeletonEventCard, SkeletonToolbox } from "../components/ui";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
@@ -272,6 +272,7 @@ export default function OrganizationsPage() {
     departments,
     users,
     expenditureCategories,
+    isLoading,
   } = useApp();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -333,7 +334,7 @@ export default function OrganizationsPage() {
       }
       return true;
     });
-  }, [activeDept, rosterSearch]);
+  }, [organizations, departments, users, activeDept, rosterSearch]);
 
   // Filtered Calendar Events
   const filteredCalendarEvents = useMemo(() => {
@@ -367,7 +368,7 @@ export default function OrganizationsPage() {
       }
       return true;
     });
-  }, [publicEvents, statusFilter, selectedOrgFilter, selectedDay, calendarSearch]);
+  }, [publicEvents, organizations, statusFilter, selectedOrgFilter, selectedDay, calendarSearch]);
 
   // Quick statistics
   const totalOfficersCount = users.filter((u) => u.role === "student" && u.organizationId).length;
@@ -396,46 +397,50 @@ export default function OrganizationsPage() {
               </span>
             </div>
 
-            <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6">
-              <div>
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-5 pb-6">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
                   <span className="text-xs font-mono text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full font-bold">
                     CITE · LCUP
                   </span>
+                  <h1 className="text-3xl lg:text-4xl font-extrabold mt-2 text-[var(--foreground)] tracking-tight">
+                    {tab === "roster" ? "Student Organizations Roster" : "Institutional Event Calendar"}
+                  </h1>
                 </div>
-                <h1 className="text-3xl lg:text-4xl font-extrabold mt-2 text-[var(--foreground)] tracking-tight">
-                  {tab === "roster" ? "Student Organizations Roster" : "Institutional Event Calendar"}
-                </h1>
-                <p className="mt-2 text-sm lg:text-base text-[var(--muted-foreground)] max-w-2xl leading-relaxed">
+                <RefreshButton />
+              </div>
+
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <p className="text-sm lg:text-base text-[var(--muted-foreground)] max-w-2xl leading-relaxed">
                   {tab === "roster"
                     ? "Explore official CITE student organizations, view designated leadership officers, and monitor organization-specific initiatives."
                     : "Track proposals, approved gatherings, workshops, and milestones scheduled across college departments in real time."}
                 </p>
-              </div>
 
-              {/* Quick Metrics Badges */}
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
-                  <Building2 size={16} className="text-[var(--primary)]" />
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-[var(--foreground)]">{organizations.length} Organizations</p>
-                    <p className="text-[10px] font-mono text-[var(--muted-foreground)]">{departments.length} Departments</p>
+                {/* Quick Metrics Badges */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
+                    <Building2 size={16} className="text-[var(--primary)]" />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-[var(--foreground)]">{organizations.length} Organizations</p>
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)]">{departments.length} Departments</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
-                  <CalendarDays size={16} className="text-[var(--primary)]" />
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-[var(--foreground)]">{publicEvents.length} Events Total</p>
-                    <p className="text-[10px] font-mono text-[var(--primary)] font-semibold">{approvedEventsCount} Approved</p>
+                  <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
+                    <CalendarDays size={16} className="text-[var(--primary)]" />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-[var(--foreground)]">{publicEvents.length} Events Total</p>
+                      <p className="text-[10px] font-mono text-[var(--primary)] font-semibold">{approvedEventsCount} Approved</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
-                  <Users size={16} className="text-sky-600" />
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-[var(--foreground)]">{totalOfficersCount} Officers</p>
-                    <p className="text-[10px] font-mono text-[var(--muted-foreground)]">Active Leadership</p>
+                  <div className="flex items-center gap-2 bg-[var(--card)] border border-[var(--border)] rounded-xl px-3.5 py-2 shadow-2xs">
+                    <Users size={16} className="text-sky-600" />
+                    <div className="text-left">
+                      <p className="text-xs font-bold text-[var(--foreground)]">{totalOfficersCount} Officers</p>
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)]">Active Leadership</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -491,6 +496,9 @@ export default function OrganizationsPage() {
         {tab === "roster" && (
           <div className="flex flex-col gap-8">
             {/* Search & Department Filters */}
+            {isLoading ? (
+              <SkeletonToolbox variant="roster" />
+            ) : (
             <FadeSection>
               <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
                 {/* Department Pills */}
@@ -553,9 +561,16 @@ export default function OrganizationsPage() {
                 </div>
               </div>
             </FadeSection>
+            )}
 
             {/* Organizations Catalog */}
-            {filteredOrganizations.length === 0 ? (
+            {isLoading ? (
+              <div className="space-y-6">
+                <SkeletonEventCard />
+                <SkeletonEventCard />
+                <SkeletonEventCard />
+              </div>
+            ) : filteredOrganizations.length === 0 ? (
               <FadeSection>
                 <div className="py-20 flex flex-col items-center justify-center text-center bg-[var(--card)] border border-[var(--border)] rounded-2xl p-8">
                   <Building2 size={48} className="text-[var(--muted-foreground)] opacity-40 mb-3" />
