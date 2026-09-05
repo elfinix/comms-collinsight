@@ -598,14 +598,9 @@ export default function AdminAuditTrail() {
                       {/* Associated Event (De-emphasized, non-clickable) */}
                       <td className="px-4 py-3.5 align-top min-w-[200px]">
                         {evt ? (
-                          <div>
-                            <p className="text-xs font-medium text-[var(--foreground)] leading-snug">
-                              {evt.name}
-                            </p>
-                            <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${statusColors[evt.status] || "bg-slate-100 text-slate-700 border-slate-300"}`}>
-                              {evt.status}
-                            </span>
-                          </div>
+                          <p className="text-xs font-medium text-[var(--foreground)] leading-snug">
+                            {evt.name}
+                          </p>
                         ) : (
                           <span className="text-xs text-[var(--muted-foreground)] font-mono">
                             Platform System Log

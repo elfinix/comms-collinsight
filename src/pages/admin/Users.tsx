@@ -702,8 +702,8 @@ export default function AdminUsers() {
                       options={ROLES}
                     />
                     {isSoleAdmin && (
-                      <p className="text-[10px] text-amber-700 dark:text-amber-400 font-medium mt-1">
-                        * System role is locked because at least one administrator account is required.
+                      <p className="text-[11px] text-amber-900 dark:text-amber-600 font-semibold mt-1.5 leading-normal">
+                        * At least one administrator account is required.
                       </p>
                     )}
                   </div>
