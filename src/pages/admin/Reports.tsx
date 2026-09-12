@@ -453,7 +453,7 @@ export default function AdminReports() {
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-emerald-600 flex-shrink-0" />
                 <span>
-                  Report <strong>{currentDocRef}</strong> has been compiled as a genuine PDF and archived to Supabase Storage (<code>reports/Administration/</code>).
+                  Report <strong>{currentDocRef}</strong> has been compiled as a PDF and archived to storage.
                 </span>
               </div>
               {currentFileUrl && (

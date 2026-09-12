@@ -5,12 +5,12 @@
 --
 -- Purpose:
 --   Performs a genuine fresh reset by truncating all application data rows
---   (departments, organizations, student accounts, events, transactions,
---   audit trails, reports, etc.) while retaining only:
+--   (departments, organizations, student accounts, event types/classifications,
+--   expenditure categories, events, transactions, audit trails, reports, etc.)
+--   while retaining ONLY:
 --     1. System Administrator account (Team COLLinSight CITE)
 --     2. College Dean account (Dr. Marilou Villanueva)
 --     3. One Faculty Adviser account (Prof. Eduardo Reyes)
---     4. Standard baseline Event Types and Expenditure Categories
 -- ==============================================================================
 
 BEGIN;
@@ -44,30 +44,7 @@ ALTER TABLE public.organizations
   ON DELETE SET NULL;
 
 -- ------------------------------------------------------------------------------
--- 1. BASELINE EVENT TYPES
--- ------------------------------------------------------------------------------
-INSERT INTO public.event_types (id, name, description, deleted) VALUES
-  ('b1000000-0000-0000-0000-000000000001', 'Academic Seminar', 'Formal talks, guest lectures, and intellectual symposia.', false),
-  ('b1000000-0000-0000-0000-000000000002', 'Leadership Training', 'Officer development and team building programs.', false),
-  ('b1000000-0000-0000-0000-000000000003', 'Community Outreach', 'Civic engagement and community service initiatives.', false),
-  ('b1000000-0000-0000-0000-000000000004', 'Sports Fest', 'Intramural games and athletic tournaments.', false),
-  ('b1000000-0000-0000-0000-000000000005', 'Cultural Festival', 'Creative exhibitions, talent presentations, and artistic gatherings.', false),
-  ('b1000000-0000-0000-0000-000000000006', 'Technical Workshop', 'Hands-on laboratories, coding hackathons, and technical bootcamps.', false);
-
--- ------------------------------------------------------------------------------
--- 2. BASELINE EXPENDITURE CATEGORIES
--- ------------------------------------------------------------------------------
-INSERT INTO public.expenditure_categories (id, name, description, deleted) VALUES
-  ('c1000000-0000-0000-0000-000000000001', 'Venue & Logistics', 'Audio visual equipment, room reservations, and staging.', false),
-  ('c1000000-0000-0000-0000-000000000002', 'Food & Catering', 'Meals, refreshments, and bottled water for participants.', false),
-  ('c1000000-0000-0000-0000-000000000003', 'Supplies & Materials', 'Event kits, hardware components, and consumable stationeries.', false),
-  ('c1000000-0000-0000-0000-000000000004', 'Transportation', 'Vehicle rentals and fuel allowances for outreach.', false),
-  ('c1000000-0000-0000-0000-000000000005', 'Printing & Documentation', 'Tarpaulins, certificates, badges, and program brochures.', false),
-  ('c1000000-0000-0000-0000-000000000006', 'Speaker & Honorarium', 'Professional fees and tokens of appreciation for resource persons.', false),
-  ('c1000000-0000-0000-0000-000000000007', 'Promotional Materials', 'Social media collateral and marketing merchandise.', false);
-
--- ------------------------------------------------------------------------------
--- 3. CORE INSTITUTIONAL ACCOUNTS (Admin, Dean, 1 Adviser)
+-- 1. CORE INSTITUTIONAL ACCOUNTS (Admin, Dean, 1 Adviser)
 -- ------------------------------------------------------------------------------
 INSERT INTO public.users (
   id, first_name, middle_name, last_name, suffix, email, password,
@@ -129,7 +106,7 @@ INSERT INTO public.users (
   );
 
 -- ------------------------------------------------------------------------------
--- 4. INITIAL AUDIT RECORD
+-- 2. INITIAL AUDIT RECORD
 -- ------------------------------------------------------------------------------
 INSERT INTO public.audit_trail (
   id, user_id, action, details, timestamp,
