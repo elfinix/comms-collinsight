@@ -410,6 +410,7 @@ export default function LandingPage() {
                 focus: "Component Systems & Documentation",
                 email: "sophiaryzelle.beloro@email.lcup.edu.ph",
                 github: "https://github.com/tabbyorangw3s",
+                image: "https://lh3.googleusercontent.com/d/1UMWJOXNA2AOBpx7uWA57gYTFhrZQw81V",
                 gradient: "from-pink-500 to-rose-700",
                 delay: 0,
               },
@@ -420,6 +421,7 @@ export default function LandingPage() {
                 focus: "System Architecture & Integration",
                 email: "johnmarknoel.cabugawan@email.lcup.edu.ph",
                 github: "https://github.com/Bugords",
+                image: "https://lh3.googleusercontent.com/d/1IMe04Tduzg-aSS58kfNQA-w3AyECudUC",
                 gradient: "from-[var(--primary)] to-[#062e2b]",
                 delay: 100,
               },
@@ -430,6 +432,7 @@ export default function LandingPage() {
                 focus: "Testing & Verification",
                 email: "romjerico.reyes@email.lcup.edu.ph",
                 github: "https://github.com/romjericoreyes",
+                image: "https://lh3.googleusercontent.com/d/12CfjvwSbvhcZWjpzPYTXEGt_M6BSAmHq",
                 gradient: "from-blue-500 to-blue-800",
                 delay: 200,
               },
@@ -438,9 +441,20 @@ export default function LandingPage() {
                 <div className="group bg-[var(--background)] border border-[var(--border)] rounded-2xl overflow-hidden hover:shadow-xl hover:border-[var(--primary)]/40 transition-all duration-300 flex flex-col">
                   <div className={`bg-gradient-to-br ${dev.gradient} h-28 flex items-end px-6 pb-0 relative`}>
                     <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "20px 20px" }} />
-                    <div className="relative translate-y-8 w-16 h-16 rounded-2xl bg-white border-4 border-[var(--card)] flex items-center justify-center font-extrabold text-xl shadow-lg"
+                    <div className="relative translate-y-8 w-16 h-16 rounded-2xl bg-white border-4 border-[var(--card)] overflow-hidden flex items-center justify-center font-extrabold text-xl shadow-lg"
                       style={{ color: "var(--primary)" }}>
-                      {dev.initials}
+                      {dev.image ? (
+                        <img
+                          src={dev.image}
+                          alt={dev.name}
+                          className="w-full h-full object-cover object-top"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = "none";
+                          }}
+                        />
+                      ) : (
+                        dev.initials
+                      )}
                     </div>
                   </div>
                   <div className="pt-12 px-6 pb-6 flex flex-col flex-1">
