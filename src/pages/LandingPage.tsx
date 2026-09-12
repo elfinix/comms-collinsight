@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "../context/AppContext";
+import { useAuth, getDefaultDashboardPath } from "../context/AuthContext";
 import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
   Users, ArrowRight, Mail, BarChart2, FileText,
   CheckCircle, ChevronRight, ArrowUpRight, BookOpen, Star,
-  Landmark, ClipboardList, Calendar, Plus,
+  Landmark, ClipboardList, Calendar, Plus, LayoutDashboard
 } from "lucide-react";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -38,6 +39,8 @@ function StatPill({ value, label }: { value: string; label: string }) {
 
 export default function LandingPage() {
   const { organizations, events } = useApp();
+  const { currentUser } = useAuth();
+  const dashboardPath = currentUser ? getDefaultDashboardPath(currentUser.role) : "/login";
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
 
@@ -79,12 +82,22 @@ export default function LandingPage() {
                 >
                   <Users size={16} /> View Organizations
                 </Link>
-                <Link
-                  to="/login"
-                  className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/20 transition backdrop-blur-sm"
-                >
-                  Login Portal <ArrowRight size={16} />
-                </Link>
+                {currentUser ? (
+                  <Link
+                    to={dashboardPath}
+                    className="flex items-center gap-2 bg-teal-400/20 border border-teal-300/40 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-teal-400/30 transition backdrop-blur-sm shadow-sm"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                    <LayoutDashboard size={16} /> Go to Dashboard <ArrowRight size={16} />
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/20 transition backdrop-blur-sm"
+                  >
+                    Login Portal <ArrowRight size={16} />
+                  </Link>
+                )}
               </div>
 
               {/* Stats row */}
@@ -487,10 +500,17 @@ export default function LandingPage() {
             <p className="text-teal-200/80 mb-8 text-base leading-relaxed">
               Log in with your institutional credentials to access your organization's dashboard.
             </p>
-            <Link to="/login"
-              className="inline-flex items-center gap-2 bg-white text-[var(--primary)] px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-teal-50 transition shadow-xl">
-              Login to COLLinSight <ArrowRight size={16} />
-            </Link>
+            {currentUser ? (
+              <Link to={dashboardPath}
+                className="inline-flex items-center gap-2 bg-white text-[var(--primary)] px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-teal-50 transition shadow-xl">
+                <LayoutDashboard size={16} /> Go to Dashboard <ArrowRight size={16} />
+              </Link>
+            ) : (
+              <Link to="/login"
+                className="inline-flex items-center gap-2 bg-white text-[var(--primary)] px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-teal-50 transition shadow-xl">
+                Login to COLLinSight <ArrowRight size={16} />
+              </Link>
+            )}
           </FadeSection>
         </div>
       </section>

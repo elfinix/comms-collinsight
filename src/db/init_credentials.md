@@ -1,6 +1,6 @@
 # COLLInsight — Baseline User Accounts & Credentials Reference
 
-This document serves as an immediate reference for all seed user accounts configured in both `supabase_schema.sql` and `supabase_reset.sql`.
+This document serves as an immediate reference for seed user accounts configured in `supabase_schema.sql`, `supabase_mocked.sql` (full mocked state), and `supabase_truncate.sql` (fresh starting state).
 
 ---
 

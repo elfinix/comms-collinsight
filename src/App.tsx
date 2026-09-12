@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider, useAuth, getDefaultDashboardPath } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
 import { ToastProvider } from "./context/ToastContext";
 import PanelLayout, { studentNavItems, adviserNavItems, deanNavItems, adminNavItems } from "./components/layout/PanelLayout";
@@ -42,7 +42,9 @@ import { useApp } from "./context/AppContext";
 function ProtectedRoute({ role }: { role: string }) {
   const { currentUser } = useAuth();
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (currentUser.role !== role) return <Navigate to="/" replace />;
+  if (currentUser.role !== role) {
+    return <Navigate to={getDefaultDashboardPath(currentUser.role)} replace />;
+  }
   return <Outlet />;
 }
 

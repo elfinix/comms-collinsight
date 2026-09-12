@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Users, Menu, X, Landmark } from "lucide-react";
+import { ArrowRight, Users, Menu, X, Landmark, LayoutDashboard } from "lucide-react";
+import { useAuth, getDefaultDashboardPath } from "../../context/AuthContext";
 
 interface PublicNavProps {
   transparent?: boolean;
@@ -10,6 +11,7 @@ interface PublicNavProps {
 export default function PublicNav({ transparent = false, hideOrgCta = false }: PublicNavProps) {
   const [scrolled, setScrolled] = useState(!transparent);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { currentUser } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -41,6 +43,7 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
   ];
 
   const solid = scrolled || !transparent;
+  const dashboardPath = currentUser ? getDefaultDashboardPath(currentUser.role) : "/login";
 
   return (
     <>
@@ -74,16 +77,30 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
                 <Users size={14} /> Organizations
               </Link>
             )}
-            <Link
-              to="/login"
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border ${
-                solid
-                  ? "border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]"
-                  : "border-white/30 text-white hover:bg-white/10"
-              }`}
-            >
-              Login <ArrowRight size={14} />
-            </Link>
+            {currentUser ? (
+              <Link
+                to={dashboardPath}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border ${
+                  solid
+                    ? "border-teal-600/30 bg-teal-50 text-teal-800 hover:bg-teal-600 hover:text-white"
+                    : "border-teal-300/40 bg-teal-500/20 text-teal-100 hover:bg-teal-500/40"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <LayoutDashboard size={14} /> Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border ${
+                  solid
+                    ? "border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]"
+                    : "border-white/30 text-white hover:bg-white/10"
+                }`}
+              >
+                Login <ArrowRight size={14} />
+              </Link>
+            )}
           </div>
 
           {/* Mobile hamburger */}
@@ -133,10 +150,18 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
                 className="flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-2.5 rounded-lg text-sm font-semibold">
                 <Users size={15} /> View Organizations
               </Link>
-              <Link to="/login" onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center gap-2 border border-[var(--border)] text-[var(--foreground)] py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--muted)] transition">
-                Login Portal <ArrowRight size={14} />
-              </Link>
+              {currentUser ? (
+                <Link to={dashboardPath} onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 bg-teal-600 text-white py-2.5 rounded-lg text-sm font-semibold shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                  <LayoutDashboard size={15} /> Dashboard
+                </Link>
+              ) : (
+                <Link to="/login" onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 border border-[var(--border)] text-[var(--foreground)] py-2.5 rounded-lg text-sm font-medium hover:bg-[var(--muted)] transition">
+                  Login Portal <ArrowRight size={14} />
+                </Link>
+              )}
             </div>
           </div>
         </div>
