@@ -8,7 +8,7 @@ import {
   CheckCircle, Clock, Scale
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, Event
+  formatCurrency, formatDate, Event, resolveEventSignatories
 } from "../../services/dataService";
 import { printLiquidationDocument } from "../../services/pdfDocuments";
 
@@ -44,22 +44,10 @@ export default function EventFinanceTab({
   const resolvedOrgCode = org?.code || "CITE";
 
   // Dynamic Signatories for Print Liquidation
-  const orgAdviser = users.find((u) => u.role === "adviser" && (u.organizationId === event.organizationId || u.id === org?.adviserId));
-  const adviserName = orgAdviser
-    ? `${orgAdviser.firstName} ${orgAdviser.middleName ? orgAdviser.middleName + " " : ""}${orgAdviser.lastName}${orgAdviser.suffix ? ", " + orgAdviser.suffix : ""}`
-    : "Engr. Eduardo S. Reyes, M.Sc.";
-
-  const deanUser = users.find((u) => u.role === "dean");
-  const deanName = deanUser
-    ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-    : "Dr. Marilou C. Villanueva, Ph.D.";
-
-  const studentFinanceOfficer = users.find((u) => u.role === "student" && u.organizationId === event.organizationId && u.position?.toLowerCase().includes("finance"));
-  const liquidatorName = studentFinanceOfficer
-    ? `${studentFinanceOfficer.firstName} ${studentFinanceOfficer.lastName}${studentFinanceOfficer.suffix ? " " + studentFinanceOfficer.suffix : ""}`
-    : currentUser?.role === "student"
-    ? `${currentUser.firstName} ${currentUser.lastName}`
-    : "Student Finance Officer";
+  const sig = resolveEventSignatories(event, users, organizations);
+  const adviserName = sig.adviserName;
+  const deanName = sig.deanName;
+  const liquidatorName = sig.officerName;
 
   const canOpenFinancePage = showOpenFinance ?? (currentUser?.role === "student" || currentUser?.role === "adviser");
 

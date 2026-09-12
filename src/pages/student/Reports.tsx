@@ -58,10 +58,10 @@ export default function StudentReports() {
   const totalSpent = transactions.filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
 
   // Dynamic Signatories
-  const orgAdviser = users.find((u) => u.role === "adviser" && (u.organizationId === orgId || u.id === org?.adviserId));
+  const orgAdviser = users.find((u) => u.role === "adviser" && (u.organizationId === orgId || u.id === org?.adviserId)) || users.find((u) => u.role === "adviser");
   const adviserName = orgAdviser
     ? `${orgAdviser.firstName} ${orgAdviser.middleName ? orgAdviser.middleName + " " : ""}${orgAdviser.lastName}${orgAdviser.suffix ? ", " + orgAdviser.suffix : ""}`
-    : "Engr. Emmanuel S. Reyes, M.Sc.";
+    : "Organization Adviser";
 
   const deanUser = users.find((u) => u.role === "dean");
   const deanName = deanUser
@@ -69,7 +69,7 @@ export default function StudentReports() {
     : "Dr. Marilou Castro Villanueva, Ph.D.";
 
   const studentOfficerName = currentUser
-    ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? " " + currentUser.suffix : ""}`
+    ? `${currentUser.firstName} ${currentUser.middleName ? currentUser.middleName + " " : ""}${currentUser.lastName}${currentUser.suffix ? ", " + currentUser.suffix : ""}`
     : "Student Finance Officer";
 
   const monthlyData = Array.from({ length: 6 }, (_, i) => {

@@ -43,7 +43,7 @@ export default function AdviserPendingReview() {
     if (!viewEvent) return;
     const targetEvent = { ...viewEvent, status: "For Approval" as const };
     const trimmed = feedback.trim();
-    setEventStatus(viewEvent.id, "For Approval", trimmed || undefined);
+    setEventStatus(viewEvent.id, "For Approval", trimmed || undefined, currentUser?.id);
     toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`, {
       action: {
         label: "Click here to view event details",
@@ -62,7 +62,7 @@ export default function AdviserPendingReview() {
     if (!viewEvent || !feedback.trim()) return;
     const targetEvent = { ...viewEvent, status: "Pending Revision" as const };
     const trimmed = feedback.trim();
-    setEventStatus(viewEvent.id, "Pending Revision", trimmed);
+    setEventStatus(viewEvent.id, "Pending Revision", trimmed, currentUser?.id);
     toast.warning("Revision Requested", `'${viewEvent.name}' returned to student officers with revision notes.`, {
       icon: "check",
       action: {

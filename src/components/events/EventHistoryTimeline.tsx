@@ -84,9 +84,24 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
       {/* Vertical Timeline */}
       <div className="relative pl-7 space-y-6 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-[2px] before:bg-[var(--border)]">
         {eventEntries.map((entry, idx) => {
-          const user = users.find((u) => u.id === entry.userId);
-          const userName = user ? `${user.firstName} ${user.lastName}` : entry.userId;
-          const userRole = user?.role || entry.actorRole || "student";
+          const matchedUser = users.find((u) => u.id === entry.userId) || users.find((u) => u.email === entry.userId);
+          const resolvedUser = matchedUser || (
+            entry.actorRole === "dean"
+              ? users.find((u) => u.role === "dean")
+              : entry.actorRole === "adviser"
+              ? (activeEvent ? users.find((u) => u.role === "adviser" && u.organizationId === activeEvent.organizationId) : users.find((u) => u.role === "adviser"))
+              : entry.actorRole === "student" && activeEvent
+              ? users.find((u) => u.id === activeEvent.createdBy || (u.organizationId === activeEvent.organizationId && u.role === "student"))
+              : undefined
+          );
+
+          const userName = resolvedUser
+            ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim()
+            : entry.userId && !entry.userId.includes("-0000-") && !entry.userId.startsWith("id-")
+            ? entry.userId
+            : formatUserRole(entry.actorRole || "student");
+
+          const userRole = resolvedUser?.role || entry.actorRole || "student";
 
           return (
             <div key={entry.id || idx} className="relative group">

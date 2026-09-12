@@ -440,7 +440,7 @@ export default function AdviserFinance() {
                       <div
                         key={e.id}
                         onClick={() => setSelectedEvent(e.id)}
-                        className="bg-white dark:bg-slate-900 border border-[var(--border)] rounded-2xl p-5 hover:shadow-md hover:border-[var(--primary)]/50 transition cursor-pointer flex flex-col gap-3 group"
+                        className="bg-white border border-[var(--border)] rounded-2xl p-5 hover:shadow-md hover:border-[var(--primary)]/50 transition cursor-pointer flex flex-col gap-3 group"
                       >
                         <div className="flex items-start justify-between gap-2">
                           <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>

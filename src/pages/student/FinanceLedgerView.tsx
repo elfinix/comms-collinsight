@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors,
-  getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl
+  getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl, resolveEventSignatories
 } from "../../services/dataService";
 import {
   uploadEventAttachment,
@@ -41,17 +41,10 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     : "LIQ-000000-2026";
 
   // Dynamic Signatories
-  const orgAdviser = users.find((u) => u.role === "adviser" && (u.organizationId === activeEvent?.organizationId || u.id === org?.adviserId));
-  const adviserName = orgAdviser
-    ? `${orgAdviser.firstName} ${orgAdviser.middleName ? orgAdviser.middleName + " " : ""}${orgAdviser.lastName}${orgAdviser.suffix ? ", " + orgAdviser.suffix : ""}`
-    : "Engr. Emmanuel S. Reyes, M.Sc.";
-
-  const deanUser = users.find((u) => u.role === "dean");
-  const deanName = deanUser
-    ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-    : "Dr. Marilou Castro Villanueva, Ph.D.";
-
-  const liquidatorName = activeEvent?.liquidatedBy || (currentUser
+  const sig = activeEvent ? resolveEventSignatories(activeEvent, users, organizations) : null;
+  const adviserName = sig?.adviserName || "Engr. Emmanuel S. Reyes, M.Sc.";
+  const deanName = sig?.deanName || "Dr. Marilou Castro Villanueva, Ph.D.";
+  const liquidatorName = activeEvent?.liquidatedBy || sig?.officerName || (currentUser
     ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? " " + currentUser.suffix : ""}`
     : "Student Finance Officer");
 
@@ -287,7 +280,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   // Handle Complete Event
   function handleCompleteEvent() {
     if (!activeEvent) return;
-    setEventStatus(activeEvent.id, "Completed");
+    setEventStatus(activeEvent.id, "Completed", undefined, currentUser?.id);
     setShowCompleteEventConfirm(false);
     toast.success(
       "Event Marked as Completed",
@@ -306,24 +299,12 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       }`
     );
 
-    const activeLiquidator = currentUser
-      ? `${currentUser.firstName} ${currentUser.lastName}${currentUser.suffix ? " " + currentUser.suffix : ""}`
-      : "Student Finance Officer";
-
-    const orgName = org?.name || org?.code || "Organization";
+    const activeLiquidator = liquidatorName;
+    const orgName = org?.name || org?.code || sig?.organizationName || "Organization";
 
     // Generate & upload official liquidation statement to Supabase Storage
     try {
       const liquidationDocName = `Liquidation_Report_${activeEvent!.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-      const adviserUser = users.find((u) => u.role === "adviser" && (u.organizationId === activeEvent!.organizationId || u.id === org?.adviserId));
-      const adviserName = adviserUser
-        ? `${adviserUser.firstName} ${adviserUser.middleName ? adviserUser.middleName + " " : ""}${adviserUser.lastName}${adviserUser.suffix ? ", " + adviserUser.suffix : ""}`
-        : "Engr. Emmanuel S. Reyes, M.Sc.";
-      const deanUser = users.find((u) => u.role === "dean");
-      const deanName = deanUser
-        ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-        : "Dr. Marilou Castro Villanueva, Ph.D.";
-
       const pdfBlob = generateLiquidationPdfBlob(activeEvent!, eventTxns, {
         organizationName: orgName,
         officerName: activeLiquidator,
@@ -345,6 +326,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       console.warn("Liquidation cloud archive notice:", e);
     }
 
+    setEventStatus(activeEvent!.id, "Closed", undefined, currentUser?.id);
     updateEvent(activeEvent!.id, {
       status: "Closed",
       remarks: remarksArr,

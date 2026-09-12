@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCategoryById } from "./dataService";
+import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCategoryById, resolveEventSignatories } from "./dataService";
 
 export interface ClearancePdfOptions {
   organizationName?: string;
@@ -50,11 +50,12 @@ export function openPdfBlobInNewTab(pdfBlob: Blob, fileName: string) {
  * Generates a genuine vector PDF for Event Clearance Certificate
  */
 export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOptions): Blob {
-  const orgName = options?.organizationName || "Student Organization";
+  const defaults = resolveEventSignatories(event);
+  const orgName = options?.organizationName || defaults.organizationName || "Student Organization";
   const typeName = options?.eventTypeName || getEventTypeById(event.typeId)?.name || "Institutional Event";
-  const officerName = options?.officerName || "Student Project Lead";
-  const adviserName = options?.adviserName || "Engr. Emmanuel S. Reyes, M.Sc.";
-  const deanName = options?.deanName || "Dr. Marilou Castro Villanueva, Ph.D.";
+  const officerName = options?.officerName || defaults.officerName;
+  const adviserName = options?.adviserName || defaults.adviserName;
+  const deanName = options?.deanName || defaults.deanName;
 
   const cleanId = event.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
   const docRef = event.clearanceDocRef || `CLR-${cleanId}-${new Date(event.dateStart || Date.now()).getFullYear()}`;
@@ -450,10 +451,11 @@ export function generateLiquidationPdfBlob(
   transactions: Transaction[],
   options?: LiquidationPdfOptions
 ): Blob {
-  const orgName = options?.organizationName || "Student Organization";
-  const officerName = options?.officerName || "Student Finance Officer";
-  const adviserName = options?.adviserName || "Engr. Emmanuel S. Reyes, M.Sc.";
-  const deanName = options?.deanName || "Dr. Marilou Castro Villanueva, Ph.D.";
+  const defaults = resolveEventSignatories(event);
+  const orgName = options?.organizationName || defaults.organizationName || "Student Organization";
+  const officerName = options?.officerName || defaults.officerName;
+  const adviserName = options?.adviserName || defaults.adviserName;
+  const deanName = options?.deanName || defaults.deanName;
 
   const cleanId = event.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
   const docRef = `LIQ-${cleanId}-${new Date(event.dateStart || Date.now()).getFullYear()}`;
@@ -764,12 +766,19 @@ export function generateLiquidationPdfBlob(
   return doc.output("blob");
 }
 
-/**
- * Direct print/preview wrapper for Event Clearance Certificate
- */
-export function printClearanceDocument(event: Event, organizationName?: string, eventTypeName?: string) {
+export function printClearanceDocument(
+  event: Event,
+  optionsOrOrgName?: string | ClearancePdfOptions,
+  eventTypeName?: string,
+  officerName?: string,
+  adviserName?: string,
+  deanName?: string
+) {
+  const options: ClearancePdfOptions = typeof optionsOrOrgName === "string"
+    ? { organizationName: optionsOrOrgName, eventTypeName, officerName, adviserName, deanName }
+    : (optionsOrOrgName || {});
   const fileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-  const blob = generateClearancePdfBlob(event, { organizationName, eventTypeName });
+  const blob = generateClearancePdfBlob(event, options);
   openPdfBlobInNewTab(blob, fileName);
 }
 

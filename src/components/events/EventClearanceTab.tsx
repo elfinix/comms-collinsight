@@ -1,5 +1,5 @@
 import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Eye } from "lucide-react";
-import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event } from "../../services/dataService";
+import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories } from "../../services/dataService";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";
@@ -34,6 +34,9 @@ export default function EventClearanceTab({
   const resolvedTypeName = eventTypeName || typeObj?.name || "Institutional Event";
   const isOnline = event.mode === "Online/Virtual" || (event.mode as string) === "Online";
 
+  // Resolve dynamic signatories from active users dataset
+  const resolvedSig = resolveEventSignatories(event, users, organizations);
+
   // Feedbacks / Signatory actions for this event, sorted newest first
   const relevantSignatories = (eventSignatories || [])
     .filter((s) => s.eventId === event.id && s.feedback && s.feedback.trim().length > 0)
@@ -61,6 +64,9 @@ export default function EventClearanceTab({
         const pdfBlob = generateClearancePdfBlob(approvedEvent, {
           organizationName: resolvedOrgName,
           eventTypeName: resolvedTypeName,
+          officerName: resolvedSig.officerName,
+          adviserName: resolvedSig.adviserName,
+          deanName: resolvedSig.deanName,
           viewerRole: isApproved ? "dean" : currentUser?.role,
         });
         openPdfBlobInNewTab(pdfBlob, clearanceFileName);
@@ -73,6 +79,9 @@ export default function EventClearanceTab({
       const pdfBlob = generateClearancePdfBlob(approvedEvent, {
         organizationName: resolvedOrgName,
         eventTypeName: resolvedTypeName,
+        officerName: resolvedSig.officerName,
+        adviserName: resolvedSig.adviserName,
+        deanName: resolvedSig.deanName,
         viewerRole: isApproved ? "dean" : currentUser?.role,
       });
       openPdfBlobInNewTab(pdfBlob, clearanceFileName);
@@ -85,6 +94,9 @@ export default function EventClearanceTab({
       const pdfBlob = generateClearancePdfBlob(event, {
         organizationName: resolvedOrgName,
         eventTypeName: resolvedTypeName,
+        officerName: resolvedSig.officerName,
+        adviserName: resolvedSig.adviserName,
+        deanName: resolvedSig.deanName,
         viewerRole: currentUser?.role,
       });
       openPdfBlobInNewTab(pdfBlob, clearanceFileName);
@@ -263,7 +275,7 @@ export default function EventClearanceTab({
                 </span>
               )}
             </div>
-            <p className="text-xs font-semibold text-[var(--foreground)]">Engr. Eduardo S. Reyes, M.Sc.</p>
+            <p className="text-xs font-semibold text-[var(--foreground)]">{resolvedSig.adviserName}</p>
             <p className="text-[11px] text-[var(--muted-foreground)]">Designated Faculty Adviser, {resolvedOrgCode}</p>
             {(isApproved || event.status === "For Approval") && (
               <p className="text-[10px] font-mono text-teal-800 mt-2 pt-2 border-t border-teal-200/80">
@@ -290,7 +302,7 @@ export default function EventClearanceTab({
                 </span>
               )}
             </div>
-            <p className="text-xs font-semibold text-[var(--foreground)]">Dr. Marilou C. Villanueva, Ph.D.</p>
+            <p className="text-xs font-semibold text-[var(--foreground)]">{resolvedSig.deanName}</p>
             <p className="text-[11px] text-[var(--muted-foreground)]">College Dean, CITE</p>
             {isApproved && (
               <p className="text-[10px] font-mono text-emerald-800 mt-2 pt-2 border-t border-emerald-200/80">
@@ -318,11 +330,14 @@ export default function EventClearanceTab({
               const isRevision = sig.status === "Revision Requested";
               const isResolved = sig.status === "Resolved";
               const isApproval = sig.status === "Approved" || sig.status === "Endorsed";
-              const signatoryName = sig.role === "dean"
-                ? "Dr. Marilou C. Villanueva, Ph.D."
+              const sigUser = users.find((u) => u.id === sig.userId);
+              const signatoryName = sigUser
+                ? `${sigUser.firstName} ${sigUser.middleName ? sigUser.middleName.charAt(0) + '. ' : ''}${sigUser.lastName}${sigUser.suffix ? ', ' + sigUser.suffix : ''}`
+                : sig.role === "dean"
+                ? resolvedSig.deanName
                 : sig.role === "adviser"
-                ? "Engr. Eduardo S. Reyes, M.Sc."
-                : "Student Representative";
+                ? resolvedSig.adviserName
+                : resolvedSig.officerName;
               const roleTitle = sig.role === "dean" ? "College Dean, CITE" : sig.role === "adviser" ? `Faculty Adviser, ${resolvedOrgCode}` : "Student Officer";
               const titlePrefix = sig.role === "dean" ? "College Dean's" : sig.role === "adviser" ? "Adviser's" : "Signatory";
 

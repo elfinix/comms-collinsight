@@ -11,6 +11,8 @@ export interface SendClearanceEmailParams {
   event: Event;
   organizationName?: string;
   eventTypeName?: string;
+  officerName?: string;
+  adviserName?: string;
   deanName?: string;
   feedback?: string;
   recipientEmail?: string;
@@ -425,7 +427,7 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
   error?: string;
 }> {
   const resolvedEventTypeName = params.eventTypeName || getEventTypeById(params.event.typeId)?.name || "Academic Seminar";
-  const { event, organizationName = "Student Organization", eventTypeName = resolvedEventTypeName, deanName = "Dr. Marilou Castro Villanueva, Ph.D.", feedback, recipientEmail } = params;
+  const { event, organizationName = "Student Organization", eventTypeName = resolvedEventTypeName, officerName, adviserName, deanName = "Dr. Marilou Castro Villanueva, Ph.D.", feedback, recipientEmail } = params;
 
   try {
     const attachments: ClearanceEmailAttachment[] = [];
@@ -435,6 +437,8 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
     const clearancePdfBlob = generateClearancePdfBlob(targetApprovedEvent, {
       organizationName,
       eventTypeName,
+      officerName,
+      adviserName,
       deanName,
       viewerRole: "dean",
     });

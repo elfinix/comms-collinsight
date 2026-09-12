@@ -50,7 +50,7 @@ interface AppContextType {
   deleteEventType: (id: string) => void;
   addCategory: (cat: ExpenditureCategory) => void;
   deleteCategory: (id: string) => void;
-  setEventStatus: (eventId: string, status: EventStatus, feedback?: string) => void;
+  setEventStatus: (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string) => void;
   addEventSignatory: (sig: EventSignatory) => void;
   resolvePendingSignatories: (eventId: string) => void;
   addAuditEntry: (entry: AuditEntry) => void;
@@ -518,7 +518,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const setEventStatus = (eventId: string, status: EventStatus, feedback?: string) => {
+  const setEventStatus = (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string) => {
     const targetEvt = evts.find((e) => e.id === eventId);
     const cleanId = eventId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
     const generatedDocRef = status === "Approved"
@@ -553,13 +553,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const isCompleted = status === "Completed";
       const isClosed = status === "Closed";
 
+      // Dynamically resolve associated users
+      const targetOrg = orgs.find((o) => o.id === targetEvt.organizationId);
+      const actualAdviser = usrs.find((u) => u.id === targetOrg?.adviserId) ||
+                            usrs.find((u) => u.role === "adviser" && u.organizationId === targetEvt.organizationId) ||
+                            usrs.find((u) => u.role === "adviser");
+      const actualDean = usrs.find((u) => u.role === "dean");
+      const actualStudent = usrs.find((u) => u.id === targetEvt.createdBy) ||
+                            usrs.find((u) => u.organizationId === targetEvt.organizationId && u.role === "student");
+
+      const actingUser = actorUserId ? usrs.find((u) => u.id === actorUserId) : undefined;
+
       // ── Event Signatory Iteration Record Creation ──
       if (isRevision && feedback) {
         const isFromDean = targetEvt.status === "For Approval";
-        const sigRole = isFromDean ? "dean" : "adviser";
-        const sigUserId = isFromDean
-          ? "e1000000-0000-0000-0000-000000000001"
-          : "ad100000-0000-0000-0000-000000000001";
+        const sigRole = (actingUser?.role as "student" | "adviser" | "dean" | "sds") || (isFromDean ? "dean" : "adviser");
+        const sigUserId = actorUserId || (isFromDean ? actualDean?.id : actualAdviser?.id) || "ad100000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
@@ -571,10 +580,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isAdviserApproval) {
+        const sigUserId = actorUserId || actualAdviser?.id || "ad100000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
-          userId: "ad100000-0000-0000-0000-000000000001",
+          userId: sigUserId,
           role: "adviser",
           status: "Endorsed",
           feedback: feedback || undefined,
@@ -582,10 +592,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isDeanApproval) {
+        const sigUserId = actorUserId || actualDean?.id || "e1000000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
-          userId: "e1000000-0000-0000-0000-000000000001",
+          userId: sigUserId,
           role: "dean",
           status: "Approved",
           feedback: feedback || undefined,
@@ -609,12 +620,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : isClosed
         ? "Event Closed"
         : `Status updated to ${status}`;
-      const role = isDeanApproval ? "dean" : isAdviserApproval || isRevision ? "adviser" : "student";
-      const userId = isDeanApproval
-        ? "e1000000-0000-0000-0000-000000000001"
+
+      const role = actingUser?.role || (isDeanApproval ? "dean" : isAdviserApproval || isRevision ? "adviser" : "student");
+      const userId = actorUserId || (isDeanApproval
+        ? actualDean?.id || "e1000000-0000-0000-0000-000000000001"
         : isAdviserApproval || isRevision
-        ? "ad100000-0000-0000-0000-000000000001"
-        : targetEvt.createdBy || "51000000-0000-0000-0000-000000000001";
+        ? actualAdviser?.id || "ad100000-0000-0000-0000-000000000001"
+        : targetEvt.createdBy || actualStudent?.id || "51000000-0000-0000-0000-000000000001");
 
       let actionDetails = "";
       if (isDeanApproval) {

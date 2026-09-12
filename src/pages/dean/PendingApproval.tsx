@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
+import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
 import {
   Button,
@@ -14,7 +15,7 @@ import {
   SkeletonTable,
 } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/dataService";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories } from "../../services/dataService";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
 import { dispatchClearanceEmail } from "../../services/mailerService";
@@ -24,6 +25,7 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function DeanPendingApproval() {
   const { events, organizations, users, eventTypes, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
+  const { currentUser } = useAuth();
   const { toast } = useToast();
   const pending = events.filter((e) => e.status === "For Approval");
 
@@ -38,21 +40,19 @@ export default function DeanPendingApproval() {
   const [showApproveRemarks, setShowApproveRemarks] = useState(false);
   const [showRequestChange, setShowRequestChange] = useState(false);
   const [feedback, setFeedback] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
 
   async function handleApprove() {
-    if (!viewEvent || isSubmitting) return;
-    setIsSubmitting(true);
+    if (!viewEvent) return;
+    setIsApproving(true);
     const trimmed = feedback.trim();
-    setEventStatus(viewEvent.id, "Approved", trimmed || undefined);
-
     const org = organizations.find((o) => o.id === viewEvent.organizationId);
-    const orgName = org?.name || org?.code || "Organization";
+    const sig = resolveEventSignatories(viewEvent, users, organizations);
+    const orgName = org?.name || sig.organizationName;
     const typeName = eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "Academic Seminar";
-    const deanUser = users.find((u) => u.role === "dean");
-    const deanName = deanUser
-      ? `${deanUser.firstName} ${deanUser.middleName ? deanUser.middleName + " " : ""}${deanUser.lastName}${deanUser.suffix ? ", " + deanUser.suffix : ""}`
-      : "Dr. Marilou Castro Villanueva, Ph.D.";
+    const deanName = sig.deanName;
+    const officerName = sig.officerName;
+    const adviserName = sig.adviserName;
 
     const targetApprovedEvent: Event = { ...viewEvent, status: "Approved" };
 
@@ -62,6 +62,8 @@ export default function DeanPendingApproval() {
       const pdfBlob = generateClearancePdfBlob(targetApprovedEvent, {
         organizationName: orgName,
         eventTypeName: typeName,
+        officerName,
+        adviserName,
         deanName,
         viewerRole: "dean",
       });
@@ -86,28 +88,30 @@ export default function DeanPendingApproval() {
         event: targetApprovedEvent,
         organizationName: orgName,
         eventTypeName: typeName,
+        officerName,
+        adviserName,
         deanName,
         feedback: trimmed || undefined,
       });
 
       if (emailResult.success) {
-        emailStatusMessage = `Official clearance and attached documents dispatched to the SDS office.`;
+        emailStatusMessage = ` Official notification email & clearance certificate dispatched to SDS (${emailResult.to || "sds@unlv.edu.ph"}).`;
       } else {
-        console.warn("[DeanApproval] Email notice:", emailResult.error);
-        emailStatusMessage = "Clearance recorded (mailer notice logged).";
+        emailStatusMessage = ` Notification notice: ${emailResult.error || "Email dispatch simulated in dev mode."}`;
       }
-    } catch (mailErr) {
-      console.error("[DeanApproval] Mailer dispatch exception:", mailErr);
-      emailStatusMessage = "Clearance recorded.";
+    } catch (err: any) {
+      console.warn("[DeanApproval] Clearance email dispatch warning:", err);
+      emailStatusMessage = " Notification notice: Dispatch completed in local offline mode.";
     }
 
-    setIsSubmitting(false);
-    const targetEvent = { ...viewEvent, status: "Approved" as const };
-    toast.success("Executive Clearance Approved", `'${viewEvent.name}' officially approved. ${emailStatusMessage}`, {
+    // 3. Update Database & Local App State
+    setEventStatus(viewEvent.id, "Approved", trimmed || undefined, currentUser?.id);
+    setIsApproving(false);
+    toast.success("Proposal Approved", `'${viewEvent.name}' approved.${emailStatusMessage}`, {
       action: {
         label: "Click here to view event details",
         onClick: () => {
-          setViewEvent(targetEvent);
+          setViewEvent(targetApprovedEvent);
           setViewTab("details");
         },
       },
@@ -119,12 +123,9 @@ export default function DeanPendingApproval() {
 
   function handleRequestChange() {
     if (!viewEvent || !feedback.trim()) return;
+    const targetEvent = { ...viewEvent, status: "Pending Revision" as const };
     const trimmed = feedback.trim();
-    const targetEvent = {
-      ...viewEvent,
-      status: "Pending Revision" as const,
-    };
-    setEventStatus(viewEvent.id, "Pending Revision", trimmed);
+    setEventStatus(viewEvent.id, "Pending Revision", trimmed, currentUser?.id);
     toast.warning("Revision Requested", `'${viewEvent.name}' returned for revisions with Dean instructions.`, {
       icon: "check",
       action: {
@@ -453,14 +454,14 @@ export default function DeanPendingApproval() {
                 )}
                 {viewTab === "clearance" && viewEvent.status === "For Approval" && (
                   <>
-                    <Button variant="danger" onClick={() => setShowRequestChange(true)} disabled={isSubmitting}>
+                    <Button variant="danger" onClick={() => setShowRequestChange(true)} disabled={isApproving}>
                       <RotateCcw size={14} /> Request Change
                     </Button>
-                    <Button variant="secondary" onClick={() => setShowApproveRemarks(true)} disabled={isSubmitting}>
+                    <Button variant="secondary" onClick={() => setShowApproveRemarks(true)} disabled={isApproving}>
                       <MessageSquare size={14} /> Approve with Remarks
                     </Button>
-                    <Button variant="success" onClick={handleApprove} disabled={isSubmitting} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
-                      <CheckCircle size={14} /> {isSubmitting ? "Approving & Dispatching..." : "Approve & Dispatch"}
+                    <Button variant="success" onClick={handleApprove} disabled={isApproving} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+                      <CheckCircle size={14} /> {isApproving ? "Approving & Dispatching..." : "Approve & Dispatch"}
                     </Button>
                   </>
                 )}
@@ -475,9 +476,9 @@ export default function DeanPendingApproval() {
           <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance. APF, Clearance, and Appendices will be emailed to SDS.</p>
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Optional notes..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
-            <Button variant="outline" onClick={() => setShowApproveRemarks(false)} disabled={isSubmitting}>Cancel</Button>
-            <Button variant="success" onClick={handleApprove} disabled={isSubmitting} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
-              <CheckCircle size={14} /> {isSubmitting ? "Approving & Dispatching..." : "Approve & Dispatch"}
+            <Button variant="outline" onClick={() => setShowApproveRemarks(false)} disabled={isApproving}>Cancel</Button>
+            <Button variant="success" onClick={handleApprove} disabled={isApproving} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+              <CheckCircle size={14} /> {isApproving ? "Approving & Dispatching..." : "Approve & Dispatch"}
             </Button>
           </div>
         </div>

@@ -626,5 +626,40 @@ export function formatUserRole(role?: string): string {
   }
 }
 
+export function resolveEventSignatories(
+  event: Event,
+  allUsers: User[] = users,
+  allOrgs: Organization[] = organizations
+) {
+  const org = allOrgs.find((o) => o.id === event.organizationId);
+  const creator = allUsers.find((u) => u.id === event.createdBy) ||
+                  allUsers.find((u) => u.organizationId === event.organizationId && u.role === "student" && u.position.toLowerCase().includes("president")) ||
+                  allUsers.find((u) => u.organizationId === event.organizationId && u.role === "student");
+
+  const adviser = allUsers.find((u) => u.id === org?.adviserId) ||
+                  allUsers.find((u) => u.role === "adviser" && u.organizationId === event.organizationId) ||
+                  allUsers.find((u) => u.role === "adviser");
+
+  const dean = allUsers.find((u) => u.role === "dean");
+
+  const formatPerson = (u?: User, fallback = "") => {
+    if (!u) return fallback;
+    const mid = u.middleName && u.middleName.trim().length > 0 ? `${u.middleName.trim().charAt(0)}. ` : "";
+    const suffix = u.suffix && u.suffix.trim().length > 0 ? (u.suffix.startsWith(",") ? u.suffix : `, ${u.suffix}`) : "";
+    return `${u.firstName} ${mid}${u.lastName}${suffix}`.trim();
+  };
+
+  const officerName = formatPerson(creator, "Student Project Lead");
+  const adviserName = formatPerson(adviser, "Organization Adviser");
+  const deanName = formatPerson(dean, "Dr. Marilou Castro Villanueva, Ph.D.");
+
+  return {
+    officerName,
+    adviserName,
+    deanName,
+    organizationName: org?.name || "Student Organization",
+  };
+}
+
 export { printClearanceDocument, printLiquidationDocument } from "./pdfDocuments";
 

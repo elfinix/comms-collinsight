@@ -382,7 +382,7 @@ export default function StudentEvents() {
     if (isRevision) {
       resolvePendingSignatories(evt.id);
     }
-    setEventStatus(evt.id, "For Review");
+    setEventStatus(evt.id, "For Review", undefined, currentUser?.id);
     const targetEvent: Event = { ...evt, status: "For Review" };
     toast.success(
       isRevision ? "Proposal Resubmitted & Resolved" : "Submitted for Review",
