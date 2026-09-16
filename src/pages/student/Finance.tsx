@@ -184,7 +184,7 @@ export default function StudentFinance() {
           <CardHeader className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
             <h2 className="font-semibold text-sm text-[var(--foreground)]">Spending by Category</h2>
             {byCategory.length > 0 && (
-              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200 font-bold">
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 font-bold">
                 {byCategory.length} Categories
               </span>
             )}
@@ -223,7 +223,7 @@ export default function StudentFinance() {
                                   <span className="truncate">{data.name}</span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4 font-mono">
-                                  <span className="text-teal-900 font-bold">{formatCurrency(data.value)}</span>
+                                  <span className="text-slate-900 font-bold">{formatCurrency(data.value)}</span>
                                   <span className="text-[var(--muted-foreground)]">({data.pct.toFixed(1)}%)</span>
                                 </div>
                               </div>
@@ -267,8 +267,8 @@ export default function StudentFinance() {
           <CardHeader className="flex items-center justify-between pb-2 border-b border-[var(--border)]">
             <h2 className="font-semibold text-sm text-[var(--foreground)]">Spending per Event</h2>
             <div className="flex items-center gap-3 text-[10px] font-mono">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-xs bg-[#4db8b0]" /> Budget</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-xs bg-[#0a6b64]" /> Spent</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-xs bg-[#3b82f6]" /> Budget</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-xs bg-[#ea580c]" /> Spent</span>
             </div>
           </CardHeader>
           <CardBody className="flex-1 flex flex-col justify-center p-4">
@@ -302,12 +302,12 @@ export default function StudentFinance() {
                           <div className="bg-white border border-slate-200/90 shadow-2xl px-3.5 py-2.5 rounded-xl text-xs space-y-1.5 z-50 min-w-[180px]">
                             <p className="font-bold text-[var(--foreground)] truncate max-w-[200px]">{data.fullName}</p>
                             <div className="flex items-center justify-between gap-4 font-mono text-[11px]">
-                              <span className="text-[#4db8b0] font-bold">Budget:</span>
+                              <span className="text-[#3b82f6] font-bold">Budget:</span>
                               <span className="font-bold">{formatCurrency(data.budget)}</span>
                             </div>
                             <div className="flex items-center justify-between gap-4 font-mono text-[11px]">
-                              <span className="text-[#0a6b64] font-bold">Spent:</span>
-                              <span className="font-bold text-[#0a6b64]">{formatCurrency(data.spent)}</span>
+                              <span className="text-[#ea580c] font-bold">Spent:</span>
+                              <span className="font-bold text-[#ea580c]">{formatCurrency(data.spent)}</span>
                             </div>
                           </div>
                         );
@@ -315,8 +315,8 @@ export default function StudentFinance() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="budget" fill="#4db8b0" radius={[4, 4, 0, 0]} name="Budget" />
-                  <Bar dataKey="spent" fill="#0a6b64" radius={[4, 4, 0, 0]} name="Spent" />
+                  <Bar dataKey="budget" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Budget" />
+                  <Bar dataKey="spent" fill="#ea580c" radius={[4, 4, 0, 0]} name="Spent" />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -425,11 +425,11 @@ export default function StudentFinance() {
                   onClick={() => setApprovedExpanded((prev) => !prev)}
                   className="flex items-center gap-2.5 text-left transition cursor-pointer group"
                 >
-                  <div className="w-7 h-7 rounded-xl bg-teal-100 text-teal-800 border border-teal-200 flex items-center justify-center transition-all group-hover:bg-teal-200 group-hover:border-teal-400 group-hover:text-teal-950 shadow-2xs">
+                  <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex items-center justify-center transition-all group-hover:bg-blue-100 group-hover:border-blue-300 group-hover:text-blue-950 shadow-2xs">
                     <ChevronDown size={16} className={`transition-transform duration-200 ${approvedExpanded ? "rotate-0" : "-rotate-90"}`} />
                   </div>
                   <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition">Approved Events</h2>
-                  <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-800 border border-teal-200">
+                  <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
                     {approvedGroup.length}
                   </span>
                 </button>
@@ -461,7 +461,7 @@ export default function StudentFinance() {
                           </div>
                           <div>
                             <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Total Spent</p>
-                            <p className="font-mono font-bold text-teal-700 mt-0.5">{formatCurrency(e.spent)}</p>
+                            <p className="font-mono font-bold text-blue-700 dark:text-blue-400 mt-0.5">{formatCurrency(e.spent)}</p>
                           </div>
                           <div>
                             <p className="text-[10px] font-mono text-[var(--muted-foreground)] font-bold">Remaining</p>
@@ -525,7 +525,7 @@ export default function StudentFinance() {
                               </td>
                               <td className="px-4 py-3 font-mono text-xs text-[var(--muted-foreground)]">{formatDate(e.dateStart)}</td>
                               <td className="px-4 py-3 font-mono text-xs font-semibold">{formatCurrency(e.proposedBudget)}</td>
-                              <td className="px-4 py-3 font-mono text-xs text-teal-700 font-bold">{formatCurrency(e.spent)}</td>
+                              <td className="px-4 py-3 font-mono text-xs text-blue-700 dark:text-blue-400 font-bold">{formatCurrency(e.spent)}</td>
                               <td className={`px-4 py-3 font-mono text-xs font-semibold ${e.remaining >= 0 ? "text-emerald-700" : "text-red-600"}`}>
                                 {formatCurrency(e.remaining)}
                               </td>

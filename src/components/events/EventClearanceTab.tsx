@@ -111,9 +111,9 @@ export default function EventClearanceTab({
     <div className="flex flex-col gap-4">
       {/* ── 1. CLEARANCE PDF BANNER ── */}
       {isApproved ? (
-        <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-2xl p-5 shadow-md border border-emerald-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#0a1128] via-[#1c2541] to-[#ea580c] text-white rounded-2xl p-5 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-emerald-300 flex-shrink-0 shadow-inner">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0 shadow-inner">
               <BadgeCheck size={24} />
             </div>
             <div>
@@ -121,11 +121,11 @@ export default function EventClearanceTab({
                 <span className="text-sm font-bold text-white tracking-tight">
                   Event Clearance Granted
                 </span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 font-bold uppercase">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30 font-bold uppercase">
                   Dispatched to SDS
                 </span>
               </div>
-              <p className="text-xs text-teal-100/80 font-mono mt-0.5 break-all">
+              <p className="text-xs text-slate-200/80 font-mono mt-0.5 break-all">
                 {clearanceFileName}
               </p>
             </div>
@@ -234,7 +234,7 @@ export default function EventClearanceTab({
           </div>
           <div>
             <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
-            <p className="font-mono text-teal-800 font-bold mt-0.5 flex items-center gap-1">
+            <p className="font-mono text-blue-800 dark:text-blue-400 font-bold mt-0.5 flex items-center gap-1">
               ✓ {event.apfUrl ? event.apfUrl.replace(/^.*[\\/]/, '') : "Activity Proposal Form Attached"}
             </p>
           </div>
@@ -260,13 +260,13 @@ export default function EventClearanceTab({
           {/* 1. Faculty Adviser Verification (First / Left) */}
           <div className={`p-3.5 rounded-xl border ${
             isApproved || event.status === "For Approval"
-              ? "bg-teal-50/80 border-teal-200 text-teal-950"
+              ? "bg-blue-50/80 border-blue-200 text-blue-950"
               : "bg-[var(--muted)]/40 border-[var(--border)] text-[var(--muted-foreground)]"
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <span className="font-bold text-xs font-sans text-[var(--foreground)]">Faculty Adviser Signatory</span>
               {isApproved || event.status === "For Approval" ? (
-                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md border border-teal-300">
+                <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md border border-blue-300">
                   <CheckCircle size={10} /> Endorsed
                 </span>
               ) : (
@@ -278,7 +278,7 @@ export default function EventClearanceTab({
             <p className="text-xs font-semibold text-[var(--foreground)]">{resolvedSig.adviserName}</p>
             <p className="text-[11px] text-[var(--muted-foreground)]">Designated Faculty Adviser, {resolvedOrgCode}</p>
             {(isApproved || event.status === "For Approval") && (
-              <p className="text-[10px] font-mono text-teal-800 mt-2 pt-2 border-t border-teal-200/80">
+              <p className="text-[10px] font-mono text-blue-800 dark:text-blue-400 mt-2 pt-2 border-t border-blue-200/80">
                 ✓ APF & Appendices Endorsed to Dean
               </p>
             )}
@@ -348,7 +348,7 @@ export default function EventClearanceTab({
                     isRevision
                       ? "bg-amber-50/80 border-amber-300 text-amber-950 shadow-xs"
                       : isResolved
-                      ? "bg-teal-50/60 border-teal-200 text-teal-950"
+                      ? "bg-blue-50/60 border-blue-200 text-blue-950"
                       : "bg-emerald-50/80 border-emerald-300 text-emerald-950 shadow-xs"
                   }`}
                 >
@@ -369,7 +369,7 @@ export default function EventClearanceTab({
                       </span>
                     )}
                     {isResolved && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-300">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-300">
                         <CheckCircle size={10} /> Resolved
                       </span>
                     )}

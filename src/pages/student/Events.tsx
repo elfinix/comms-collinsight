@@ -817,7 +817,7 @@ export default function StudentEvents() {
                       Proposed Budget (₱) *
                     </label>
                     <span className="text-[10px] font-mono text-[var(--muted-foreground)]">
-                      Available: <strong className="text-teal-700 font-bold">{formatCurrency(remainingBudget)}</strong>
+                      Available: <strong className="text-blue-700 dark:text-blue-400 font-bold">{formatCurrency(remainingBudget)}</strong>
                     </span>
                   </div>
                   <Input
@@ -944,7 +944,7 @@ export default function StudentEvents() {
                   <UploadCloud size={36} className={`mx-auto mb-2.5 ${draft.apfUrl ? "text-emerald-600" : "text-[var(--muted-foreground)]"}`} />
                   <div className="flex items-center justify-center gap-2 mb-1">
                     <p className="font-bold text-sm text-[var(--foreground)]">Upload APF (Activity Proposal Form) *</p>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-50 text-[var(--primary)] border border-teal-200">
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[var(--primary)] border border-orange-200">
                       Required
                     </span>
                   </div>
@@ -1175,7 +1175,7 @@ export default function StudentEvents() {
                         Proposed Budget (₱) *
                       </label>
                       <span className="text-[10px] font-mono text-[var(--muted-foreground)]">
-                        Available: <strong className="text-teal-700 font-bold">{formatCurrency(editAvailableBudget)}</strong>
+                        Available: <strong className="text-blue-700 dark:text-blue-400 font-bold">{formatCurrency(editAvailableBudget)}</strong>
                       </span>
                     </div>
                     <Input
@@ -1299,7 +1299,7 @@ export default function StudentEvents() {
                     <UploadCloud size={36} className={`mx-auto mb-2.5 ${editEvent.apfUrl ? "text-emerald-600" : "text-[var(--muted-foreground)]"}`} />
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <p className="font-bold text-sm text-[var(--foreground)]">Upload APF (Activity Proposal Form) *</p>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-50 text-[var(--primary)] border border-teal-200">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[var(--primary)] border border-orange-200">
                         Required
                       </span>
                     </div>

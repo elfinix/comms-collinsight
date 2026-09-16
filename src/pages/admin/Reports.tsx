@@ -421,7 +421,7 @@ export default function AdminReports() {
                 {(["student", "adviser", "dean", "admin"] as const).map((role) => {
                   const count = users.filter((u) => u.role === role).length;
                   const colors = {
-                    student: "bg-teal-50 text-teal-800 border border-teal-200",
+                    student: "bg-orange-50 text-orange-800 border border-orange-200",
                     adviser: "bg-sky-50 text-sky-800 border border-sky-200",
                     dean: "bg-purple-50 text-purple-800 border border-purple-200",
                     admin: "bg-amber-50 text-amber-800 border border-amber-200",

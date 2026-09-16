@@ -188,7 +188,7 @@ export default function AdminDashboard() {
                         return (
                           <div className="bg-white border border-slate-200 shadow-xl p-2.5 rounded-xl text-xs space-y-0.5 z-50">
                             <p className="font-bold text-slate-900">{item.fullName} ({item.name})</p>
-                            <p className="font-mono text-teal-800 font-bold">{item.eventsCount} Events ({item.percent}%)</p>
+                            <p className="font-mono text-orange-950 font-bold">{item.eventsCount} Events ({item.percent}%)</p>
                           </div>
                         );
                       }
@@ -296,7 +296,7 @@ export default function AdminDashboard() {
                         Actor: <strong className="text-[var(--foreground)]">{actorName}</strong> ({formatUserRole(actorRole)})
                       </span>
                       {evt && (
-                        <span className="text-teal-700 font-bold truncate max-w-[170px]">
+                        <span className="text-blue-700 dark:text-blue-400 font-bold truncate max-w-[170px]">
                           {evt.name}
                         </span>
                       )}
@@ -319,12 +319,12 @@ export default function AdminDashboard() {
                 label: "Student Officers",
                 count: students.length,
                 role: "student",
-                icon: <GraduationCap size={16} className="text-teal-700" />,
-                border: "border-teal-300",
-                bg: "bg-teal-50",
-                text: "text-teal-950",
-                countColor: "text-teal-900",
-                subColor: "text-teal-800",
+                icon: <GraduationCap size={16} className="text-orange-700" />,
+                border: "border-orange-200",
+                bg: "bg-orange-50",
+                text: "text-orange-950",
+                countColor: "text-orange-900",
+                subColor: "text-orange-800",
               },
               {
                 label: "Faculty Advisers",

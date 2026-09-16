@@ -76,7 +76,7 @@ export function generateClearanceEmailHtml(params: {
   const locationLabel = isOnline ? "Platform / Link" : "Venue / Location";
   const formattedSchedule = formatEventSchedule(event.dateStart, event.dateEnd);
   const locationDisplay = isWebUrl(event.location)
-    ? `<a href="${toWebUrl(event.location)}" target="_blank" style="color: #0a6b64; text-decoration: underline; word-break: break-all;">${event.location}</a>`
+    ? `<a href="${toWebUrl(event.location)}" target="_blank" style="color: #ea580c; text-decoration: underline; word-break: break-all;">${event.location}</a>`
     : (event.location || (isOnline ? "Online Platform" : "Venue TBD"));
 
   return `<!DOCTYPE html>
@@ -89,28 +89,27 @@ export function generateClearanceEmailHtml(params: {
     body {
       margin: 0;
       padding: 0;
-      background-color: #f4f9f8;
+      background-color: #f8fafc;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #0d201e;
+      color: #0f172a;
       -webkit-font-smoothing: antialiased;
     }
     .wrapper {
       width: 100%;
-      background-color: #f4f9f8;
+      background-color: #f8fafc;
       padding: 36px 16px;
-      box-sizing: border-box;
     }
     .container {
-      max-width: 620px;
+      max-width: 600px;
       margin: 0 auto;
       background-color: #ffffff;
       border-radius: 16px;
       overflow: hidden;
-      border: 1px solid #c4deda;
-      box-shadow: 0 4px 20px rgba(10, 107, 100, 0.06);
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     }
     .header {
-      background: linear-gradient(135deg, #0a6b64 0%, #064e48 100%);
+      background: linear-gradient(135deg, #0a1128 0%, #1e3a8a 60%, #ea580c 100%);
       padding: 32px 28px;
       text-align: left;
       color: #ffffff;
@@ -216,7 +215,7 @@ export function generateClearanceEmailHtml(params: {
     }
     .remarks-box {
       background-color: #f8fafc;
-      border-left: 4px solid #0a6b64;
+      border-left: 4px solid #ea580c;
       border-radius: 0 10px 10px 0;
       padding: 14px 16px;
       margin-bottom: 24px;
@@ -229,8 +228,8 @@ export function generateClearanceEmailHtml(params: {
       line-height: 1.5;
     }
     .attachments-card {
-      background-color: #f0f7f6;
-      border: 1px dashed #0a6b64;
+      background-color: #fff7ed;
+      border: 1px dashed #ea580c;
       border-radius: 12px;
       padding: 18px 20px;
       margin-bottom: 24px;
@@ -240,17 +239,17 @@ export function generateClearanceEmailHtml(params: {
       align-items: center;
       padding: 8px 0;
       font-size: 13px;
-      color: #0f4d48;
+      color: #9a3412;
       font-weight: 600;
     }
     .attachment-item:not(:last-child) {
-      border-bottom: 1px solid #d8e8e6;
+      border-bottom: 1px solid #fed7aa;
     }
     .attachment-icon {
       display: inline-block;
       width: 24px;
       height: 18px;
-      background-color: #0a6b64;
+      background-color: #ea580c;
       color: #ffffff;
       border-radius: 4px;
       text-align: center;
@@ -260,11 +259,11 @@ export function generateClearanceEmailHtml(params: {
       font-weight: bold;
     }
     .footer {
-      background-color: #064e48;
+      background-color: #0a1128;
       padding: 24px 28px;
       text-align: center;
-      color: #cceae7;
-      border-top: 1px solid #043834;
+      color: #cbd5e1;
+      border-top: 1px solid #1e293b;
     }
     .brand-logo-container {
       display: inline-flex;
@@ -273,8 +272,8 @@ export function generateClearanceEmailHtml(params: {
       margin-bottom: 8px;
     }
     .brand-box {
-      background: #14b8a6;
-      color: #cceae7;
+      background: #ea580c;
+      color: #ffffff;
       font-weight: 900;
       font-size: 11px;
       padding: 3px 7px;
@@ -290,7 +289,7 @@ export function generateClearanceEmailHtml(params: {
     }
     .footer-text {
       font-size: 11px;
-      color: #8ec7c2;
+      color: #94a3b8;
       margin: 4px 0 0 0;
       line-height: 1.4;
     }
@@ -324,7 +323,7 @@ export function generateClearanceEmailHtml(params: {
         <table class="meta-table">
           <tr>
             <td class="meta-label">Document Reference</td>
-            <td class="meta-value" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: #0a6b64;">${docRef}</td>
+            <td class="meta-value" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: #ea580c;">${docRef}</td>
           </tr>
           <tr>
             <td class="meta-label">Event Name</td>
@@ -352,7 +351,7 @@ export function generateClearanceEmailHtml(params: {
           </tr>
           <tr>
             <td class="meta-label">Proposed Budget</td>
-            <td class="meta-value" style="color: #0a6b64;">${formatCurrency(event.proposedBudget)}</td>
+            <td class="meta-value" style="color: #ea580c;">${formatCurrency(event.proposedBudget)}</td>
           </tr>
           <tr>
             <td class="meta-label">Executive Approver</td>

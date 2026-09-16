@@ -503,7 +503,7 @@ export default function OrganizationsPage() {
                         title={d.name}
                       >
                         {d.code}
-                        <span className={`ml-1.5 font-mono ${isSelected ? "text-teal-100" : "text-[var(--muted-foreground)]"}`}>
+                        <span className={`ml-1.5 font-mono ${isSelected ? "text-orange-100" : "text-[var(--muted-foreground)]"}`}>
                           ({count})
                         </span>
                       </button>
@@ -878,7 +878,7 @@ export default function OrganizationsPage() {
                           }`}
                         >
                           {s}
-                          <span className={`ml-1 font-mono font-bold ${isSelected ? "text-teal-100" : "text-[var(--muted-foreground)]"}`}>
+                          <span className={`ml-1 font-mono font-bold ${isSelected ? "text-orange-100" : "text-[var(--muted-foreground)]"}`}>
                             ({count})
                           </span>
                         </button>
@@ -1231,7 +1231,7 @@ export default function OrganizationsPage() {
                     </div>
                     <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border ${
                       eventTxns.length > 0
-                        ? "bg-teal-50 text-teal-800 border-teal-200"
+                        ? "bg-blue-50 text-blue-800 border-blue-200"
                         : "bg-slate-50 text-slate-700 border-slate-200"
                     }`}>
                       {eventTxns.length > 0 ? "Active Ledger" : "Proposal Stage"}
@@ -1248,7 +1248,7 @@ export default function OrganizationsPage() {
                     </div>
                     <div className="p-2.5 rounded-lg bg-[var(--muted)]/30 border border-[var(--border)]">
                       <p className="text-[9px] font-mono text-[var(--muted-foreground)] uppercase">Total Disbursed</p>
-                      <p className="text-xs sm:text-sm font-bold font-mono text-teal-400 dark:text-teal-600 mt-0.5 truncate">
+                      <p className="text-xs sm:text-sm font-bold font-mono text-blue-700 dark:text-blue-400 mt-0.5 truncate">
                         {formatCurrency(totalDisbursed)}
                       </p>
                     </div>
@@ -1311,19 +1311,19 @@ export default function OrganizationsPage() {
 
                 {/* Official Clearance Banner if Approved */}
                 {["Approved", "Completed", "Closed"].includes(selectedEvent.status) && (
-                  <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-emerald-700/80 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="bg-gradient-to-r from-[#0a1128] via-[#1c2541] to-[#ea580c] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-emerald-300 flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0">
                         <BadgeCheck size={20} />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-xs font-bold text-white">Official Event Clearance Granted</p>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 uppercase font-bold">
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/20 text-white border border-white/30 uppercase font-bold">
                             SDS Dispatched
                           </span>
                         </div>
-                        <p className="text-[11px] text-teal-100/80 font-mono truncate">
+                        <p className="text-[11px] text-slate-200/80 font-mono truncate">
                           Event_Clearance_{selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
                         </p>
                       </div>
@@ -1364,19 +1364,19 @@ export default function OrganizationsPage() {
 
                 {/* Liquidation Banner if Closed */}
                 {selectedEvent.status === "Closed" && (
-                  <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-slate-900 text-white rounded-xl p-4 shadow-sm border border-teal-700/80 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="bg-gradient-to-r from-[#0a1128] via-[#1e3a8a] to-[#ea580c] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-teal-200 flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0">
                         <FileSpreadsheet size={20} />
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-xs font-bold text-white">Liquidation Report Reconciled</p>
-                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-200 border border-teal-400/30 uppercase font-bold">
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/20 text-white border border-white/30 uppercase font-bold">
                             Audited & Archived
                           </span>
                         </div>
-                        <p className="text-[11px] text-teal-100/80 font-mono truncate">
+                        <p className="text-[11px] text-slate-200/80 font-mono truncate">
                           Liquidation_Report_{selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
                         </p>
                       </div>

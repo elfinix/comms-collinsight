@@ -464,7 +464,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border flex-shrink-0 ${
               percentUsed > 100
                 ? "bg-rose-50 text-rose-700 border-rose-200"
-                : "bg-teal-50 text-teal-700 border-teal-200"
+                : "bg-blue-50 text-blue-700 border-blue-200"
             }`}>
               {percentUsed}% used
             </span>
@@ -517,16 +517,16 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
       {/* Generated Liquidation PDF Banner for Closed / Reconciled Events */}
       {activeEvent.status === "Closed" && (
-        <div className="bg-gradient-to-r from-teal-900 via-teal-800 to-teal-900 text-white rounded-2xl p-5 mb-6 shadow-md border border-teal-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#0a1128] via-[#1c2541] to-[#ea580c] text-white rounded-2xl p-5 mb-6 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-teal-200 flex-shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0">
               <FileSpreadsheet size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-bold text-white">Digital Liquidation Report Reconciled</span>
               </div>
-              <p className="text-xs text-teal-100/80 font-mono mt-0.5">
+              <p className="text-xs text-slate-200/80 font-mono mt-0.5">
                 Liquidation_Report_{activeEvent.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf · Generated and archived
               </p>
             </div>
@@ -661,7 +661,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
           <CardBody className="p-4 flex flex-col gap-2.5">
             {activeEvent.remarks.map((r, i) => (
               <div key={i} className="p-3 rounded-xl bg-[var(--muted)]/30 border border-[var(--border)] flex items-start gap-2.5 text-xs">
-                <span className="w-2 h-2 rounded-full bg-teal-600 mt-1.5 flex-shrink-0" />
+                <span className="w-2 h-2 rounded-full bg-[var(--primary)] mt-1.5 flex-shrink-0" />
                 <span className="leading-relaxed text-[var(--foreground)] font-normal">{r}</span>
               </div>
             ))}
@@ -671,15 +671,15 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
       {/* Event Revenue & Proceeds Summary Card */}
       {activeEvent.revenue !== undefined && activeEvent.revenue > 0 && (
-        <Card className="mb-6 border-teal-200 bg-gradient-to-br from-teal-50/50 via-[var(--card)] to-teal-50/30">
-          <CardHeader className="border-b border-teal-100 pb-2.5 flex items-center justify-between">
+        <Card className="mb-6 border-orange-200 bg-gradient-to-br from-orange-50/40 via-[var(--card)] to-blue-50/20">
+          <CardHeader className="border-b border-orange-100 pb-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-lg bg-orange-100 text-orange-800 flex items-center justify-center">
                 <Coins size={14} />
               </div>
               <h2 className="font-semibold text-sm text-[var(--foreground)]">Event Revenue & Proceeds Summary</h2>
             </div>
-            <span className="text-xs font-bold text-teal-800 bg-teal-100/80 px-2.5 py-0.5 rounded-full border border-teal-200">
+            <span className="text-xs font-bold text-orange-900 bg-orange-100/80 px-2.5 py-0.5 rounded-full border border-orange-200">
               Official Proceeds Logged
             </span>
           </CardHeader>
@@ -687,11 +687,11 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-medium text-[var(--muted-foreground)] block mb-1">Total Gross Revenue</span>
-                <span className="text-lg font-extrabold text-teal-900 font-mono">{formatCurrency(activeEvent.revenue)}</span>
+                <span className="text-lg font-extrabold text-slate-900 font-mono">{formatCurrency(activeEvent.revenue)}</span>
               </div>
               <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-medium text-[var(--muted-foreground)] block mb-1">Proposal Surplus</span>
-                <span className="text-lg font-extrabold text-teal-800 font-mono">{formatCurrency(remaining)}</span>
+                <span className="text-lg font-extrabold text-slate-900 font-mono">{formatCurrency(remaining)}</span>
               </div>
               <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
                 <span className="text-[11px] font-medium text-[var(--muted-foreground)] block mb-1">Net Treasury Surplus</span>
@@ -784,10 +784,10 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
               onChange={handleAddReceiptChange}
             />
             {newTxn.receiptName || newTxn.receiptPreviewUrl ? (
-              <div className="flex items-center justify-between p-3 rounded-xl border border-teal-200 bg-teal-50/60 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50/60 text-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <FileCheck size={16} className="text-teal-700 flex-shrink-0" />
-                  <span className="font-mono font-medium text-teal-900 truncate">
+                  <FileCheck size={16} className="text-blue-700 flex-shrink-0" />
+                  <span className="font-mono font-medium text-blue-900 truncate">
                     {newTxn.receiptName || "Attached Receipt"}
                   </span>
                 </div>
@@ -795,7 +795,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                   <button
                     type="button"
                     onClick={() => addReceiptInputRef.current?.click()}
-                    className="text-xs font-mono text-teal-700 hover:underline cursor-pointer"
+                    className="text-xs font-mono text-blue-700 hover:underline cursor-pointer"
                   >
                     Change
                   </button>
@@ -915,10 +915,10 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
               onChange={handleEditReceiptChange}
             />
             {editTxnForm.receiptName || editTxnForm.receiptPreviewUrl ? (
-              <div className="flex items-center justify-between p-3 rounded-xl border border-teal-200 bg-teal-50/60 text-xs">
+              <div className="flex items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50/60 text-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <FileCheck size={16} className="text-teal-700 flex-shrink-0" />
-                  <span className="font-mono font-medium text-teal-900 truncate">
+                  <FileCheck size={16} className="text-blue-700 flex-shrink-0" />
+                  <span className="font-mono font-medium text-blue-900 truncate">
                     {editTxnForm.receiptName || "Attached Receipt"}
                   </span>
                 </div>
@@ -926,7 +926,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                   <button
                     type="button"
                     onClick={() => editReceiptInputRef.current?.click()}
-                    className="text-xs font-mono text-teal-700 hover:underline cursor-pointer"
+                    className="text-xs font-mono text-blue-700 hover:underline cursor-pointer"
                   >
                     Change
                   </button>
@@ -1004,9 +1004,9 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
         size="sm"
       >
         <div className="p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-teal-50 border border-teal-200">
-            <CheckCircle size={20} className="text-teal-700 flex-shrink-0" />
-            <p className="text-xs text-teal-900 leading-relaxed">
+          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-200">
+            <CheckCircle size={20} className="text-blue-700 flex-shrink-0" />
+            <p className="text-xs text-blue-900 leading-relaxed">
               Marking <strong>'{activeEvent.name}'</strong> as completed transitions the event to the post-event stage and enables the <strong>Complete Liquidation</strong> workflow.
             </p>
           </div>
@@ -1029,9 +1029,9 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       {/* ── DIALOG: COMPLETE LIQUIDATION ──────────────────────────────── */}
       <Dialog open={showLiquidationConfirm} onClose={() => setShowLiquidationConfirm(false)} title="Complete Event Liquidation" size="sm">
         <div className="p-6 flex flex-col gap-4">
-          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-teal-50 border border-teal-200">
-            <CheckCircle size={20} className="text-teal-700 flex-shrink-0" />
-            <p className="text-xs text-teal-900 leading-relaxed">
+          <div className="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50 border border-blue-200">
+            <CheckCircle size={20} className="text-blue-700 flex-shrink-0" />
+            <p className="text-xs text-blue-900 leading-relaxed">
               Completing liquidation will finalize the event ledger and generate an official PDF Liquidation Certificate.
             </p>
           </div>
@@ -1132,7 +1132,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
               </div>
             ) : (
               <div className="w-full bg-[var(--muted)]/50 rounded-2xl p-6 border border-[var(--border)] text-center">
-                <FileText size={48} className="mx-auto text-teal-700 mb-3" />
+                <FileText size={48} className="mx-auto text-orange-600 mb-3" />
                 <p className="text-sm font-bold text-[var(--foreground)]">{previewReceipt.title}</p>
                 <p className="text-xs font-mono text-[var(--muted-foreground)] mt-1">Official Voucher / Tax Invoice Attached</p>
                 <div className="mt-4 p-3 bg-white rounded-xl border border-[var(--border)] text-xs font-mono inline-flex items-center gap-2">
@@ -1155,21 +1155,21 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
           {/* Simulated PDF Document Header */}
           <div className="bg-white border-2 border-slate-300 rounded-2xl p-8 shadow-sm text-slate-800 font-sans space-y-6">
             {/* University Letterhead */}
-            <div className="flex items-center justify-between border-b-2 border-teal-800 pb-4">
+            <div className="flex items-center justify-between border-b-2 border-slate-800 pb-4">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-teal-900 text-white flex items-center justify-center font-extrabold text-xl shadow-md">
+                <div className="w-14 h-14 rounded-2xl bg-[#0a1128] text-white flex items-center justify-center font-extrabold text-xl shadow-md border border-orange-500/30">
                   LCUP
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-lg uppercase tracking-wide text-teal-950">
+                  <h3 className="font-extrabold text-lg uppercase tracking-wide text-slate-900">
                     La Consolacion University Philippines
                   </h3>
                   <p className="text-xs font-medium text-slate-600">College of Information Technology & Engineering</p>
-                  <p className="text-[11px] font-mono text-teal-800 font-bold">{org?.name || "Student Organization"}</p>
+                  <p className="text-[11px] font-mono text-orange-600 font-bold">{org?.name || "Student Organization"}</p>
                 </div>
               </div>
               <div className="text-right font-mono text-xs">
-                <span className="px-3 py-1 rounded-md bg-teal-100 text-teal-900 font-bold border border-teal-300">
+                <span className="px-3 py-1 rounded-md bg-orange-50 text-orange-900 font-bold border border-orange-200">
                   DIGITAL LIQUIDATION
                 </span>
                 <p className="text-[11px] text-slate-500 mt-1.5">Doc Ref: {cleanDocRef}</p>
@@ -1188,11 +1188,11 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
               </div>
               <div>
                 <span className="text-slate-500 block uppercase text-[10px] font-bold">Approved Budget</span>
-                <span className="font-bold text-teal-800">{formatCurrency(budget)}</span>
+                <span className="font-bold text-slate-900">{formatCurrency(budget)}</span>
               </div>
               <div>
                 <span className="text-slate-500 block uppercase text-[10px] font-bold">Total Disbursed</span>
-                <span className="font-bold text-slate-950">{formatCurrency(eventSpent)}</span>
+                <span className="font-bold text-blue-700">{formatCurrency(eventSpent)}</span>
               </div>
             </div>
 
@@ -1225,10 +1225,10 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
                       </td>
                     </tr>
                   ))}
-                  <tr className="bg-teal-50/80 font-bold border-t-2 border-teal-700">
-                    <td colSpan={3} className="p-2.5 text-right text-teal-950">TOTAL EXPENDITURES:</td>
-                    <td className="p-2.5 text-right text-teal-950">{formatCurrency(eventSpent)}</td>
-                    <td className="p-2.5 text-center text-teal-800 text-[10px]">100% RECONCILED</td>
+                  <tr className="bg-slate-50 font-bold border-t-2 border-slate-800">
+                    <td colSpan={3} className="p-2.5 text-right text-slate-950">TOTAL EXPENDITURES:</td>
+                    <td className="p-2.5 text-right text-slate-950">{formatCurrency(eventSpent)}</td>
+                    <td className="p-2.5 text-center text-blue-800 text-[10px]">100% RECONCILED</td>
                   </tr>
                 </tbody>
               </table>
@@ -1238,14 +1238,14 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             <div className="space-y-2">
               <div className="flex justify-between items-center p-3 rounded-xl bg-slate-100 border border-slate-200 text-xs font-mono">
                 <span className="text-slate-600">Net Balance Remaining (Surplus / Reversion):</span>
-                <span className="font-bold text-teal-900 text-sm">{formatCurrency(remaining)}</span>
+                <span className="font-bold text-slate-900 text-sm">{formatCurrency(remaining)}</span>
               </div>
 
               {activeEvent.revenue !== undefined && activeEvent.revenue > 0 && (
                 <>
-                  <div className="flex justify-between items-center p-3 rounded-xl bg-teal-50 border border-teal-200 text-xs font-mono">
-                    <span className="text-teal-900">Total Gross Event Revenue Generated:</span>
-                    <span className="font-bold text-teal-900 text-sm">{formatCurrency(activeEvent.revenue)}</span>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs font-mono">
+                    <span className="text-orange-950 font-medium">Total Gross Event Revenue Generated:</span>
+                    <span className="font-bold text-orange-950 text-sm">{formatCurrency(activeEvent.revenue)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-xs font-mono">
                     <span className="text-emerald-950 font-bold">Net Total Surplus Reconciled to Treasury:</span>

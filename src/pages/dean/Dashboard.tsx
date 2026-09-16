@@ -177,7 +177,7 @@ export default function DeanDashboard() {
                             </p>
                             <div className="flex items-center justify-between gap-3 font-mono text-slate-700">
                               <span className="font-sans font-medium text-xs">Events:</span>
-                              <span className="font-bold text-teal-900">{item.events}</span>
+                              <span className="font-bold text-slate-900">{item.events}</span>
                             </div>
                           </div>
                         );
@@ -185,7 +185,7 @@ export default function DeanDashboard() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="events" fill="#0a6b64" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="events" fill="#ea580c" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -219,15 +219,15 @@ export default function DeanDashboard() {
                             <div className="space-y-1.5 font-mono">
                               <div className="flex items-center justify-between gap-3 text-slate-700">
                                 <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
+                                  <span className="w-2.5 h-2.5 rounded-full bg-blue-400" /> Budget:
                                 </span>
-                                <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
+                                <span className="font-bold text-slate-900">{formatCurrency(item.budget)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-3 text-slate-700">
                                 <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
+                                  <span className="w-2.5 h-2.5 rounded-full bg-orange-600" /> Spent:
                                 </span>
-                                <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+                                <span className="font-bold text-orange-950">{formatCurrency(item.spent)}</span>
                               </div>
                             </div>
                           </div>
@@ -236,8 +236,8 @@ export default function DeanDashboard() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="budget" fill="#bfe3dd" radius={[6, 6, 0, 0]} name="Budget" />
-                  <Bar dataKey="spent" fill="#0a6b64" radius={[6, 6, 0, 0]} name="Spent" />
+                  <Bar dataKey="budget" fill="#93c5fd" radius={[6, 6, 0, 0]} name="Budget" />
+                  <Bar dataKey="spent" fill="#ea580c" radius={[6, 6, 0, 0]} name="Spent" />
                 </BarChart>
               </ResponsiveContainer>
             )}

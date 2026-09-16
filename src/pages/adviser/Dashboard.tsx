@@ -172,7 +172,7 @@ export default function AdviserDashboard() {
               title="Budget Snapshot"
               subtitle="Guild annual fund allocation & utilization"
               action={
-                <span className="text-[10px] font-mono font-bold bg-teal-50 text-teal-800 border border-teal-200 px-2.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-mono font-bold bg-orange-50 text-orange-800 border border-orange-200 px-2.5 py-0.5 rounded-full">
                   {utilizationPct.toFixed(1)}% Utilized
                 </span>
               }
@@ -206,7 +206,7 @@ export default function AdviserDashboard() {
                 </div>
                 <div className="h-2 bg-[var(--muted)] rounded-full overflow-hidden p-0.5 border border-[var(--border)]/60">
                   <div
-                    className="h-full bg-gradient-to-r from-teal-600 to-emerald-500 rounded-full transition-all"
+                    className="h-full bg-gradient-to-r from-[var(--primary)] to-amber-500 rounded-full transition-all"
                     style={{ width: `${Math.min(100, Math.max(0, utilizationPct))}%` }}
                   />
                 </div>
@@ -224,7 +224,7 @@ export default function AdviserDashboard() {
                         <span className="font-medium text-[var(--foreground)] truncate max-w-[150px]">{cat.name}</span>
                         <div className="flex items-center gap-2 font-mono flex-shrink-0">
                           <span className="text-xs font-bold text-[var(--foreground)]">{formatCurrency(cat.value)}</span>
-                          <span className="text-[10px] text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded font-bold border border-teal-200/60">{cat.pct.toFixed(0)}%</span>
+                          <span className="text-[10px] text-orange-800 bg-orange-50 px-1.5 py-0.5 rounded font-bold border border-orange-200">{cat.pct.toFixed(0)}%</span>
                         </div>
                       </div>
                     ))}

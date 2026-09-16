@@ -182,8 +182,8 @@ export default function AdminAuditTrail() {
       doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
       doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
-      // Teal Header Line Divider
-      doc.setDrawColor(15, 118, 110); // #0f766e
+      // Orange Header Line Divider
+      doc.setDrawColor(234, 88, 12); // #ea580c
       doc.setLineWidth(0.5);
       doc.line(margin, 28, pageWidth - margin, 28);
 
@@ -247,7 +247,7 @@ export default function AdminAuditTrail() {
       const getPillColors = (action: string) => {
         const act = action.toLowerCase();
         if (act.includes("approve") || act.includes("endors") || act.includes("executive")) {
-          return { bg: [240, 253, 250], border: [153, 246, 228], text: [15, 118, 110] }; // Teal
+          return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] }; // Emerald
         }
         if (act.includes("revision") || act.includes("change") || act.includes("reject")) {
           return { bg: [255, 241, 242], border: [254, 205, 211], text: [190, 18, 60] }; // Rose
@@ -377,7 +377,7 @@ export default function AdminAuditTrail() {
               const lineBottom = data.cell.y + data.cell.height - 3;
               const lineTop = lineBottom - 3.8; // Compact neat height
 
-              doc.setDrawColor(15, 118, 110); // #0f766e teal accent line
+              doc.setDrawColor(234, 88, 12); // #ea580c orange accent line
               doc.setLineWidth(0.7);
               doc.line(cellX, lineTop, cellX, lineBottom);
             }

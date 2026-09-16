@@ -161,7 +161,7 @@ function ToastContainer({
           <CheckCircle2
             size={18}
             className={`${
-              isWarning ? "text-amber-600 dark:text-amber-400" : "text-teal-600 dark:text-teal-400"
+              isWarning ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
             } flex-shrink-0`}
           />
         ) : isError ? (
@@ -173,7 +173,7 @@ function ToastContainer({
         );
 
         const borderStyle = isSuccess
-          ? "border-teal-500/30 bg-teal-50/95 dark:bg-[#072421]/95 text-teal-950 dark:text-teal-100 shadow-teal-900/10"
+          ? "border-emerald-500/30 bg-emerald-50/95 dark:bg-[#06241a]/95 text-emerald-950 dark:text-emerald-100 shadow-emerald-900/10"
           : isError
           ? "border-rose-500/30 bg-rose-50/95 dark:bg-[#2e0b11]/95 text-rose-950 dark:text-rose-100 shadow-rose-900/10"
           : isWarning

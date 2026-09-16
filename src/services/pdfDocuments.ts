@@ -72,8 +72,8 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const contentWidth = pageWidth - margin * 2; // 182mm
 
   // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Logo Square
-  doc.setFillColor(19, 78, 74); // #134e4a
+  // LCUP Logo Square (Navy)
+  doc.setFillColor(15, 23, 42); // #0f172a
   doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8.5);
@@ -81,7 +81,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.text("LCUP", margin + 1.6, 19);
 
   // University & Department Titles
-  doc.setTextColor(19, 78, 74); // #134e4a
+  doc.setTextColor(15, 23, 42); // #0f172a
   doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
   doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
@@ -91,7 +91,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setFont("helvetica", "normal");
   doc.text("College of Information Technology & Engineering", margin + 14, 20);
 
-  doc.setTextColor(15, 118, 110); // #0f766e
+  doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.text("Event Clearance", margin + 14, 24);
@@ -103,12 +103,12 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const badgeW = doc.getTextWidth(badgeText) + 5;
   const badgeX = pageWidth - margin - badgeW;
 
-  doc.setFillColor(204, 251, 241); // #ccfbf1
-  doc.setDrawColor(153, 246, 228); // #99f6e4
+  doc.setFillColor(255, 237, 213); // #ffedd5 (Orange 100)
+  doc.setDrawColor(254, 215, 170); // #fed7aa (Orange 200)
   doc.setLineWidth(0.3);
   doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
 
-  doc.setTextColor(17, 94, 89); // #115e59
+  doc.setTextColor(154, 52, 18); // #9a3412 (Orange 800)
   doc.text(badgeText, badgeX + 2.5, 15.5);
 
   // Ref and Date below pill badge (Normal Weight)
@@ -118,8 +118,8 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
   doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
-  // Teal Header Line Divider
-  doc.setDrawColor(15, 118, 110); // #0f766e
+  // Orange Header Line Divider
+  doc.setDrawColor(234, 88, 12); // #ea580c
   doc.setLineWidth(0.5);
   doc.line(margin, 28, pageWidth - margin, 28);
 
@@ -144,14 +144,14 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const bannerY = 34;
   const bannerH = 15;
   if (showDeanSign) {
-    doc.setFillColor(240, 253, 250); // #f0fdfa
-    doc.setDrawColor(153, 246, 228); // #99f6e4
+    doc.setFillColor(240, 253, 244); // #f0fdf4
+    doc.setDrawColor(187, 247, 208); // #bbf7d0
     doc.setLineWidth(0.3);
     doc.roundedRect(margin, bannerY, contentWidth, bannerH, 1.5, 1.5, "FD");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.setTextColor(15, 118, 110);
+    doc.setTextColor(22, 101, 52);
     doc.text("EXECUTIVE CLEARANCE STATUS: DIGITAL CLEARANCE GRANTED", margin + 4, bannerY + 5.8);
 
     doc.setFont("helvetica", "normal");
@@ -159,14 +159,14 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     doc.setTextColor(71, 85, 105);
     doc.text("Dispatched to Student Development Services (SDS) & Academic Affairs", margin + 4, bannerY + 11);
   } else if (showAdviserSign) {
-    doc.setFillColor(240, 253, 250); // #f0fdfa
-    doc.setDrawColor(153, 246, 228); // #99f6e4
+    doc.setFillColor(239, 246, 255); // #eff6ff
+    doc.setDrawColor(191, 219, 254); // #bfdbfe
     doc.setLineWidth(0.3);
     doc.roundedRect(margin, bannerY, contentWidth, bannerH, 1.5, 1.5, "FD");
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.setTextColor(15, 118, 110);
+    doc.setTextColor(30, 64, 175);
     doc.text("ADVISER REVIEW STATUS: ENDORSED FOR DEAN APPROVAL", margin + 4, bannerY + 5.8);
 
     doc.setFont("helvetica", "normal");
@@ -213,7 +213,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setTextColor(100, 116, 139);
   doc.text("ORGANIZING BODY", margin + 4, gridY + 19);
   doc.setFontSize(9);
-  doc.setTextColor(15, 118, 110);
+  doc.setTextColor(30, 64, 175); // Blue 800
   doc.text(orgName, margin + 4, gridY + 24.5);
 
   doc.setFontSize(6.5);
@@ -249,7 +249,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
         dateFormatted = `${formatDate(event.dateStart)} – ${formatDate(event.dateEnd)}`;
       }
     } else {
-      if (hasExplicitTime && !isNaN(startD.getTime())) {
+      if (hasExplicitTime) {
         const timeStart = startD.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
         dateFormatted = `${startDateFmt} · ${timeStart}`;
       } else {
@@ -258,9 +258,10 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     }
   }
 
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("SCHEDULED EVENT DATE & TIME", midX + 4, gridY + 5.5);
+  doc.text("EVENT SCHEDULE", midX + 4, gridY + 5.5);
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
   doc.text(dateFormatted, midX + 4, gridY + 11);
@@ -276,7 +277,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setTextColor(100, 116, 139);
   doc.text("PROPOSED ALLOCATED BUDGET", midX + 4, gridY + 32.5);
   doc.setFontSize(9);
-  doc.setTextColor(15, 118, 110);
+  doc.setTextColor(234, 88, 12); // Orange
   doc.text(formatPdfCurrency(event.proposedBudget), midX + 4, gridY + 38);
 
   // ── 4. SCOPE & OBJECTIVES SUMMARY (GENEROUS SPACING & LINE HEIGHT) ─
@@ -284,7 +285,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const descBoxY = descHeaderY + 5;
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 118, 110);
+  doc.setTextColor(234, 88, 12);
   doc.text("AUTHORIZED ACTIVITY SCOPE & DESCRIPTION", margin, descHeaderY);
 
   const cleanDescription = (event.description || "The student organization is granted clearance to execute all approved program mechanics, workshop schedules, and student engagements in accordance with LCUP CITE Student Development guidelines.").replace(/₱/g, "PHP ");
@@ -308,7 +309,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const certBoxY = certHeaderY + 5;
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(15, 118, 110);
+  doc.setTextColor(234, 88, 12);
   doc.text("INSTITUTIONAL CLEARANCE CERTIFICATION CLAUSE", margin, certHeaderY);
 
   const certClause = "This certifies that the event proposal has satisfied all institutional clearance requirements, safety protocols, and adviser endorsements of the College of Information Technology & Engineering. The organization is authorized to execute the program mechanics, disburse allocated funds, and coordinate with Student Development Services (SDS).";
@@ -317,12 +318,12 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const splitCert = doc.splitTextToSize(certClause, contentWidth - 16);
   const certBoxH = Math.max(23.5, splitCert.length * 4.5 + 8.5);
 
-  doc.setFillColor(240, 253, 250);
-  doc.setDrawColor(204, 251, 241);
+  doc.setFillColor(239, 246, 255); // #eff6ff Blue tint
+  doc.setDrawColor(191, 219, 254); // #bfdbfe Blue border
   doc.roundedRect(margin, certBoxY, contentWidth, certBoxH, 1.5, 1.5, "FD");
 
-  // Green left accent line
-  doc.setDrawColor(15, 118, 110);
+  // Orange left accent line
+  doc.setDrawColor(234, 88, 12);
   doc.setLineWidth(1.2);
   doc.line(margin + 2.5, certBoxY + 3.5, margin + 2.5, certBoxY + certBoxH - 5);
 
@@ -472,8 +473,8 @@ export function generateLiquidationPdfBlob(
   const contentWidth = pageWidth - margin * 2; // 182mm
 
   // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Logo Square
-  doc.setFillColor(19, 78, 74); // #134e4a
+  // LCUP Logo Square (Navy)
+  doc.setFillColor(15, 23, 42); // #0f172a
   doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8.5);
@@ -481,7 +482,7 @@ export function generateLiquidationPdfBlob(
   doc.text("LCUP", margin + 1.6, 19);
 
   // University & Department Titles
-  doc.setTextColor(19, 78, 74); // #134e4a
+  doc.setTextColor(15, 23, 42); // #0f172a
   doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
   doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
@@ -491,7 +492,7 @@ export function generateLiquidationPdfBlob(
   doc.setFont("helvetica", "normal");
   doc.text("College of Information Technology & Engineering", margin + 14, 20);
 
-  doc.setTextColor(15, 118, 110); // #0f766e
+  doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
   doc.text(`${orgName} · Post-Event Financial Liquidation Report`, margin + 14, 24);
@@ -503,12 +504,12 @@ export function generateLiquidationPdfBlob(
   const badgeW = doc.getTextWidth(badgeText) + 5;
   const badgeX = pageWidth - margin - badgeW;
 
-  doc.setFillColor(204, 251, 241); // #ccfbf1
-  doc.setDrawColor(153, 246, 228); // #99f6e4
+  doc.setFillColor(255, 237, 213); // #ffedd5
+  doc.setDrawColor(254, 215, 170); // #fed7aa
   doc.setLineWidth(0.3);
   doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
 
-  doc.setTextColor(17, 94, 89); // #115e59
+  doc.setTextColor(154, 52, 18); // #9a3412
   doc.text(badgeText, badgeX + 2.5, 15.5);
 
   // Ref and Date below pill badge (Normal Weight)
@@ -518,8 +519,8 @@ export function generateLiquidationPdfBlob(
   doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
   doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
-  // Teal Header Line Divider
-  doc.setDrawColor(15, 118, 110); // #0f766e
+  // Orange Header Line Divider
+  doc.setDrawColor(234, 88, 12); // #ea580c
   doc.setLineWidth(0.5);
   doc.line(margin, 28, pageWidth - margin, 28);
 

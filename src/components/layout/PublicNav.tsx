@@ -68,11 +68,7 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
             {!hideOrgCta && (
               <Link
                 to="/organizations"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm ${
-                  solid
-                    ? "bg-[var(--primary)] text-white hover:bg-[var(--accent)]"
-                    : "bg-white text-[var(--primary)] hover:bg-teal-50"
-                }`}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-sm bg-[var(--primary)] text-white hover:bg-[var(--accent)] border border-orange-400/30 cursor-pointer"
               >
                 <Users size={14} /> Organizations
               </Link>
@@ -80,10 +76,10 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
             {currentUser ? (
               <Link
                 to={dashboardPath}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border cursor-pointer ${
                   solid
-                    ? "border-teal-600/30 bg-teal-50 text-teal-800 hover:bg-teal-600 hover:text-white"
-                    : "border-teal-300/40 bg-teal-500/20 text-teal-100 hover:bg-teal-500/40"
+                    ? "border-blue-600/30 bg-blue-50 text-blue-900 hover:bg-blue-600 hover:text-white"
+                    : "border-white/40 bg-white/15 text-white hover:bg-white/25 backdrop-blur-sm"
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -92,7 +88,7 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
             ) : (
               <Link
                 to="/login"
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition border cursor-pointer ${
                   solid
                     ? "border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)]"
                     : "border-white/30 text-white hover:bg-white/10"
@@ -152,7 +148,7 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
               </Link>
               {currentUser ? (
                 <Link to={dashboardPath} onClick={() => setMobileOpen(false)}
-                  className="flex items-center justify-center gap-2 bg-teal-600 text-white py-2.5 rounded-lg text-sm font-semibold shadow-sm">
+                  className="flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg text-sm font-semibold shadow-sm">
                   <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
                   <LayoutDashboard size={15} /> Dashboard
                 </Link>

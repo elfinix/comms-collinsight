@@ -180,7 +180,7 @@ export default function AdminConfigurations() {
                     className="flex items-center justify-between p-3 hover:bg-[var(--muted)]/40 transition group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-7 h-7 rounded-lg bg-teal-50 text-teal-800 border border-teal-200 flex items-center justify-center flex-shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-orange-50 text-orange-800 border border-orange-200 flex items-center justify-center flex-shrink-0">
                         <Tag size={13} />
                       </div>
                       <div className="min-w-0">

@@ -156,7 +156,7 @@ export default function StudentDashboard() {
             </div>
             <div className="h-3 bg-[var(--muted)] rounded-full overflow-hidden p-0.5 border border-[var(--border)]/60">
               <div
-                className="h-full bg-gradient-to-r from-[var(--primary)] to-teal-400 rounded-full transition-all shadow-xs"
+                className="h-full bg-gradient-to-r from-[var(--primary)] to-amber-400 rounded-full transition-all shadow-xs"
                 style={{ width: `${Math.min(100, allocatedBudget > 0 ? (totalSpent / allocatedBudget) * 100 : 0)}%` }}
               />
             </div>
@@ -181,7 +181,7 @@ export default function StudentDashboard() {
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                   <Tooltip />
-                  <Bar dataKey="count" fill="#0a6b64" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="count" fill="#ea580c" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}

@@ -147,8 +147,8 @@ export default function StudentReports() {
       doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
       doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
-      // Teal Header Line Divider
-      doc.setDrawColor(15, 118, 110); // #0f766e
+      // Orange Header Line Divider
+      doc.setDrawColor(234, 88, 12); // #ea580c
       doc.setLineWidth(0.5);
       doc.line(margin, 28, pageWidth - margin, 28);
 
@@ -184,7 +184,7 @@ export default function StudentReports() {
       doc.setTextColor(100, 116, 139);
       doc.text("PROPOSED BUDGET", margin + colW * 2 + 4, kpiY + 4.5);
       doc.setFontSize(9);
-      doc.setTextColor(15, 118, 110);
+      doc.setTextColor(15, 23, 42);
       doc.text(`PHP ${Number(totalBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + colW * 2 + 4, kpiY + 9.5);
 
       // Col 4: Total Spent
@@ -223,7 +223,7 @@ export default function StudentReports() {
         [2, 132, 199],   // #0284c7 Sky Blue
         [245, 158, 11],  // #f59e0b Amber
         [124, 58, 237],  // #7c3aed Purple
-        [13, 148, 136],  // #0d9488 Teal
+        [234, 88, 12],   // #ea580c Orange
         [239, 68, 68],   // #ef4444 Red
         [16, 185, 129],  // #10b981 Emerald
         [100, 116, 139], // #64748b Slate
@@ -316,15 +316,15 @@ export default function StudentReports() {
       doc.text("BUDGET VS. SPENDING TREND", c2X + 4, chartRowY + 5.5);
 
       // Top Legend
-      doc.setFillColor(13, 148, 136); // Teal
+      doc.setFillColor(37, 99, 235); // Blue
       doc.circle(c2X + 78, chartRowY + 5, 1.8, "F");
       doc.setFontSize(6);
-      doc.setTextColor(15, 118, 110);
+      doc.setTextColor(30, 64, 175);
       doc.text("Budget", c2X + 82, chartRowY + 5.8);
 
-      doc.setFillColor(245, 158, 11); // Amber
+      doc.setFillColor(234, 88, 12); // Orange
       doc.circle(c2X + 104, chartRowY + 5, 1.8, "F");
-      doc.setTextColor(180, 83, 9);
+      doc.setTextColor(194, 65, 12);
       doc.text("Spent", c2X + 108, chartRowY + 5.8);
 
       const trendData = approvedEvents.map((e) => ({
@@ -381,25 +381,25 @@ export default function StudentReports() {
           doc.text(d.name, px, plotY + plotH + 5, { align: "center" });
         });
 
-        // Draw Budget Line (Teal)
-        doc.setDrawColor(13, 148, 136);
+        // Draw Budget Line (Blue)
+        doc.setDrawColor(37, 99, 235);
         doc.setLineWidth(0.5);
         for (let i = 0; i < budgetPts.length - 1; i++) {
           doc.line(budgetPts[i].x, budgetPts[i].y, budgetPts[i + 1].x, budgetPts[i + 1].y);
         }
         budgetPts.forEach((pt) => {
-          doc.setFillColor(13, 148, 136);
+          doc.setFillColor(37, 99, 235);
           doc.circle(pt.x, pt.y, 1.2, "F");
         });
 
-        // Draw Spent Line (Amber)
-        doc.setDrawColor(245, 158, 11);
+        // Draw Spent Line (Orange)
+        doc.setDrawColor(234, 88, 12);
         doc.setLineWidth(0.5);
         for (let i = 0; i < spentPts.length - 1; i++) {
           doc.line(spentPts[i].x, spentPts[i].y, spentPts[i + 1].x, spentPts[i + 1].y);
         }
         spentPts.forEach((pt) => {
-          doc.setFillColor(245, 158, 11);
+          doc.setFillColor(234, 88, 12);
           doc.circle(pt.x, pt.y, 1.2, "F");
         });
       }
@@ -408,7 +408,7 @@ export default function StudentReports() {
       const getStatusPillColors = (status: string) => {
         const s = status.toLowerCase();
         if (s.includes("approv") || s.includes("complet")) {
-          return { bg: [240, 253, 250], border: [153, 246, 228], text: [15, 118, 110] }; // Teal
+          return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] }; // Emerald
         }
         if (s.includes("review") || s.includes("for app")) {
           return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] }; // Blue
@@ -804,7 +804,7 @@ export default function StudentReports() {
               })}
             </tbody>
             {filtered.length > 0 && (
-              <tfoot className="border-t-2 border-teal-600/30 bg-gradient-to-r from-teal-50/70 via-[var(--muted)]/50 to-teal-50/70">
+              <tfoot className="border-t-2 border-orange-500/30 bg-gradient-to-r from-orange-50/70 via-[var(--muted)]/50 to-blue-50/70">
                 <tr className="font-semibold text-xs">
                   <td className="px-4 py-3.5 text-[var(--foreground)] font-bold">
                     TOTAL ({filtered.length} {filtered.length === 1 ? "Event" : "Events"})
@@ -814,7 +814,7 @@ export default function StudentReports() {
                   <td className="px-4 py-3.5 font-mono font-bold text-[var(--foreground)]">
                     {formatCurrency(filtered.reduce((s, e) => s + e.proposedBudget, 0))}
                   </td>
-                  <td className="px-4 py-3.5 font-mono font-bold text-teal-800">
+                  <td className="px-4 py-3.5 font-mono font-bold text-blue-700 dark:text-blue-400">
                     {formatCurrency(
                       filtered.reduce((s, e) => {
                         const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((st, t) => st + t.amount, 0);
@@ -823,7 +823,7 @@ export default function StudentReports() {
                     )}
                   </td>
                   <td className="px-4 py-3.5">
-                    <span className="text-[10px] font-mono font-bold text-teal-800 bg-teal-100/70 px-2 py-0.5 rounded-md border border-teal-200">
+                    <span className="text-[10px] font-mono font-bold text-orange-800 bg-orange-100/70 px-2 py-0.5 rounded-md border border-orange-200">
                       SUMMARY
                     </span>
                   </td>

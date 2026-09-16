@@ -11,8 +11,8 @@ export function Button({ variant = "primary", size = "md", className = "", child
   const base = "inline-flex items-center justify-center gap-2 font-medium transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[var(--ring)] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
   const sizes = { sm: "px-3 py-1.5 text-sm rounded-md", md: "px-4 py-2 text-sm rounded-lg", lg: "px-6 py-2.5 text-base rounded-lg" };
   const variants = {
-    primary: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[#0f766e] shadow-sm",
-    secondary: "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-teal-200",
+    primary: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[#c2410c] shadow-sm",
+    secondary: "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-blue-100",
     outline: "border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] bg-transparent",
     ghost: "text-[var(--foreground)] hover:bg-[var(--muted)] bg-transparent",
     danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
@@ -603,19 +603,20 @@ export function Select({ label, error, options, className = "", ...props }: Sele
 interface BadgeProps {
   children: ReactNode;
   className?: string;
-  variant?: "default" | "teal" | "amber" | "red" | "green" | "blue" | "purple" | "gray";
+  variant?: "default" | "orange" | "teal" | "amber" | "red" | "green" | "blue" | "purple" | "gray";
 }
 
 export function Badge({ children, className = "", variant = "default" }: BadgeProps) {
   const variants = {
     default: "bg-[var(--secondary)] text-[var(--secondary-foreground)]",
-    teal: "bg-teal-100 text-teal-700",
-    amber: "bg-amber-100 text-amber-700",
-    red: "bg-red-100 text-red-700",
-    green: "bg-green-100 text-green-700",
-    blue: "bg-blue-100 text-blue-700",
-    purple: "bg-purple-100 text-purple-700",
-    gray: "bg-gray-100 text-gray-600",
+    orange: "bg-orange-100 text-orange-800 border border-orange-200",
+    teal: "bg-blue-100 text-blue-800 border border-blue-200",
+    amber: "bg-amber-100 text-amber-800 border border-amber-200",
+    red: "bg-red-100 text-red-800 border border-red-200",
+    green: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+    blue: "bg-blue-100 text-blue-800 border border-blue-200",
+    purple: "bg-purple-100 text-purple-800 border border-purple-200",
+    gray: "bg-gray-100 text-gray-700 border border-gray-200",
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium ${variants[variant]} ${className}`}>

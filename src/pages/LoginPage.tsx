@@ -67,16 +67,16 @@ export default function LoginPage() {
     const destination = getDefaultDashboardPath(currentUser.role);
 
     return (
-      <div className="page-enter min-h-screen bg-gradient-to-br from-[#031f1e] via-[#052c29] to-[#0a4f4a] flex items-center justify-center p-4">
+      <div className="page-enter min-h-screen bg-gradient-to-br from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] flex items-center justify-center p-4">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
         <div className="relative w-full max-w-md">
-          <div className="bg-[var(--card)] rounded-2xl shadow-2xl overflow-hidden border border-teal-800/20">
+          <div className="bg-[var(--card)] rounded-2xl shadow-2xl overflow-hidden border border-slate-700/20">
             {/* Top animated gradient accent */}
-            <div className="h-1.5 bg-gradient-to-r from-teal-500 via-emerald-400 to-cyan-400 animate-pulse" />
+            <div className="h-1.5 bg-gradient-to-r from-orange-500 via-amber-400 to-sky-400 animate-pulse" />
             <div className="p-8 text-center flex flex-col items-center">
               {/* Pulsing Icon */}
               <div className="relative mb-5">
-                <div className="w-16 h-16 bg-teal-600/15 rounded-2xl flex items-center justify-center text-teal-600">
+                <div className="w-16 h-16 bg-orange-600/15 rounded-2xl flex items-center justify-center text-[var(--primary)]">
                   <Landmark size={32} strokeWidth={2.2} />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-[var(--card)] shadow-sm">
@@ -94,7 +94,7 @@ export default function LoginPage() {
                 Welcome back, {fullName || "User"}
               </h2>
               <p className="text-xs text-[var(--muted-foreground)] mb-6 flex items-center justify-center gap-1.5">
-                <span className="font-semibold text-teal-600 uppercase tracking-wide">
+                <span className="font-semibold text-[var(--primary)] uppercase tracking-wide">
                   {formatUserRole(currentUser.role)}
                 </span>
                 {currentUser.position && <span>• {currentUser.position}</span>}
@@ -103,13 +103,13 @@ export default function LoginPage() {
               {/* Progress Bar Container */}
               <div className="w-full bg-[var(--muted)] rounded-full h-2 mb-3 overflow-hidden">
                 <div
-                  className="bg-gradient-to-r from-teal-500 to-emerald-500 h-full rounded-full transition-all duration-150 ease-out"
+                  className="bg-gradient-to-r from-orange-500 to-amber-500 h-full rounded-full transition-all duration-150 ease-out"
                   style={{ width: `${redirectProgress}%` }}
                 />
               </div>
 
               <div className="flex items-center justify-center gap-2 text-xs text-[var(--muted-foreground)] mb-6 font-medium">
-                <Loader2 size={13} className="animate-spin text-teal-600" />
+                <Loader2 size={13} className="animate-spin text-[var(--primary)]" />
                 <span>Redirecting to your dashboard...</span>
               </div>
 
@@ -117,37 +117,37 @@ export default function LoginPage() {
               <div className="w-full flex flex-col gap-2.5">
                 <Button
                   size="md"
-                  className="w-full justify-center gap-2 shadow-sm"
+                  className="w-full justify-center gap-2 shadow-sm cursor-pointer"
                   onClick={() => navigate(destination, { replace: true })}
                 >
                   Enter Dashboard <ArrowRight size={15} />
                 </Button>
                 <button
                   onClick={() => logout()}
-                  className="inline-flex items-center justify-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-red-600 py-1.5 transition font-medium"
+                  className="inline-flex items-center justify-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-red-600 py-1.5 transition font-medium cursor-pointer"
                 >
                   <LogOut size={13} /> Switch Account or Log Out
                 </button>
               </div>
             </div>
           </div>
-          <p className="text-center text-teal-100 text-xs mt-4 font-mono">© {new Date().getFullYear()} COLLinSight · CITE · LCUP</p>
+          <p className="text-center text-blue-100/80 text-xs mt-4 font-mono">© {new Date().getFullYear()} COLLinSight · CITE · LCUP</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page-enter min-h-screen bg-gradient-to-br from-[#031f1e] via-[#052c29] to-[#0a4f4a] flex items-center justify-center p-4">
+    <div className="page-enter min-h-screen bg-gradient-to-br from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] flex items-center justify-center p-4">
       <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
       <div className="relative w-full max-w-md">
         {/* Card */}
         <div className="bg-[var(--card)] rounded-2xl shadow-2xl overflow-hidden">
           {/* Top accent */}
-          <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-400" />
+          <div className="h-1 bg-gradient-to-r from-orange-500 via-amber-400 to-sky-400" />
           <div className="p-8">
             {/* Back link */}
-            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition mb-6">
+            <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition mb-6 cursor-pointer">
               <ArrowLeft size={14} /> Back to Home
             </Link>
 
@@ -188,13 +188,13 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-              <Button type="submit" size="lg" className="w-full justify-center mt-2 shadow-sm" disabled={loading}>
+              <Button type="submit" size="lg" className="w-full justify-center mt-2 shadow-sm cursor-pointer" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
           </div>
         </div>
-        <p className="text-center text-teal-100 text-xs mt-4 font-mono">© {new Date().getFullYear()} COLLinSight · CITE · LCUP</p>
+        <p className="text-center text-blue-100/80 text-xs mt-4 font-mono">© {new Date().getFullYear()} COLLinSight · CITE · LCUP</p>
       </div>
     </div>
   );

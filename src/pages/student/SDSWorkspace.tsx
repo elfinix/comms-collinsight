@@ -41,7 +41,7 @@ export default function SDSWorkspace() {
         <>
           <div className="grid sm:grid-cols-3 gap-4 mb-6">
             <Card className="p-5 flex items-center gap-4">
-              <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-[var(--primary)]"><Mail size={20} /></div>
+              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-[var(--primary)]"><Mail size={20} /></div>
               <div>
                 <p className="text-2xl font-bold">{sentEvents.length}</p>
                 <p className="text-xs font-mono text-[var(--muted-foreground)]">Documents Sent to SDS</p>
@@ -86,7 +86,7 @@ export default function SDSWorkspace() {
                     <td className="px-4 py-3 font-mono text-xs">{formatDate(e.createdAt)}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1.5">
-                        {e.apfUrl && <span className="text-[10px] bg-teal-50 text-teal-600 font-mono px-2 py-0.5 rounded">APF</span>}
+                        {e.apfUrl && <span className="text-[10px] bg-orange-50 text-orange-700 font-mono px-2 py-0.5 rounded border border-orange-200">APF</span>}
                         {(e.appendices?.length ?? 0) > 0 && <span className="text-[10px] bg-blue-50 text-blue-600 font-mono px-2 py-0.5 rounded">Appendix ({e.appendices?.length})</span>}
                         <span className="text-[10px] bg-purple-50 text-purple-600 font-mono px-2 py-0.5 rounded">Clearance</span>
                       </div>

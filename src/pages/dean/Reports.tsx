@@ -206,8 +206,8 @@ export default function DeanReports() {
       doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
       doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
-      // Teal Header Line Divider
-      doc.setDrawColor(15, 118, 110); // #0f766e
+      // Orange Header Line Divider
+      doc.setDrawColor(234, 88, 12); // #ea580c
       doc.setLineWidth(0.5);
       doc.line(margin, 28, pageWidth - margin, 28);
 
@@ -243,7 +243,7 @@ export default function DeanReports() {
       doc.setTextColor(100, 116, 139);
       doc.text("TOTAL ALLOCATION", margin + colW * 2 + 4, kpiY + 4.5);
       doc.setFontSize(9);
-      doc.setTextColor(15, 118, 110);
+      doc.setTextColor(15, 23, 42);
       doc.text(`PHP ${Number(totalBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + colW * 2 + 4, kpiY + 9.5);
 
       // Col 4: Total Disbursed
@@ -258,7 +258,7 @@ export default function DeanReports() {
       const getStatusPillColors = (status: string) => {
         const s = status.toLowerCase();
         if (s.includes("approv") || s.includes("complet")) {
-          return { bg: [240, 253, 250], border: [153, 246, 228], text: [15, 118, 110] }; // Teal
+          return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] }; // Emerald
         }
         if (s.includes("review") || s.includes("for app")) {
           return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] }; // Blue
@@ -505,8 +505,8 @@ export default function DeanReports() {
               label="Total Events"
               value={allEvents.length}
               icon={<CalendarDays size={18} />}
-              color="bg-teal-700 text-white"
-              chip={<span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 font-bold">All Orgs</span>}
+              color="bg-slate-800 text-white"
+              chip={<span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 font-bold">All Orgs</span>}
             />
             <StatCard
               label="Approved Events"
@@ -546,14 +546,14 @@ export default function DeanReports() {
                           return (
                             <div className="bg-white border border-slate-200 shadow-xl p-3 rounded-xl text-xs space-y-1">
                               <p className="font-bold text-slate-900">{item.name}</p>
-                              <p className="font-mono text-teal-800 font-bold">{item.events} Events Registered</p>
+                              <p className="font-mono text-slate-900 font-bold">{item.events} Events Registered</p>
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
-                    <Bar dataKey="events" name="Events" fill="#0d9488" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="events" name="Events" fill="#ea580c" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardBody>
@@ -587,7 +587,7 @@ export default function DeanReports() {
                           return (
                             <div className="bg-white border border-slate-200 shadow-xl p-3 rounded-xl text-xs space-y-1">
                               <p className="font-bold text-slate-900">{item.name}</p>
-                              <p className="font-mono text-teal-800 font-bold">{item.value} Events</p>
+                              <p className="font-mono text-slate-900 font-bold">{item.value} Events</p>
                             </div>
                           );
                         }
@@ -610,8 +610,8 @@ export default function DeanReports() {
               label="Total Budget Allocation"
               value={formatCurrency(totalBudget)}
               icon={<Wallet size={18} />}
-              color="bg-teal-700 text-white"
-              chip={<span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-teal-50 text-teal-800 border border-teal-200 font-bold">Allocated</span>}
+              color="bg-slate-800 text-white"
+              chip={<span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-blue-50 text-blue-800 border border-blue-200 font-bold">Allocated</span>}
             />
             <StatCard
               label="Total Disbursed Expenses"
@@ -650,15 +650,15 @@ export default function DeanReports() {
                             <div className="space-y-1.5 font-mono">
                               <div className="flex items-center justify-between gap-3 text-slate-700">
                                 <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-400" /> Budget:
+                                  <span className="w-2.5 h-2.5 rounded-full bg-blue-400" /> Budget:
                                 </span>
-                                <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
+                                <span className="font-bold text-slate-900">{formatCurrency(item.budget)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-3 text-slate-700">
                                 <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-700" /> Spent:
+                                  <span className="w-2.5 h-2.5 rounded-full bg-orange-600" /> Spent:
                                 </span>
-                                <span className="font-bold text-teal-950">{formatCurrency(item.spent)}</span>
+                                <span className="font-bold text-orange-950">{formatCurrency(item.spent)}</span>
                               </div>
                             </div>
                           </div>
@@ -667,8 +667,8 @@ export default function DeanReports() {
                       return null;
                     }}
                   />
-                  <Bar dataKey="budget" fill="#ccfbf1" radius={[4, 4, 0, 0]} name="Budget" />
-                  <Bar dataKey="spent" fill="#0d9488" radius={[4, 4, 0, 0]} name="Spent" />
+                  <Bar dataKey="budget" fill="#93c5fd" radius={[4, 4, 0, 0]} name="Budget" />
+                  <Bar dataKey="spent" fill="#ea580c" radius={[4, 4, 0, 0]} name="Spent" />
                 </BarChart>
               </ResponsiveContainer>
             </CardBody>
@@ -702,15 +702,15 @@ export default function DeanReports() {
                             <div className="space-y-1.5 font-mono border-t border-[var(--border)] pt-1.5">
                               <div className="flex items-center justify-between gap-3 text-slate-700">
                                 <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-teal-600" /> Proposed Budget:
+                                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Proposed Budget:
                                 </span>
-                                <span className="font-bold text-teal-800">{formatCurrency(item.budget)}</span>
+                                <span className="font-bold text-slate-900">{formatCurrency(item.budget)}</span>
                               </div>
                               <div className="flex items-center justify-between gap-3 text-slate-700">
                                 <span className="flex items-center gap-1.5 font-sans font-medium text-xs">
-                                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Total Spent:
+                                  <span className="w-2.5 h-2.5 rounded-full bg-orange-600" /> Total Spent:
                                 </span>
-                                <span className="font-bold text-amber-900">{formatCurrency(item.spent)}</span>
+                                <span className="font-bold text-orange-950">{formatCurrency(item.spent)}</span>
                               </div>
                             </div>
                           </div>
@@ -719,8 +719,8 @@ export default function DeanReports() {
                       return null;
                     }}
                   />
-                  <Line type="monotone" dataKey="budget" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 4, fill: "#0d9488" }} activeDot={{ r: 6 }} name="Proposed Budget" />
-                  <Line type="monotone" dataKey="spent" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 4, fill: "#f59e0b" }} activeDot={{ r: 6 }} name="Actual Spent" />
+                  <Line type="monotone" dataKey="budget" stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: "#3b82f6" }} activeDot={{ r: 6 }} name="Proposed Budget" />
+                  <Line type="monotone" dataKey="spent" stroke="#ea580c" strokeWidth={2.5} dot={{ r: 4, fill: "#ea580c" }} activeDot={{ r: 6 }} name="Actual Spent" />
                 </LineChart>
               </ResponsiveContainer>
             </CardBody>
@@ -852,7 +852,7 @@ export default function DeanReports() {
                           {e.name}
                         </button>
                       </td>
-                      <td className="px-4 py-3 text-xs font-mono font-bold text-teal-800 whitespace-nowrap">{org?.code}</td>
+                      <td className="px-4 py-3 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">{org?.code}</td>
                       <td className="px-4 py-3 text-xs text-[var(--muted-foreground)] whitespace-nowrap max-w-[105px] truncate" title={getEventTypeById(e.typeId)?.name}>
                         {getEventTypeById(e.typeId)?.name}
                       </td>

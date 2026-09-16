@@ -103,19 +103,19 @@ export default function EventFinanceTab({
     <div className="flex flex-col gap-4">
       {/* ── 1. DIGITAL LIQUIDATION REPORT RECONCILED BANNER (WHEN CLOSED) ── */}
       {isClosed && (
-        <div className="bg-gradient-to-r from-teal-950 via-teal-900 to-slate-900 text-white rounded-2xl p-5 shadow-md border border-teal-700/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#0a1128] via-[#1e3a8a] to-[#ea580c] text-white rounded-2xl p-5 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-teal-200 flex-shrink-0 shadow-inner">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0 shadow-inner">
               <FileSpreadsheet size={22} />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-bold text-white tracking-tight">Digital Liquidation Report Reconciled</span>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-teal-500/20 text-teal-200 border border-teal-400/30 font-bold uppercase">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30 font-bold uppercase">
                   Audited & Archived
                 </span>
               </div>
-              <p className="text-xs text-teal-100/80 font-mono mt-0.5 break-all">
+              <p className="text-xs text-slate-200/80 font-mono mt-0.5 break-all">
                 Liquidation_Report_{event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf
               </p>
             </div>
@@ -149,7 +149,7 @@ export default function EventFinanceTab({
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-3.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
             <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase font-bold flex items-center gap-1.5">
-              <Wallet size={13} className="text-teal-700" /> Approved Allocation
+              <Wallet size={13} className="text-blue-700" /> Approved Allocation
             </p>
             <p className="text-base font-mono font-bold text-[var(--foreground)] mt-1">{formatCurrency(budget)}</p>
           </div>
@@ -158,7 +158,7 @@ export default function EventFinanceTab({
             <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase font-bold flex items-center gap-1.5">
               <CreditCard size={13} className="text-amber-600" /> Total Disbursed
             </p>
-            <p className="text-base font-mono font-bold text-teal-800 mt-1">{formatCurrency(eventSpent)}</p>
+            <p className="text-base font-mono font-bold text-blue-700 dark:text-blue-400 mt-1">{formatCurrency(eventSpent)}</p>
           </div>
 
           <div className="p-3.5 bg-[var(--muted)]/40 rounded-xl border border-[var(--border)]">
@@ -180,7 +180,7 @@ export default function EventFinanceTab({
           <div className="h-2 w-full bg-[var(--muted)] rounded-full overflow-hidden">
             <div
               className={`h-full transition-all duration-300 rounded-full ${
-                utilizationPercent > 90 ? "bg-rose-500" : utilizationPercent > 70 ? "bg-amber-500" : "bg-teal-600"
+                utilizationPercent > 90 ? "bg-rose-500" : utilizationPercent > 70 ? "bg-amber-500" : "bg-[var(--primary)]"
               }`}
               style={{ width: `${utilizationPercent}%` }}
             />
@@ -189,18 +189,18 @@ export default function EventFinanceTab({
 
         {/* Gross Revenue Banner if recorded */}
         {event.revenue !== undefined && event.revenue > 0 && (
-          <div className="p-3.5 bg-gradient-to-r from-teal-50 to-emerald-50 rounded-xl border border-teal-200 flex items-center justify-between shadow-2xs">
+          <div className="p-3.5 bg-gradient-to-r from-orange-50/70 via-[var(--card)] to-blue-50/40 rounded-xl border border-orange-200 flex items-center justify-between shadow-2xs">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-teal-100 text-teal-800 flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-800 flex items-center justify-center flex-shrink-0">
                 <Coins size={16} />
               </div>
               <div>
-                <p className="text-[11px] font-bold text-teal-900 uppercase">Gross Event Revenue Generated</p>
-                <p className="text-[11px] text-teal-700">Official proceeds deposited into organization treasury</p>
+                <p className="text-[11px] font-bold text-orange-950 uppercase">Gross Event Revenue Generated</p>
+                <p className="text-[11px] text-[var(--muted-foreground)]">Official proceeds deposited into organization treasury</p>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-base font-mono font-extrabold text-teal-900">{formatCurrency(event.revenue)}</p>
+              <p className="text-base font-mono font-extrabold text-slate-900">{formatCurrency(event.revenue)}</p>
               <p className="text-[10px] text-emerald-700 font-bold">Total Surplus: {formatCurrency(remaining + event.revenue)}</p>
             </div>
           </div>

@@ -32,7 +32,7 @@ function StatPill({ value, label }: { value: string; label: string }) {
   return (
     <div className="flex flex-col">
       <span className="text-3xl font-extrabold text-white leading-none">{value}</span>
-      <span className="text-xs font-mono text-teal-200 mt-1">{label}</span>
+      <span className="text-xs font-mono text-orange-200 mt-1">{label}</span>
     </div>
   );
 }
@@ -48,8 +48,8 @@ export default function LandingPage() {
 
       {/* ── HERO ──────────────────────────────────────── */}
       <section className="relative overflow-hidden min-h-screen flex items-center">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#062e2b] via-[#0a4f4a] to-[#0a6b64]" />
-        <div className="absolute inset-0 opacity-[0.07]"
+        <div className="absolute inset-0 bg-gradient-to-br from-[#060c1e] via-[#0f1d40] to-[#1e3a8a]" />
+        <div className="absolute inset-0 opacity-[0.08]"
           style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #ffffff 1px, transparent 0)", backgroundSize: "28px 28px" }} />
 
         <div className="relative w-full max-w-7xl mx-auto px-6 pt-28 pb-24">
@@ -58,42 +58,42 @@ export default function LandingPage() {
             {/* Left copy */}
             <div>
               <div className="animate-fade-up">
-                <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-teal-100 text-xs font-mono px-3 py-1.5 rounded-full mb-7 backdrop-blur-sm">
-                  <Landmark size={11} /> LCUP | College of Information Technology and Engineering
+                <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-blue-100 text-xs font-mono px-3 py-1.5 rounded-full mb-7 backdrop-blur-sm shadow-sm">
+                  <Landmark size={11} className="text-sky-300" /> LCUP | College of Information Technology and Engineering
                 </span>
               </div>
 
               <h1 className="animate-fade-up animation-delay-100 text-[clamp(2.2rem,5vw,3.8rem)] font-extrabold text-white leading-[1.1] tracking-tight">
                 Organizational<br />
                 Governance,<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-cyan-300">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-300 to-sky-300">
                   Simplified.
                 </span>
               </h1>
 
-              <p className="animate-fade-up animation-delay-200 mt-6 text-base text-teal-100/80 leading-relaxed max-w-md">
+              <p className="animate-fade-up animation-delay-200 mt-6 text-base text-slate-200 leading-relaxed max-w-md">
                 COLLinSight is the centralized platform for CITE student organizations — from multi-stage event clearance to real-time financial ledgers and automated SDS reporting.
               </p>
 
               <div className="animate-fade-up animation-delay-300 flex flex-wrap gap-3 mt-9">
                 <Link
                   to="/organizations"
-                  className="flex items-center gap-2 bg-white text-[var(--primary)] px-6 py-3 rounded-xl font-semibold text-sm hover:bg-teal-50 transition shadow-lg"
+                  className="flex items-center gap-2 bg-[var(--primary)] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[var(--accent)] transition shadow-lg shadow-orange-950/20 border border-orange-400/30 cursor-pointer"
                 >
                   <Users size={16} /> View Organizations
                 </Link>
                 {currentUser ? (
                   <Link
                     to={dashboardPath}
-                    className="flex items-center gap-2 bg-teal-400/20 border border-teal-300/40 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-teal-400/30 transition backdrop-blur-sm shadow-sm"
+                    className="flex items-center gap-2 bg-white/15 border border-white/30 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/25 transition backdrop-blur-sm shadow-sm cursor-pointer"
                   >
-                    <span className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse" />
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     <LayoutDashboard size={16} /> Go to Dashboard <ArrowRight size={16} />
                   </Link>
                 ) : (
                   <Link
                     to="/login"
-                    className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/20 transition backdrop-blur-sm"
+                    className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/20 transition backdrop-blur-sm cursor-pointer"
                   >
                     Login Portal <ArrowRight size={16} />
                   </Link>
@@ -115,24 +115,24 @@ export default function LandingPage() {
                 {/* Main card */}
                 <div className="animate-float absolute top-0 right-0 w-[340px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-2xl">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-mono text-teal-200 uppercase tracking-wider">Signatory Progress</span>
-                    <span className="text-[10px] font-mono bg-teal-500/30 text-teal-200 px-2 py-0.5 rounded-full">For Approval</span>
+                    <span className="text-xs font-mono text-blue-200 uppercase tracking-wider">Signatory Progress</span>
+                    <span className="text-[10px] font-mono bg-blue-500/30 text-blue-100 px-2 py-0.5 rounded-full border border-blue-400/30 font-bold">For Approval</span>
                   </div>
                   <p className="font-bold text-white text-sm mb-4">TechFest 2026: IT Innovation Summit</p>
                   <div className="flex items-center gap-0 mb-4">
                     {["Student","Adviser","Dean","SDS"].map((step, i) => (
                       <div key={step} className="flex items-center">
                         <div className="flex flex-col items-center gap-1">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 2 ? "bg-teal-400 text-white" : i === 2 ? "bg-teal-400 text-white ring-2 ring-offset-1 ring-teal-300 ring-offset-transparent" : "bg-white/20 text-teal-300"}`}>
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 2 ? "bg-orange-500 text-white shadow-sm" : i === 2 ? "bg-blue-500 text-white ring-2 ring-offset-1 ring-orange-300 ring-offset-transparent shadow-sm" : "bg-white/20 text-slate-300"}`}>
                             {i < 2 ? "✓" : i + 1}
                           </div>
-                          <span className="text-[9px] text-teal-200/70 font-mono">{step}</span>
+                          <span className="text-[9px] text-slate-200/90 font-mono">{step}</span>
                         </div>
-                        {i < 3 && <div className={`h-0.5 w-7 mx-1 mb-3 ${i < 2 ? "bg-teal-400" : "bg-white/20"}`} />}
+                        {i < 3 && <div className={`h-0.5 w-7 mx-1 mb-3 ${i < 2 ? "bg-orange-400" : "bg-white/20"}`} />}
                       </div>
                     ))}
                   </div>
-                  <div className="flex justify-between text-xs text-teal-200/60 font-mono pt-3 border-t border-white/10">
+                  <div className="flex justify-between text-xs text-blue-100/70 font-mono pt-3 border-t border-white/10">
                     <span>Proposed: ₱18,500.00</span>
                     <span>ITSG</span>
                   </div>
@@ -140,16 +140,16 @@ export default function LandingPage() {
 
                 {/* Finance card */}
                 <div className="animate-float-b absolute top-[180px] left-0 w-[260px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 shadow-xl">
-                  <p className="text-[10px] font-mono text-teal-200 uppercase tracking-wider mb-3">Budget Overview</p>
+                  <p className="text-[10px] font-mono text-blue-200 uppercase tracking-wider mb-3">Budget Overview</p>
                   <div className="flex flex-col gap-2 mb-3">
                     {[
                       { label: "Allocated", val: "₱50,000", w: "100%", color: "bg-white/20" },
-                      { label: "Proposed", val: "₱35,000", w: "70%", color: "bg-teal-400/60" },
-                      { label: "Spent", val: "₱14,300", w: "29%", color: "bg-teal-300" },
+                      { label: "Proposed", val: "₱35,000", w: "70%", color: "bg-blue-400/70" },
+                      { label: "Spent", val: "₱14,300", w: "29%", color: "bg-orange-400" },
                     ].map((b) => (
                       <div key={b.label}>
-                        <div className="flex justify-between text-[10px] text-teal-100/70 mb-0.5">
-                          <span>{b.label}</span><span className="font-mono">{b.val}</span>
+                        <div className="flex justify-between text-[10px] text-slate-100/80 mb-0.5">
+                          <span>{b.label}</span><span className="font-mono font-semibold">{b.val}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                           <div className={`h-full rounded-full ${b.color}`} style={{ width: b.w }} />
@@ -161,23 +161,23 @@ export default function LandingPage() {
 
                 {/* Event Created chip */}
                 <div className="animate-float-c absolute top-[320px] right-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 flex items-center gap-3 shadow-xl">
-                  <div className="w-8 h-8 bg-blue-400/30 rounded-lg flex items-center justify-center text-blue-200">
+                  <div className="w-8 h-8 bg-blue-500/30 rounded-lg flex items-center justify-center text-blue-200">
                     <Plus size={16} />
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-white">Event Created</p>
-                    <p className="text-[10px] font-mono text-teal-200/60">Draft submitted for review</p>
+                    <p className="text-[10px] font-mono text-slate-200/80">Draft submitted for review</p>
                   </div>
                 </div>
 
                 {/* Event Approved chip */}
                 <div className="animate-float-d absolute top-[400px] right-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 flex items-center gap-3 shadow-xl">
-                  <div className="w-8 h-8 bg-teal-400/30 rounded-lg flex items-center justify-center text-teal-200">
+                  <div className="w-8 h-8 bg-sky-500/35 rounded-lg flex items-center justify-center text-sky-200">
                     <CheckCircle size={16} />
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-white">Event Approved</p>
-                    <p className="text-[10px] font-mono text-teal-200/60">APF + CT sent to SDS</p>
+                    <p className="text-[10px] font-mono text-slate-200/80">APF + CT sent to SDS</p>
                   </div>
                 </div>
               </div>
@@ -202,9 +202,9 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: <Calendar size={22} />, title: "Event Management", desc: "Propose, schedule, and track events through a structured multi-stage approval pipeline.", stat: "5 statuses", statLabel: "tracked end-to-end", iconBg: "bg-teal-50", iconColor: "text-[var(--primary)]", accent: "border-t-[var(--primary)]", delay: 0 },
+            { icon: <Calendar size={22} />, title: "Event Management", desc: "Propose, schedule, and track events through a structured multi-stage approval pipeline.", stat: "5 statuses", statLabel: "tracked end-to-end", iconBg: "bg-orange-50", iconColor: "text-orange-600", accent: "border-t-orange-500", delay: 0 },
             { icon: <FileText size={22} />, title: "Compliance Monitoring", desc: "Automated APF submission tracking, PDF clearance generation, and SDS email dispatch.", stat: "100%", statLabel: "automated reporting", iconBg: "bg-blue-50", iconColor: "text-blue-600", accent: "border-t-blue-500", delay: 80 },
-            { icon: <BarChart2 size={22} />, title: "Financial Ledger", desc: "Per-event expenditure recording with receipt uploads, liquidation reports, and PDF export.", stat: "Per-event", statLabel: "budget tracking", iconBg: "bg-purple-50", iconColor: "text-purple-600", accent: "border-t-purple-500", delay: 160 },
+            { icon: <BarChart2 size={22} />, title: "Financial Ledger", desc: "Per-event expenditure recording with receipt uploads, liquidation reports, and PDF export.", stat: "Per-event", statLabel: "budget tracking", iconBg: "bg-indigo-50", iconColor: "text-indigo-600", accent: "border-t-indigo-500", delay: 160 },
             { icon: <FileText size={22} />, title: "Governance Reports", desc: "Role-stratified analytics and downloadable reports for officers, advisers, dean, and admin.", stat: "4 roles", statLabel: "with tailored views", iconBg: "bg-amber-50", iconColor: "text-amber-600", accent: "border-t-amber-500", delay: 240 },
           ].map((f) => (
             <FadeSection key={f.title} delay={f.delay}>
@@ -255,7 +255,7 @@ export default function LandingPage() {
               {
                 phase: "Phase 2", title: "Finance", subtitle: "Ledger & Liquidation",
                 icon: <BarChart2 size={20} className="text-white" />,
-                headerBg: "bg-[#0a4f4a]",
+                headerBg: "bg-[#1e3a8a]",
                 steps: [
                   { label: "Ledger Unlocked", desc: "Approval unlocks the event's financial ledger for expense entry." },
                   { label: "Log Expenses", desc: "Officers record expenditures by category with receipt uploads." },
@@ -271,9 +271,9 @@ export default function LandingPage() {
                       {ph.icon}
                     </div>
                     <div>
-                      <span className="text-[10px] font-mono text-white/50 uppercase tracking-widest">{ph.phase}</span>
+                      <span className="text-[10px] font-mono text-white/70 uppercase tracking-widest">{ph.phase}</span>
                       <h3 className="text-lg font-bold text-white leading-tight">{ph.title}</h3>
-                      <p className="text-[11px] text-white/60 font-mono">{ph.subtitle}</p>
+                      <p className="text-[11px] text-white/80 font-mono">{ph.subtitle}</p>
                     </div>
                   </div>
                   <div className="p-5 flex flex-col flex-1">
@@ -308,9 +308,9 @@ export default function LandingPage() {
                   { label: "→", color: "text-[var(--muted-foreground)]" },
                   { label: "For Approval", color: "bg-blue-100 text-blue-700 border-blue-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Approved", color: "bg-teal-100 text-teal-700 border-teal-200" },
+                  { label: "Approved", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Completed", color: "bg-green-100 text-green-700 border-green-200" },
+                  { label: "Completed", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
                   { label: "Closed", color: "bg-gray-100 text-gray-600 border-gray-200" },
                 ].map((item, i) =>
@@ -344,7 +344,7 @@ export default function LandingPage() {
             {
               icon: <Users size={20} />, role: "Student Officers",
               desc: "Draft events, upload APF, log financial records, and track clearance progress.",
-              color: "border-t-teal-500", iconColor: "text-teal-600", iconBg: "bg-teal-50",
+              color: "border-t-orange-500", iconColor: "text-orange-600", iconBg: "bg-orange-50",
               tags: ["Draft Events", "Submit APF", "Log Expenses", "Track Status"],
             },
             {
@@ -356,7 +356,7 @@ export default function LandingPage() {
             {
               icon: <Star size={20} />, role: "College Dean",
               desc: "Give final approval, generate signed clearances, and access cross-org reports.",
-              color: "border-t-purple-500", iconColor: "text-purple-600", iconBg: "bg-purple-50",
+              color: "border-t-indigo-500", iconColor: "text-indigo-600", iconBg: "bg-indigo-50",
               tags: ["Final Approval", "Cross-Org Reports", "Sign Clearances", "Oversight"],
             },
             {
@@ -422,7 +422,7 @@ export default function LandingPage() {
                 email: "johnmarknoel.cabugawan@email.lcup.edu.ph",
                 github: "https://github.com/Bugords",
                 image: "https://lh3.googleusercontent.com/d/1IMe04Tduzg-aSS58kfNQA-w3AyECudUC",
-                gradient: "from-[var(--primary)] to-[#062e2b]",
+                gradient: "from-[#060c1e] via-[#0f1d40] to-[#1e3a8a]",
                 delay: 100,
               },
               {
@@ -506,22 +506,22 @@ export default function LandingPage() {
 
       {/* ── CTA BANNER ─────────────────────────────────── */}
       <section className="relative overflow-hidden py-20">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#062e2b] to-[var(--primary)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a]" />
         <div className="absolute inset-0 opacity-5" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "24px 24px" }} />
         <div className="relative max-w-3xl mx-auto px-6 text-center">
           <FadeSection>
             <h2 className="text-3xl font-bold text-white mb-4">Ready to get started?</h2>
-            <p className="text-teal-200/80 mb-8 text-base leading-relaxed">
+            <p className="text-blue-100/80 mb-8 text-base leading-relaxed">
               Log in with your institutional credentials to access your organization's dashboard.
             </p>
             {currentUser ? (
               <Link to={dashboardPath}
-                className="inline-flex items-center gap-2 bg-white text-[var(--primary)] px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-teal-50 transition shadow-xl">
+                className="inline-flex items-center gap-2 bg-[var(--primary)] text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-[var(--accent)] transition shadow-xl border border-orange-400/30 cursor-pointer">
                 <LayoutDashboard size={16} /> Go to Dashboard <ArrowRight size={16} />
               </Link>
             ) : (
               <Link to="/login"
-                className="inline-flex items-center gap-2 bg-white text-[var(--primary)] px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-teal-50 transition shadow-xl">
+                className="inline-flex items-center gap-2 bg-[var(--primary)] text-white px-8 py-3.5 rounded-xl font-bold text-sm hover:bg-[var(--accent)] transition shadow-xl border border-orange-400/30 cursor-pointer">
                 Login to COLLinSight <ArrowRight size={16} />
               </Link>
             )}

@@ -439,7 +439,7 @@ export default function AdminUsers() {
                             <span
                               className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
                                 u.role === "student"
-                                  ? "bg-teal-50 text-teal-800 border-teal-200"
+                                  ? "bg-orange-50 text-orange-800 border-orange-200"
                                   : u.role === "adviser"
                                   ? "bg-sky-50 text-sky-800 border-sky-200"
                                   : u.role === "dean"

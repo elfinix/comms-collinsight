@@ -243,7 +243,7 @@ export default function AdminOrganizations() {
                 <div className="space-y-2.5 text-xs pt-3 border-t border-[var(--border)]">
                   <div className="flex justify-between items-center bg-[var(--muted)]/30 px-3 py-2 rounded-xl">
                     <span className="text-[var(--muted-foreground)] font-mono flex items-center gap-1.5">
-                      <Wallet size={13} className="text-teal-700" /> Allocated Budget
+                      <Wallet size={13} className="text-orange-600" /> Allocated Budget
                     </span>
                     <span className="font-bold font-mono text-[var(--primary)]">{formatCurrency(org.allocatedBudget)}</span>
                   </div>

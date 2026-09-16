@@ -248,19 +248,19 @@ export default function StudentProfile() {
         <>
           {/* ── PROFILE BANNER CARD ─────────────────────────────────────────────── */}
           <Card className="border-[var(--border)] overflow-hidden shadow-sm">
-        <div className="h-20 relative overflow-hidden bg-gradient-to-r from-slate-950 via-[#0a4843] to-slate-900 border-b border-teal-800/40">
+        <div className="h-20 relative overflow-hidden bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] border-b border-blue-900/40">
           {/* Abstract subtle mesh & dot grid */}
-          <div className="absolute inset-0 bg-[radial-gradient(#14b8a6_1px,transparent_1px)] [background-size:14px_14px] opacity-15" />
+          <div className="absolute inset-0 bg-[radial-gradient(#38bdf8_1px,transparent_1px)] [background-size:14px_14px] opacity-15" />
 
           {/* Ambient glowing orb */}
-          <div className="absolute -top-10 right-1/4 w-40 h-40 bg-teal-500/20 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -top-10 right-1/4 w-40 h-40 bg-sky-500/20 rounded-full blur-2xl pointer-events-none" />
 
           {/* Minimalist vector arcs */}
           <svg className="absolute inset-0 w-full h-full opacity-20 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="banner-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity="0.6" />
-                <stop offset="100%" stopColor="#0f766e" stopOpacity="0.1" />
+                <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#1e3a8a" stopOpacity="0.1" />
               </linearGradient>
             </defs>
             <circle cx="90%" cy="50%" r="60" stroke="url(#banner-grad)" strokeWidth="1" fill="none" />
@@ -466,7 +466,7 @@ export default function StudentProfile() {
       <Card>
         <CardHeader className="border-b border-[var(--border)] pb-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-800 flex items-center justify-center border border-teal-200">
+            <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-800 flex items-center justify-center border border-orange-200">
               <Lock size={15} />
             </div>
             <div>
@@ -547,7 +547,7 @@ export default function StudentProfile() {
       <Card>
         <CardHeader className="border-b border-[var(--border)] pb-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-teal-50 text-teal-800 flex items-center justify-center border border-teal-200">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-800 flex items-center justify-center border border-blue-200">
               <Sliders size={15} />
             </div>
             <div>
@@ -699,7 +699,7 @@ export default function StudentProfile() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs border border-teal-400 bg-teal-50 text-teal-800 font-bold shadow-2xs">
+              <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs border border-orange-400 bg-orange-50 text-orange-950 font-bold shadow-2xs">
                 <Sun size={14} className="text-amber-500" /> Light (Active)
               </div>
               <div className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed opacity-60">

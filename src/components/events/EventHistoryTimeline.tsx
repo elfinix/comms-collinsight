@@ -132,7 +132,7 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
                     )}
                     {entry.statusFrom && entry.statusTo && <ArrowRight size={11} className="text-[var(--muted-foreground)]" />}
                     {entry.statusTo && (
-                      <span className={`px-1.5 py-0.5 rounded font-bold border ${entry.statusTo === "Approved" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-teal-50 text-[var(--primary)] border-teal-200"}`}>
+                      <span className={`px-1.5 py-0.5 rounded font-bold border ${entry.statusTo === "Approved" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-orange-50 text-[var(--primary)] border-orange-200"}`}>
                         {entry.statusTo}
                       </span>
                     )}
