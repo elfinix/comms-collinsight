@@ -411,7 +411,7 @@ export default function LandingPage() {
                 email: "sophiaryzelle.beloro@email.lcup.edu.ph",
                 github: "https://github.com/tabbyorangw3s",
                 image: "https://lh3.googleusercontent.com/d/1UMWJOXNA2AOBpx7uWA57gYTFhrZQw81V",
-                gradient: "from-pink-500 to-rose-700",
+                gradient: "from-amber-600 via-orange-600 to-orange-800",
                 delay: 0,
               },
               {
@@ -422,7 +422,7 @@ export default function LandingPage() {
                 email: "johnmarknoel.cabugawan@email.lcup.edu.ph",
                 github: "https://github.com/Bugords",
                 image: "https://lh3.googleusercontent.com/d/1IMe04Tduzg-aSS58kfNQA-w3AyECudUC",
-                gradient: "from-[#060c1e] via-[#0f1d40] to-[#1e3a8a]",
+                gradient: "from-blue-600 via-blue-700 to-slate-800",
                 delay: 100,
               },
               {
@@ -433,7 +433,7 @@ export default function LandingPage() {
                 email: "romjerico.reyes@email.lcup.edu.ph",
                 github: "https://github.com/romjericoreyes",
                 image: "https://lh3.googleusercontent.com/d/12CfjvwSbvhcZWjpzPYTXEGt_M6BSAmHq",
-                gradient: "from-blue-500 to-blue-800",
+                gradient: "from-indigo-600 via-indigo-700 to-slate-800",
                 delay: 200,
               },
             ].map((dev) => (

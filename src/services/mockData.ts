@@ -198,9 +198,9 @@ export const departments: Department[] = [
 ];
 
 export const organizations: Organization[] = [
-  { id: "org-1", name: "IT Student Guild", code: "ITSG", departmentId: "dept-1", allocatedBudget: 50000, adviserId: "user-adv-1", logoColor: "#0d9488" },
-  { id: "org-2", name: "CompE Society", code: "CES", departmentId: "dept-2", allocatedBudget: 40000, adviserId: "user-adv-2", logoColor: "#0284c7" },
-  { id: "org-3", name: "IE Innovation Club", code: "IEIC", departmentId: "dept-3", allocatedBudget: 35000, adviserId: "user-adv-3", logoColor: "#7c3aed" },
+  { id: "org-1", name: "IT Student Guild", code: "ITSG", departmentId: "dept-1", allocatedBudget: 50000, adviserId: "user-adv-1", logoColor: "#ea580c" },
+  { id: "org-2", name: "CompE Society", code: "CES", departmentId: "dept-2", allocatedBudget: 40000, adviserId: "user-adv-2", logoColor: "#3b82f6" },
+  { id: "org-3", name: "IE Innovation Club", code: "IEIC", departmentId: "dept-3", allocatedBudget: 35000, adviserId: "user-adv-3", logoColor: "#6366f1" },
 ];
 
 export const eventTypes: EventType[] = [
@@ -1158,7 +1158,7 @@ export function printClearanceDocument(event: Event, organizationName?: string, 
           display: flex;
           justify-content: space-between;
           align-items: center;
-          border-bottom: 2px solid #0d9488;
+          border-bottom: 2px solid #ea580c;
           padding-bottom: 14px;
           margin-bottom: 18px;
         }
@@ -1171,7 +1171,7 @@ export function printClearanceDocument(event: Event, organizationName?: string, 
           width: 44px;
           height: 44px;
           border-radius: 8px;
-          background-color: #115e59;
+          background-color: #1e3a8a;
           color: white;
           display: flex;
           align-items: center;
@@ -1213,7 +1213,7 @@ export function printClearanceDocument(event: Event, organizationName?: string, 
           font-weight: bold;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          color: #0d9488;
+          color: #ea580c;
           margin: 16px 0 8px 0;
           border-bottom: 1px solid #e2e8f0;
           padding-bottom: 4px;
@@ -1339,7 +1339,7 @@ export function printClearanceDocument(event: Event, organizationName?: string, 
         </div>
         <div>
           <div class="label">Authorized Budget Allocation</div>
-          <div class="value" style="color: #0d9488; font-family: monospace; font-size: 12px;">${formatCurrency(event.proposedBudget)}</div>
+          <div class="value" style="color: #ea580c; font-family: monospace; font-size: 12px;">${formatCurrency(event.proposedBudget)}</div>
         </div>
         <div class="grid-full">
           <div class="label">Schedule & Duration</div>
@@ -1380,7 +1380,7 @@ export function printClearanceDocument(event: Event, organizationName?: string, 
         <!-- 2. Dean on Right -->
         <div class="sig-card">
           <div class="sig-role">Executive Approval & Clearance</div>
-          <div class="sig-stamp" style="border-color: #0d9488; background: #f0fdfa; color: #0f766e;">✓ EXECUTIVE CLEARANCE GRANTED</div>
+          <div class="sig-stamp" style="border-color: #ea580c; background: #f0fdfa; color: #0f766e;">✓ EXECUTIVE CLEARANCE GRANTED</div>
           <div class="sig-name">Dr. Marilou C. Villanueva, Ph.D.</div>
           <div class="sig-title">College Dean, CITE</div>
         </div>
@@ -1456,7 +1456,7 @@ export function printLiquidationDocument(
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          border-bottom: 2px solid #0f766e;
+          border-bottom: 2px solid #ea580c;
           padding-bottom: 14px;
           margin-bottom: 16px;
         }
@@ -1469,7 +1469,7 @@ export function printLiquidationDocument(
           width: 44px;
           height: 44px;
           border-radius: 8px;
-          background-color: #134e4a;
+          background-color: #1e3a8a;
           color: white;
           display: flex;
           align-items: center;
@@ -1481,7 +1481,7 @@ export function printLiquidationDocument(
         .title {
           font-size: 15px;
           font-weight: 800;
-          color: #134e4a;
+          color: #0f172a;
           margin: 0;
           text-transform: uppercase;
         }
@@ -1690,7 +1690,7 @@ export function printLiquidationDocument(
         ${event.revenue !== undefined && event.revenue > 0 ? `
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
             <span style="color: #475569;">Total Gross Event Revenue Deposited:</span>
-            <strong style="color: #0d9488;">${formatCurrency(event.revenue)}</strong>
+            <strong style="color: #ea580c;">${formatCurrency(event.revenue)}</strong>
           </div>
           <div style="display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 4px;">
             <span style="color: #065f46; font-weight: bold;">Net Surplus Reconciled into Organization Treasury:</span>

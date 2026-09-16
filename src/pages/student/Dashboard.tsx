@@ -16,7 +16,7 @@ import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Shapes, FileText } fr
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
 
-const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981"];
+const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981"];
 
 export default function StudentDashboard() {
   const { currentUser: authUser } = useAuth();

@@ -219,9 +219,9 @@ export default function DeanPendingApproval() {
                     <span
                       className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border shadow-2xs"
                       style={{
-                        backgroundColor: `${org?.logoColor || "#0d9488"}18`,
-                        color: org?.logoColor || "#0d9488",
-                        borderColor: `${org?.logoColor || "#0d9488"}40`,
+                        backgroundColor: `${org?.logoColor || "#ea580c"}18`,
+                        color: org?.logoColor || "#ea580c",
+                        borderColor: `${org?.logoColor || "#ea580c"}40`,
                       }}
                     >
                       {org?.code}
@@ -299,9 +299,9 @@ export default function DeanPendingApproval() {
                         <span
                           className="font-bold px-2 py-0.5 rounded-md border"
                           style={{
-                            backgroundColor: `${org?.logoColor || "#0d9488"}18`,
-                            color: org?.logoColor || "#0d9488",
-                            borderColor: `${org?.logoColor || "#0d9488"}40`,
+                            backgroundColor: `${org?.logoColor || "#ea580c"}18`,
+                            color: org?.logoColor || "#ea580c",
+                            borderColor: `${org?.logoColor || "#ea580c"}40`,
                           }}
                         >
                           {org?.code}

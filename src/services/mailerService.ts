@@ -138,7 +138,7 @@ export function generateClearanceEmailHtml(params: {
     .header p {
       margin: 0;
       font-size: 13px;
-      color: #d0f0eb;
+      color: #fed7aa;
       font-weight: 500;
     }
     .content {
@@ -181,7 +181,7 @@ export function generateClearanceEmailHtml(params: {
       font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.8px;
-      color: #4a7c79;
+      color: #ea580c;
       margin: 0 0 12px 0;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
@@ -190,12 +190,12 @@ export function generateClearanceEmailHtml(params: {
       border-collapse: separate;
       border-spacing: 0;
       margin-bottom: 24px;
-      border: 1px solid #e2ecea;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       overflow: hidden;
     }
     .meta-table tr:not(:last-child) td {
-      border-bottom: 1px solid #eef5f4;
+      border-bottom: 1px solid #f1f5f9;
     }
     .meta-table td {
       padding: 12px 16px;
@@ -203,13 +203,13 @@ export function generateClearanceEmailHtml(params: {
     }
     .meta-label {
       width: 35%;
-      color: #58807d;
+      color: #64748b;
       font-weight: 600;
-      background-color: #fbfdfd;
+      background-color: #f8fafc;
     }
     .meta-value {
       width: 65%;
-      color: #0d201e;
+      color: #0f172a;
       font-weight: 700;
       background-color: #ffffff;
     }

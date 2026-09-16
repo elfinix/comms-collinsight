@@ -55,15 +55,17 @@ export default function AdminReports() {
       const pageWidth = 210;
       const margin = 14;
       const contentWidth = pageWidth - margin * 2; 
-
-      doc.setFillColor(19, 78, 74);
+      // ── 1. HEADER SECTION ───────────────────────────────────────────
+      // LCUP Logo Square (Dark Navy)
+      doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
       doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8.5);
       doc.setFont("helvetica", "bold");
       doc.text("LCUP", margin + 1.6, 19);
 
-      doc.setTextColor(19, 78, 74);
+      // University & Department Titles
+      doc.setTextColor(15, 23, 42); // #0f172a
       doc.setFontSize(10.5);
       doc.setFont("helvetica", "bold");
       doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
@@ -73,7 +75,7 @@ export default function AdminReports() {
       doc.setFont("helvetica", "normal");
       doc.text("College of Information Technology & Engineering", margin + 14, 20);
 
-      doc.setTextColor(15, 118, 110);
+      doc.setTextColor(234, 88, 12); // #ea580c
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
       doc.text("System Usage & Activity Analytics Report", margin + 14, 24);
@@ -84,12 +86,12 @@ export default function AdminReports() {
       const badgeW = doc.getTextWidth(badgeText) + 5;
       const badgeX = pageWidth - margin - badgeW;
 
-      doc.setFillColor(204, 251, 241);
-      doc.setDrawColor(153, 246, 228);
+      doc.setFillColor(255, 237, 213);
+      doc.setDrawColor(254, 215, 170);
       doc.setLineWidth(0.3);
       doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
 
-      doc.setTextColor(17, 94, 89);
+      doc.setTextColor(154, 52, 18);
       doc.text(badgeText, badgeX + 2.5, 15.5);
 
       doc.setFont("helvetica", "normal");
@@ -98,7 +100,7 @@ export default function AdminReports() {
       doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
       doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
-      doc.setDrawColor(15, 118, 110);
+      doc.setDrawColor(234, 88, 12);
       doc.setLineWidth(0.5);
       doc.line(margin, 28, pageWidth - margin, 28);
 
@@ -142,7 +144,7 @@ export default function AdminReports() {
 
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 118, 110);
+      doc.setTextColor(15, 23, 42);
       doc.text("WEEKLY SYSTEM ACTIVITY BREAKDOWN", margin, 49);
 
       const dayCardW = (contentWidth - 6 * 2) / 7;
@@ -161,14 +163,14 @@ export default function AdminReports() {
         doc.text(d.name, x + dayCardW / 2, dayY + 3.8, { align: "center" });
 
         doc.setFontSize(8.5);
-        doc.setTextColor(15, 118, 110);
+        doc.setTextColor(234, 88, 12);
         doc.text(`${d.actions}`, x + dayCardW / 2, dayY + 8, { align: "center" });
       });
 
       // ── 3. USER ACCOUNT DISTRIBUTION BY ROLE ───────────────────────
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
-      doc.setTextColor(15, 118, 110);
+      doc.setTextColor(15, 23, 42);
       doc.text("USER ACCOUNT DISTRIBUTION BY ROLE", margin, 66);
 
       const roleStats = [
@@ -243,7 +245,7 @@ export default function AdminReports() {
           lineColor: [203, 213, 225],
         },
         columnStyles: {
-          0: { cellWidth: 16, font: "helvetica", fontStyle: "bold", textColor: [15, 118, 110] },
+          0: { cellWidth: 16, font: "helvetica", fontStyle: "bold", textColor: [234, 88, 12] },
           1: { cellWidth: 48 },
           2: { cellWidth: 22, halign: "center" },
           3: { cellWidth: 26, halign: "right", fontStyle: "bold" },
@@ -382,7 +384,7 @@ export default function AdminReports() {
                         <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
                         <YAxis stroke="var(--muted-foreground)" fontSize={11} />
                         <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
-                        <Bar dataKey="actions" name="Actions Logged" fill="#0d9488" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="actions" name="Actions Logged" fill="#ea580c" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   )}
@@ -404,8 +406,8 @@ export default function AdminReports() {
                         <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
                         <YAxis stroke="var(--muted-foreground)" fontSize={11} />
                         <Tooltip contentStyle={{ backgroundColor: "var(--card)", borderColor: "var(--border)", borderRadius: "8px", fontSize: "11px" }} />
-                        <Bar dataKey="users" fill="#0d9488" radius={[4, 4, 0, 0]} name="Users" />
-                        <Bar dataKey="events" fill="#0284c7" radius={[4, 4, 0, 0]} name="Events" />
+                        <Bar dataKey="users" fill="#ea580c" radius={[4, 4, 0, 0]} name="Users" />
+                        <Bar dataKey="events" fill="#3b82f6" radius={[4, 4, 0, 0]} name="Events" />
                       </BarChart>
                     </ResponsiveContainer>
                   )}

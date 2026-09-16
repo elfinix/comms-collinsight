@@ -122,7 +122,7 @@ export default function AdminUsers() {
       { role: "admin", label: "Administrators", sublabel: "System Security & Platform Governance", color: "#f59e0b" },
       { role: "dean", label: "College Dean", sublabel: "Executive Leadership & Institutional Clearance", color: "#a855f7" },
       { role: "adviser", label: "Faculty Advisers", sublabel: "Academic Mentors & Proposal Reviewers", color: "#0284c7" },
-      { role: "student", label: "Student Officers", sublabel: "Student Executive Committees", color: "#0d9488" },
+      { role: "student", label: "Student Officers", sublabel: "Student Executive Committees", color: "#ea580c" },
     ];
 
     groups = roleOrder
@@ -392,7 +392,7 @@ export default function AdminUsers() {
                             <span className="flex items-center gap-2">
                               <span
                                 className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-2xs"
-                                style={{ backgroundColor: grp.color || "#0d9488" }}
+                                style={{ backgroundColor: grp.color || "#ea580c" }}
                               />
                               <span>{grp.label}</span>
                               {grp.sublabel && (

@@ -14,7 +14,7 @@ export default function AdminDepartments() {
   const [showAdd, setShowAdd] = useState(false);
   const [editDept, setEditDept] = useState<Department | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Department | null>(null);
-  const [form, setForm] = useState({ name: "", code: "", color: "#0d9488", description: "" });
+  const [form, setForm] = useState({ name: "", code: "", color: "#ea580c", description: "" });
 
   // Only display active (non-soft-deleted) departments
   const activeDepartments = departments.filter((d) => !d.deleted);
@@ -45,11 +45,11 @@ export default function AdminDepartments() {
       id: crypto.randomUUID(),
       name: form.name.trim(),
       code: form.code.trim().toUpperCase(),
-      color: form.color || "#0d9488",
+      color: form.color || "#ea580c",
       description: form.description.trim(),
     });
     toast.success("Department Created", `'${form.name.trim()}' (${form.code.trim().toUpperCase()}) added.`);
-    setForm({ name: "", code: "", color: "#0d9488", description: "" });
+    setForm({ name: "", code: "", color: "#ea580c", description: "" });
     setShowAdd(false);
   }
 
@@ -58,7 +58,7 @@ export default function AdminDepartments() {
     updateDepartment(editDept.id, {
       name: editDept.name.trim(),
       code: editDept.code.trim().toUpperCase(),
-      color: editDept.color || "#0d9488",
+      color: editDept.color || "#ea580c",
       description: editDept.description || "",
     });
     toast.success("Department Updated", `'${editDept.name.trim()}' updated successfully.`);
@@ -78,7 +78,7 @@ export default function AdminDepartments() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button onClick={() => { setForm({ name: "", code: "", color: "#0d9488", description: "" }); setShowAdd(true); }} className="gap-1.5 shadow-2xs">
+          <Button onClick={() => { setForm({ name: "", code: "", color: "#ea580c", description: "" }); setShowAdd(true); }} className="gap-1.5 shadow-2xs">
             <Plus size={15} /> Add Department
           </Button>
           <RefreshButton />
@@ -160,7 +160,7 @@ export default function AdminDepartments() {
                     <tr key={d.id} className="hover:bg-[var(--muted)]/40 transition-colors">
                       <td className="px-4 py-3.5 font-mono font-bold text-[var(--primary)] whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color || "#0d9488" }} />
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color || "#ea580c" }} />
                           {d.code}
                         </div>
                       </td>
@@ -283,11 +283,11 @@ export default function AdminDepartments() {
               <div className="flex items-center gap-2">
                 <input
                   type="color"
-                  value={editDept.color || "#0d9488"}
+                  value={editDept.color || "#ea580c"}
                   onChange={(e) => setEditDept((p) => p && { ...p, color: e.target.value })}
                   className="w-9 h-9 rounded-lg border border-[var(--border)] cursor-pointer p-0.5"
                 />
-                <span className="font-mono text-xs text-[var(--muted-foreground)]">{editDept.color || "#0d9488"}</span>
+                <span className="font-mono text-xs text-[var(--muted-foreground)]">{editDept.color || "#ea580c"}</span>
               </div>
             </div>
             <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">

@@ -72,8 +72,8 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const contentWidth = pageWidth - margin * 2; // 182mm
 
   // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Logo Square (Navy)
-  doc.setFillColor(15, 23, 42); // #0f172a
+  // LCUP Logo Square (Dark Navy)
+  doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
   doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8.5);
@@ -473,8 +473,8 @@ export function generateLiquidationPdfBlob(
   const contentWidth = pageWidth - margin * 2; // 182mm
 
   // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Logo Square (Navy)
-  doc.setFillColor(15, 23, 42); // #0f172a
+  // LCUP Logo Square (Dark Navy)
+  doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
   doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(8.5);
@@ -569,7 +569,7 @@ export function generateLiquidationPdfBlob(
   doc.setTextColor(100, 116, 139);
   doc.text("APPROVED BUDGET", margin + 3.5 + colW, kpiY + 16.5);
   doc.setFontSize(8);
-  doc.setTextColor(15, 118, 110);
+  doc.setTextColor(234, 88, 12);
   doc.text(formatPdfCurrency(event.proposedBudget), margin + 3.5 + colW, kpiY + 20.8);
 
   // Col 3: Total Disbursed
@@ -641,7 +641,7 @@ export function generateLiquidationPdfBlob(
       1: { cellWidth: 72 },
       2: { cellWidth: 35, textColor: [71, 85, 105] },
       3: { cellWidth: 35, halign: "right", fontStyle: "bold" },
-      4: { cellWidth: 30, halign: "center", fontStyle: "bold", textColor: [15, 118, 110] },
+      4: { cellWidth: 30, halign: "center", fontStyle: "bold", textColor: [234, 88, 12] },
     },
     margin: { left: margin, right: margin, bottom: 50 },
     didDrawPage: (data) => {
@@ -669,7 +669,7 @@ export function generateLiquidationPdfBlob(
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
-  doc.setTextColor(15, 118, 110);
+  doc.setTextColor(234, 88, 12);
   doc.text(formatPdfCurrency(remaining), pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
 
   reconY += 9.5;
@@ -677,18 +677,18 @@ export function generateLiquidationPdfBlob(
   // Box 2 & 3: Gross Revenue & Total Surplus (if revenue > 0)
   if (revenue > 0) {
     // Gross Revenue
-    doc.setFillColor(240, 253, 250); // #f0fdfa
-    doc.setDrawColor(153, 246, 228); // #99f6e4
+    doc.setFillColor(255, 247, 237); // #fff7ed
+    doc.setDrawColor(254, 215, 170); // #fed7aa
     doc.roundedRect(margin, reconY, contentWidth, 8, 1.2, 1.2, "FD");
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
-    doc.setTextColor(17, 94, 89);
+    doc.setTextColor(154, 52, 18);
     doc.text("Total Gross Event Revenue Generated:", margin + 3.5, reconY + 5.2);
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8.5);
-    doc.setTextColor(15, 118, 110);
+    doc.setTextColor(234, 88, 12);
     doc.text(formatPdfCurrency(revenue), pageWidth - margin - 3.5, reconY + 5.2, { align: "right" });
 
     reconY += 9.5;

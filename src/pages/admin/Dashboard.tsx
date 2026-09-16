@@ -16,8 +16,8 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { formatDate, getActionBadgeClass, formatCurrency, formatUserRole } from "../../services/dataService";
 
 const PIE_COLORS = [
-  "#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981",
-  "#e11d48", "#6366f1", "#14b8a6", "#8b5cf6", "#f97316", "#64748b"
+  "#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981",
+  "#e11d48", "#0284c7", "#f97316", "#8b5cf6", "#64748b"
 ];
 
 export default function AdminDashboard() {
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
       eventsCount: orgEvents.length,
       usersCount: orgUsers.length,
       percent,
-      color: PIE_COLORS[idx % PIE_COLORS.length],
+      color: o.logoColor || (o as any).color || PIE_COLORS[idx % PIE_COLORS.length],
     };
   });
 

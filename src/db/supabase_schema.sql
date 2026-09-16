@@ -35,7 +35,7 @@ CREATE TABLE public.departments (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
   code TEXT NOT NULL,
-  color TEXT NOT NULL DEFAULT '#0d9488',
+  color TEXT NOT NULL DEFAULT '#ea580c',
   description TEXT DEFAULT '',
   deleted BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -49,7 +49,7 @@ CREATE TABLE public.organizations (
   department_id TEXT REFERENCES public.departments(id) ON DELETE SET NULL,
   allocated_budget NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
   adviser_id TEXT,
-  logo_color TEXT NOT NULL DEFAULT '#0d9488',
+  logo_color TEXT NOT NULL DEFAULT '#ea580c',
   description TEXT DEFAULT '',
   avatar TEXT,
   deleted BOOLEAN NOT NULL DEFAULT false,
@@ -283,15 +283,15 @@ CREATE POLICY "Allow public all on exported_reports" ON public.exported_reports 
 
 -- 4.1 Departments
 INSERT INTO public.departments (id, name, code, color, description, deleted) VALUES
-  ('d1000000-0000-0000-0000-000000000001', 'Bachelor of Science in Information Technology', 'BSIT', '#0d9488', 'Department for software development, networking, and cloud computing programs.', false),
-  ('d1000000-0000-0000-0000-000000000002', 'Bachelor of Science in Computer Engineering', 'BSCpE', '#0284c7', 'Department for computer architecture, hardware design, and robotics.', false),
-  ('d1000000-0000-0000-0000-000000000003', 'Bachelor of Science in Industrial Engineering', 'BSIE', '#7c3aed', 'Department for manufacturing systems, operations research, and logistics.', false);
+  ('d1000000-0000-0000-0000-000000000001', 'Bachelor of Science in Information Technology', 'BSIT', '#ea580c', 'Department for software development, networking, and cloud computing programs.', false),
+  ('d1000000-0000-0000-0000-000000000002', 'Bachelor of Science in Computer Engineering', 'BSCpE', '#3b82f6', 'Department for computer architecture, hardware design, and robotics.', false),
+  ('d1000000-0000-0000-0000-000000000003', 'Bachelor of Science in Industrial Engineering', 'BSIE', '#6366f1', 'Department for manufacturing systems, operations research, and logistics.', false);
 
 -- 4.2 Organizations
 INSERT INTO public.organizations (id, name, code, department_id, allocated_budget, logo_color, description, deleted) VALUES
-  ('01000000-0000-0000-0000-000000000001', 'IT Student Guild', 'ITSG', 'd1000000-0000-0000-0000-000000000001', 50000.00, '#0d9488', 'Official academic recognized student body of BSIT students.', false),
-  ('01000000-0000-0000-0000-000000000002', 'CompE Society', 'CES', 'd1000000-0000-0000-0000-000000000002', 40000.00, '#0284c7', 'Official academic recognized student body of BSCpE students.', false),
-  ('01000000-0000-0000-0000-000000000003', 'IE Innovation Club', 'IEIC', 'd1000000-0000-0000-0000-000000000003', 35000.00, '#7c3aed', 'Official academic recognized student body of BSIE students.', false);
+  ('01000000-0000-0000-0000-000000000001', 'IT Student Guild', 'ITSG', 'd1000000-0000-0000-0000-000000000001', 50000.00, '#ea580c', 'Official academic recognized student body of BSIT students.', false),
+  ('01000000-0000-0000-0000-000000000002', 'CompE Society', 'CES', 'd1000000-0000-0000-0000-000000000002', 40000.00, '#3b82f6', 'Official academic recognized student body of BSCpE students.', false),
+  ('01000000-0000-0000-0000-000000000003', 'IE Innovation Club', 'IEIC', 'd1000000-0000-0000-0000-000000000003', 35000.00, '#6366f1', 'Official academic recognized student body of BSIE students.', false);
 
 -- 4.3 Users (Sole Administrator: "Team COLLinSight CITE")
 INSERT INTO public.users (id, first_name, middle_name, last_name, suffix, email, password, role, position, gender, organization_id, year_level, member_since, deleted) VALUES

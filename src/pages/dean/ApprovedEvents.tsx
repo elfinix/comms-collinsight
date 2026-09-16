@@ -351,7 +351,7 @@ export default function DeanApprovedEvents() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredApproved.map((e) => {
             const org = organizations.find((o) => o.id === e.organizationId);
-            const orgColor = org?.logoColor || "#0d9488";
+            const orgColor = org?.logoColor || "#ea580c";
             const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
             return (
               <div
@@ -438,7 +438,7 @@ export default function DeanApprovedEvents() {
               <tbody className="divide-y divide-[var(--border)]">
                 {filteredApproved.map((e) => {
                   const org = organizations.find((o) => o.id === e.organizationId);
-                  const orgColor = org?.logoColor || "#0d9488";
+                  const orgColor = org?.logoColor || "#ea580c";
                   const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
                   return (
                     <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition-colors">

@@ -34,7 +34,7 @@ import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
-const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981", "#64748b"];
+const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981", "#64748b"];
 
 const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
 
@@ -160,8 +160,8 @@ export default function DeanReports() {
       const contentWidth = pageWidth - margin * 2; // 269mm
 
       // ── 1. HEADER SECTION ───────────────────────────────────────────
-      // LCUP Logo Square
-      doc.setFillColor(19, 78, 74); // #134e4a
+      // LCUP Logo Square (Dark Navy)
+      doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
       doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
       doc.setTextColor(255, 255, 255);
       doc.setFontSize(8.5);
@@ -169,7 +169,7 @@ export default function DeanReports() {
       doc.text("LCUP", margin + 1.6, 19);
 
       // University & Department Titles
-      doc.setTextColor(19, 78, 74); // #134e4a
+      doc.setTextColor(15, 23, 42); // #0f172a
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
@@ -179,7 +179,7 @@ export default function DeanReports() {
       doc.setFont("helvetica", "normal");
       doc.text("College of Information Technology & Engineering", margin + 14, 20);
 
-      doc.setTextColor(15, 118, 110); // #0f766e
+      doc.setTextColor(234, 88, 12); // #ea580c
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
       doc.text("Office of the College Dean · Cross-Organizational Directorate Report", margin + 14, 24);
@@ -191,12 +191,12 @@ export default function DeanReports() {
       const badgeW = doc.getTextWidth(badgeText) + 6;
       const badgeX = pageWidth - margin - badgeW;
 
-      doc.setFillColor(204, 251, 241); // #ccfbf1
-      doc.setDrawColor(153, 246, 228); // #99f6e4
+      doc.setFillColor(255, 237, 213); // #ffedd5
+      doc.setDrawColor(254, 215, 170); // #fed7aa
       doc.setLineWidth(0.3);
       doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
 
-      doc.setTextColor(17, 94, 89); // #115e59
+      doc.setTextColor(154, 52, 18); // #9a3412
       doc.text(badgeText, badgeX + 3, 15.5);
 
       // Ref and Date below pill badge (Normal Weight)
@@ -328,11 +328,11 @@ export default function DeanReports() {
         columnStyles: {
           0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
           1: { cellWidth: 81, fontStyle: "bold" },
-          2: { cellWidth: 20, fontStyle: "bold", textColor: [15, 118, 110] },
+          2: { cellWidth: 20, fontStyle: "bold", textColor: [234, 88, 12] },
           3: { cellWidth: 32 },
           4: { cellWidth: 28 },
           5: { cellWidth: 32, halign: "right", fontStyle: "bold" },
-          6: { cellWidth: 32, halign: "right", fontStyle: "bold", textColor: [15, 118, 110] },
+          6: { cellWidth: 32, halign: "right", fontStyle: "bold", textColor: [15, 23, 42] },
           7: { cellWidth: 35, halign: "center" },
         },
         margin: { left: margin, right: margin, bottom: 36 },

@@ -42,7 +42,7 @@ export default function AdminOrganizations() {
     departmentId: activeDepartments[0]?.id ?? "",
     adviserId: "",
     allocatedBudget: "50000",
-    logoColor: "#0d9488",
+    logoColor: "#ea580c",
     description: "",
   });
 
@@ -96,7 +96,7 @@ export default function AdminOrganizations() {
       departmentId: activeDepartments[0]?.id ?? "",
       adviserId: "",
       allocatedBudget: "50000",
-      logoColor: "#0d9488",
+      logoColor: "#ea580c",
       description: "",
     });
     setShowAdd(false);
@@ -382,7 +382,7 @@ export default function AdminOrganizations() {
 
                 {/* Preset Palette Swatches */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  {["#0d9488", "#2563eb", "#7c3aed", "#d97706", "#dc2626", "#059669", "#db2777", "#475569"].map((c) => (
+                  {["#ea580c", "#3b82f6", "#6366f1", "#d97706", "#dc2626", "#059669", "#db2777", "#475569"].map((c) => (
                     <button
                       key={c}
                       type="button"
@@ -480,11 +480,11 @@ export default function AdminOrganizations() {
                   {/* Custom Color Trigger Swatch */}
                   <div
                     className="relative w-9 h-9 rounded-xl shadow-xs border border-white/60 ring-2 ring-[var(--border)] flex-shrink-0 cursor-pointer transition hover:scale-105 overflow-hidden"
-                    style={{ backgroundColor: editOrg.logoColor || "#0d9488" }}
+                    style={{ backgroundColor: editOrg.logoColor || "#ea580c" }}
                   >
                     <input
                       type="color"
-                      value={editOrg.logoColor || "#0d9488"}
+                      value={editOrg.logoColor || "#ea580c"}
                       onChange={(e) => setEditOrg((p) => p && { ...p, logoColor: e.target.value })}
                       className="absolute -inset-2 opacity-0 cursor-pointer w-[200%] h-[200%]"
                     />
@@ -492,18 +492,18 @@ export default function AdminOrganizations() {
 
                   {/* Hex code display */}
                   <span className="font-mono text-xs font-bold text-[var(--foreground)] min-w-[70px]">
-                    {editOrg.logoColor || "#0d9488"}
+                    {editOrg.logoColor || "#ea580c"}
                   </span>
 
                   {/* Preset Palette Swatches */}
                   <div className="flex items-center gap-1.5 flex-wrap pl-3 border-l border-[var(--border)]">
-                    {["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#10b981", "#e11d48", "#6366f1", "#f97316", "#0f172a"].map((c) => (
+                    {["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981", "#e11d48", "#8b5cf6", "#f97316", "#0f172a"].map((c) => (
                       <button
                         type="button"
                         key={c}
                         onClick={() => setEditOrg((p) => p && { ...p, logoColor: c })}
                         className={`w-6 h-6 rounded-lg transition-transform hover:scale-110 cursor-pointer shadow-2xs ${
-                          (editOrg.logoColor || "#0d9488").toLowerCase() === c.toLowerCase()
+                          (editOrg.logoColor || "#ea580c").toLowerCase() === c.toLowerCase()
                             ? "ring-2 ring-[var(--primary)] ring-offset-1 scale-110 border-2 border-white"
                             : "border border-black/10"
                         }`}

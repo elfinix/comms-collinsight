@@ -22,7 +22,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { formatCurrency, formatDate, statusColors, getCategoryById } from "../../services/dataService";
 import FinanceLedgerView from "../student/FinanceLedgerView";
 
-const COLORS = ["#0d9488", "#0284c7", "#7c3aed", "#f59e0b", "#ef4444", "#10b981", "#f97316"];
+const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#ef4444", "#10b981", "#f97316"];
 
 export default function AdviserFinance() {
   const { currentUser } = useAuth();
