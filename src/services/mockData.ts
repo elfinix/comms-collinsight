@@ -693,7 +693,7 @@ export const transactions: Transaction[] = [
     categoryId: "ec-1",
     amount: 5000,
     status: "Paid",
-    receiptUrl: "/mock-receipt.jpg",
+    receiptUrl: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
     createdAt: "2026-09-15T09:00:00",
   },
   {
@@ -703,7 +703,7 @@ export const transactions: Transaction[] = [
     categoryId: "ec-2",
     amount: 7500,
     status: "Paid",
-    receiptUrl: "/mock-receipt.jpg",
+    receiptUrl: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
     createdAt: "2026-09-15T10:00:00",
   },
   {
@@ -713,7 +713,7 @@ export const transactions: Transaction[] = [
     categoryId: "ec-7",
     amount: 1800,
     status: "Paid",
-    receiptUrl: "/mock-receipt.jpg",
+    receiptUrl: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
     createdAt: "2026-09-15T11:00:00",
   },
   {
@@ -723,7 +723,7 @@ export const transactions: Transaction[] = [
     categoryId: "ec-3",
     amount: 1200,
     status: "Paid",
-    receiptUrl: "/mock-receipt.jpg",
+    receiptUrl: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
     createdAt: "2026-08-15T10:00:00",
   },
   {
@@ -733,7 +733,7 @@ export const transactions: Transaction[] = [
     categoryId: "ec-5",
     amount: 600,
     status: "Paid",
-    receiptUrl: "/mock-receipt.jpg",
+    receiptUrl: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
     createdAt: "2026-08-15T16:00:00",
   },
 ];
@@ -1060,19 +1060,27 @@ export function toWebUrl(str: string): string {
 }
 
 export const SAMPLE_FIXTURES = {
-  apf: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
-  clearance: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
-  appendix: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
-  venue: "/fixtures/Venue_Clearance_and_Laboratories.pdf",
-  receipt: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
+  apf: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+  clearance: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+  appendix: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
+  venue: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
+  receipt: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
 };
 
 export function resolvePdfUrl(url?: string, fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType];
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("data:")) {
-    return url;
+  if (url.startsWith("/fixtures")) return url;
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+
+  // Intercept missing mock bucket/dummy URLs and fall back to local sample fixture
+  if (url.includes("/storage/v1/object/public/receipts/") || url.includes("/mock-receipt.jpg")) {
+    return SAMPLE_FIXTURES.receipt;
   }
-  if (url.startsWith("/fixtures")) {
+  if (url.includes("APF_Community_Code_Outreach") || url.includes("Program_Flow_and_Curriculum") || url.includes("Venue_Clearance_and_Laboratories")) {
+    return SAMPLE_FIXTURES[fallbackType];
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
   // Resolve Supabase Storage attachments bucket path

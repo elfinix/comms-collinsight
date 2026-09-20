@@ -549,11 +549,11 @@ export function toWebUrl(str: string): string {
 }
 
 export const SAMPLE_FIXTURES = {
-  apf: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
-  clearance: "/fixtures/APF_Community_Code_Outreach_Vetted.pdf",
-  appendix: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
-  venue: "/fixtures/Venue_Clearance_and_Laboratories.pdf",
-  receipt: "/fixtures/Program_Flow_and_Curriculum_Matrix.pdf",
+  apf: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+  clearance: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+  appendix: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
+  venue: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
+  receipt: "/fixtures/TechnoFest_2025_Official_Receipt_Sample.pdf",
 } as const;
 
 export function resolvePdfUrl(
@@ -561,10 +561,18 @@ export function resolvePdfUrl(
   fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"
 ): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType] || SAMPLE_FIXTURES.apf;
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:") || url.startsWith("data:")) {
-    return url;
+  if (url.startsWith("/fixtures")) return url;
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+
+  // Intercept missing mock bucket/dummy URLs and fall back to local sample fixture
+  if (url.includes("/storage/v1/object/public/receipts/") || url.includes("/mock-receipt.jpg")) {
+    return SAMPLE_FIXTURES.receipt;
   }
-  if (url.startsWith("/fixtures")) {
+  if (url.includes("APF_Community_Code_Outreach") || url.includes("Program_Flow_and_Curriculum") || url.includes("Venue_Clearance_and_Laboratories")) {
+    return SAMPLE_FIXTURES[fallbackType] || SAMPLE_FIXTURES.apf;
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
   if (url.includes("/")) {
