@@ -942,9 +942,9 @@ export default function CalendarPage() {
 
                 {/* Official Clearance Banner if Approved */}
                 {["Approved", "Completed", "Closed"].includes(selectedEvent.status) && (
-                  <div className="bg-gradient-to-r from-[#0a1128] via-[#1c2541] to-[#ea580c] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-sky-300 flex-shrink-0">
                         <BadgeCheck size={20} />
                       </div>
                       <div className="min-w-0">
@@ -995,9 +995,9 @@ export default function CalendarPage() {
 
                 {/* Liquidation Banner if Closed */}
                 {selectedEvent.status === "Closed" && (
-                  <div className="bg-gradient-to-r from-[#0a1128] via-[#1e3a8a] to-[#ea580c] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
+                  <div className="bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-sky-300 flex-shrink-0">
                         <FileSpreadsheet size={20} />
                       </div>
                       <div className="min-w-0">

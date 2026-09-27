@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent } from "react";
+import { useState, useRef, useEffect, ChangeEvent } from "react";
 import { useApp } from "../../context/AppContext";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
@@ -30,6 +30,14 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   const { currentUser } = useAuth();
   const { events, transactions, organizations, users, expenditureCategories, updateEvent, setEventStatus, addTransaction, updateTransaction, deleteTransaction } = useApp();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const mainElem = document.querySelector("main");
+    if (mainElem) {
+      mainElem.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [selectedEventId]);
 
   const activeEvent = events.find((e) => e.id === selectedEventId);
   const org = organizations.find((o) => o.id === activeEvent?.organizationId);
@@ -517,9 +525,9 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
       {/* Generated Liquidation PDF Banner for Closed / Reconciled Events */}
       {activeEvent.status === "Closed" && (
-        <div className="bg-gradient-to-r from-[#0a1128] via-[#1c2541] to-[#ea580c] text-white rounded-2xl p-5 mb-6 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] text-white rounded-2xl p-5 mb-6 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-sky-300 flex-shrink-0">
               <FileSpreadsheet size={22} />
             </div>
             <div>

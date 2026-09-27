@@ -138,7 +138,14 @@ export default function StudentFinance() {
     return (
       <FinanceLedgerView
         selectedEventId={selectedEvent}
-        onBack={() => setSelectedEvent(null)}
+        onBack={() => {
+          setSelectedEvent(null);
+          const mainElem = document.querySelector("main");
+          if (mainElem) {
+            mainElem.scrollTo({ top: 0, left: 0, behavior: "instant" });
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+        }}
       />
     );
   }

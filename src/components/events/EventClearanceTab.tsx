@@ -111,9 +111,9 @@ export default function EventClearanceTab({
     <div className="flex flex-col gap-4">
       {/* ── 1. CLEARANCE PDF BANNER ── */}
       {isApproved ? (
-        <div className="bg-gradient-to-r from-[#0a1128] via-[#1c2541] to-[#ea580c] text-white rounded-2xl p-5 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] text-white rounded-2xl p-5 shadow-md border border-slate-700/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-orange-300 flex-shrink-0 shadow-inner">
+            <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-sky-300 flex-shrink-0 shadow-inner">
               <BadgeCheck size={24} />
             </div>
             <div>
