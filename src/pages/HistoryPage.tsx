@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Card, Dialog, Tabs, SignatoryProgress, Button, RefreshButton, SkeletonTable, Skeleton, SkeletonToolbox } from "../components/ui";
@@ -34,6 +35,7 @@ const ACTION_FILTERS: { id: ActionFilterType; label: string }[] = [
 export default function HistoryPage() {
   const { currentUser } = useAuth();
   const { auditTrail, events, eventTypes, organizations, users, transactions, isLoading } = useApp();
+  const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRangeType>("7days"); // Default: Last 7 days
@@ -238,7 +240,7 @@ export default function HistoryPage() {
     { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
-    ...(role === "student" ? [{ id: "finance", label: "Finance" }] : []),
+    { id: "finance", label: "Finance" },
   ];
 
   return (
@@ -983,6 +985,13 @@ export default function HistoryPage() {
                   event={selectedEvent}
                   onOpenFinance={() => {
                     setSelectedEvent(null);
+                    if (role === "adviser") {
+                      navigate("/adviser/finance");
+                    } else if (role === "dean") {
+                      navigate("/dean/approved");
+                    } else {
+                      navigate("/student/finance");
+                    }
                   }}
                 />
               )}

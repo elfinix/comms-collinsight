@@ -7,7 +7,7 @@ import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, Clock, MapPin, ArrowLeft, ChevronLeft, ChevronRight,
-  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet, XCircle
+  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet, XCircle, Tag, Compass
 } from "lucide-react";
 import {
   getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, Transaction,
@@ -771,23 +771,13 @@ export default function CalendarPage() {
                     <span className={`text-xs font-mono px-3 py-1 rounded-full ${getStatusBadgeClass(selectedEvent.status, selectedEvent.setting)}`}>
                       {selectedEvent.status}
                     </span>
-                    <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
-                      {selectedEvent.category || "Organizational"}
-                    </span>
-                    <span className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-full ${
-                      selectedEvent.setting === "Off-campus"
-                        ? "bg-blue-50 text-blue-800 border border-blue-200"
-                        : "bg-amber-50 text-amber-800 border border-amber-200"
-                    }`}>
-                      {selectedEvent.setting || "On-campus"}
-                    </span>
                     <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
                       {selectedEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}
                     </span>
                   </div>
                 </div>
 
-                {/* Event Title */}
+                {/* Event Title & Subtitle Type */}
                 <div>
                   <h2 className="text-xl font-extrabold text-[var(--foreground)] leading-tight">
                     {selectedEvent.name}
@@ -797,8 +787,26 @@ export default function CalendarPage() {
                   </p>
                 </div>
 
-                {/* Metadata Info Grid */}
+                {/* Metadata Info Grid: 3 Rows x 2 Columns */}
                 <div className="grid sm:grid-cols-2 gap-3.5 text-sm">
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                      <Tag size={12} className="text-[var(--primary)]" /> Event Category
+                    </p>
+                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                      {selectedEvent.category || "Organizational"}
+                    </p>
+                  </div>
+
+                  <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                    <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                      <Compass size={12} className="text-[var(--primary)]" /> Event Setting
+                    </p>
+                    <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                      {selectedEvent.setting || "On-campus"}
+                    </p>
+                  </div>
+
                   <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
                     <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
                       <Clock size={12} className="text-[var(--primary)]" /> Date & Schedule
