@@ -24,8 +24,8 @@ import {
   Building2, FileText, ExternalLink
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, formatDateTime, statusColors, getEventTypeById,
-  Event, isWebUrl, toWebUrl, resolvePdfUrl
+  formatCurrency, formatDate, formatDateTime, statusColors, getStatusBadgeClass, getEventTypeById,
+  Event, EventStatus, EventSetting, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
@@ -36,7 +36,20 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981", "#64748b"];
 
-const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
+
+const STATUS_FILTERS = [
+  "All",
+  "Created",
+  "For Review",
+  "For Approval",
+  "Approved",
+  "SDS Authorized",
+  "CMO Authorized",
+  "Pending Revision",
+  "Rejected",
+  "Completed",
+  "Closed",
+];
 
 export default function DeanReports() {
   const { events, transactions, users, organizations, exportedReports, addExportedReport, isLoading } = useApp();
@@ -55,15 +68,15 @@ export default function DeanReports() {
   const [viewTab, setViewTab] = useState("details");
 
   const viewTabs = [
-    { id: "details", label: "Details" },
-    { id: "compliance", label: "Compliance Docs" },
+    { id: "details", label: "Event Details" },
+    { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
   ];
 
   const allEvents = events;
-  const approved = events.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
+  const approved = events.filter((e) => ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
   const pendingEvents = events.filter((e) => ["For Review", "For Approval"].includes(e.status));
   const closedEvents = events.filter((e) => e.status === "Closed");
 
@@ -255,8 +268,20 @@ export default function DeanReports() {
       doc.text(`PHP ${Number(totalSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${spentPercentage}%)`, margin + colW * 3 + 4, kpiY + 9.5);
 
       // ── 3. STATUS BADGE COLOR HELPER ────────────────────────────────
-      const getStatusPillColors = (status: string) => {
+      const getStatusPillColors = (status: string, setting?: string) => {
         const s = status.toLowerCase();
+        if (s.includes("sds")) {
+          if (setting === "Off-campus") {
+            // Lighter soft indigo
+            return { bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] }; // indigo-50 / indigo-700
+          }
+          // On-campus: standard light indigo bg, dark indigo text
+          return { bg: [224, 231, 255], border: [165, 180, 252], text: [49, 46, 129] }; // indigo-100 / indigo-900
+        }
+        if (s.includes("cmo")) {
+          // Off-campus CMO: standard light indigo bg, dark indigo text
+          return { bg: [224, 231, 255], border: [165, 180, 252], text: [49, 46, 129] }; // indigo-100 / indigo-900
+        }
         if (s.includes("approv") || s.includes("complet")) {
           return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] }; // Emerald
         }
@@ -281,6 +306,7 @@ export default function DeanReports() {
         return {
           idx: idx + 1,
           name: e.name,
+          setting: e.setting,
           orgCode,
           typeName,
           date: formatDate(e.dateStart),
@@ -341,7 +367,7 @@ export default function DeanReports() {
             const rowObj = rawEventRows[data.row.index];
             if (rowObj) {
               const text = rowObj.status;
-              const colors = getStatusPillColors(text);
+              const colors = getStatusPillColors(text, rowObj.setting);
 
               doc.setFont("helvetica", "bold");
               doc.setFontSize(6.5);
@@ -851,6 +877,18 @@ export default function DeanReports() {
                         >
                           {e.name}
                         </button>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.2 rounded-md bg-orange-50 text-orange-800 border border-orange-200">
+                            {e.category || "Organizational"}
+                          </span>
+                          <span className={`text-[10px] font-mono font-medium px-2 py-0.2 rounded-md ${
+                            e.setting === "Off-campus"
+                              ? "bg-blue-50 text-blue-800 border border-blue-200"
+                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                          }`}>
+                            {e.setting || "On-campus"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">{org?.code}</td>
                       <td className="px-4 py-3 text-xs text-[var(--muted-foreground)] whitespace-nowrap max-w-[105px] truncate" title={getEventTypeById(e.typeId)?.name}>
@@ -860,7 +898,7 @@ export default function DeanReports() {
                       <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{formatCurrency(e.proposedBudget)}</td>
                       <td className="px-4 py-3 font-mono text-xs whitespace-nowrap text-[var(--primary)] font-semibold">{formatCurrency(spent)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>
+                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>
                           {e.status}
                         </span>
                       </td>
@@ -879,16 +917,16 @@ export default function DeanReports() {
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
           <div className="flex flex-col min-h-0 flex-1">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs">
+            <div className="sticky top-0 z-20 bg-white px-6 pt-4 shadow-2xs">
               <div className="flex items-center gap-3 pb-3">
-                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
+                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(viewEvent.status, viewEvent.setting)}`}>
                   {viewEvent.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <SignatoryProgress status={viewEvent.status} />
+                  <SignatoryProgress status={viewEvent.status} setting={viewEvent.setting} />
                 </div>
               </div>
-              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
+              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} className="-mx-6 px-6" />
             </div>
 
             <div className="p-6">
@@ -901,6 +939,14 @@ export default function DeanReports() {
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p>
                     <p className="font-medium">{getEventTypeById(viewEvent.typeId)?.name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Category</p>
+                    <p className="font-semibold text-orange-700">{viewEvent.category || "Organizational"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p>
+                    <p className="font-semibold text-blue-700">{viewEvent.setting || "On-campus"}</p>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
@@ -974,6 +1020,31 @@ export default function DeanReports() {
                       <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>
                     )}
                   </div>
+
+                  {/* Parental Consent Form (PCF) for Off-campus events */}
+                  {viewEvent.setting === "Off-campus" && (
+                    <div className="bg-[var(--muted)] rounded-xl p-4">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">
+                        PCF (Parental Consent Form) · For Off-campus Events
+                      </p>
+                      {viewEvent.pcfUrl ? (
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          <a
+                            href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                          >
+                            <span>{viewEvent.pcfName || viewEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                            <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Appendices ({viewEvent.appendices?.length ?? 0})</p>

@@ -7,12 +7,17 @@
 export type UserRole = "student" | "adviser" | "dean" | "admin";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";
+export type EventCategory = "Organizational" | "Departmental";
+export type EventSetting = "On-campus" | "Off-campus";
 export type EventStatus =
   | "Created"
   | "For Review"
   | "For Approval"
   | "Pending Revision"
   | "Approved"
+  | "SDS Authorized"
+  | "CMO Authorized"
+  | "Rejected"
   | "Completed"
   | "Closed";
 export type TransactionStatus = "Pending" | "Paid" | "Reimbursed";
@@ -648,10 +653,10 @@ export const eventSignatories: EventSignatory[] = [
     eventId: "evt-6",
     userId: "user-adv-2",
     role: "adviser",
-    status: "Revision Requested",
-    feedback: "Please adjust the trophy expenditure and clarify external judge compensation.",
-    signedAt: "2026-08-23T03:00:00",
-    createdAt: "2026-08-23T03:00:00",
+    status: "Endorsed",
+    feedback: "Endorsed for regional hardware and IoT innovation summit.",
+    signedAt: "2026-08-14T03:00:00",
+    createdAt: "2026-08-14T03:00:00",
   },
   {
     id: "sig-5",
@@ -937,9 +942,161 @@ export const auditTrail: AuditEntry[] = [
     timestamp: "2026-08-08T10:15:00",
   },
 
-  // Admin and General system actions
+  // Embedded Systems & IoT Hackathon (evt-6)
   {
     id: "audit-17",
+    eventId: "evt-6",
+    organizationId: "org-2",
+    userId: "user-adv-2",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Embedded Systems & IoT Hackathon'",
+    statusTo: "Created",
+    timestamp: "2026-08-12T10:00:00",
+  },
+  {
+    id: "audit-18",
+    eventId: "evt-6",
+    organizationId: "org-2",
+    userId: "user-adv-2",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted 'Embedded Systems & IoT Hackathon' to Adviser for review",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-08-13T11:00:00",
+  },
+  {
+    id: "audit-19",
+    eventId: "evt-6",
+    organizationId: "org-2",
+    userId: "user-adv-2",
+    actorRole: "adviser",
+    action: "Approved & Forwarded",
+    details: "Endorsed 'Embedded Systems & IoT Hackathon' to Dean for approval",
+    statusFrom: "For Review",
+    statusTo: "For Approval",
+    remarks: "Endorsed for regional hardware and IoT innovation summit.",
+    timestamp: "2026-08-14T03:00:00",
+  },
+  {
+    id: "audit-20",
+    eventId: "evt-6",
+    organizationId: "org-2",
+    userId: "user-dean",
+    actorRole: "dean",
+    action: "Executive Approval",
+    details: "Granted executive approval for 'Embedded Systems & IoT Hackathon'",
+    statusFrom: "For Approval",
+    statusTo: "Approved",
+    remarks: "Approved for Computer Engineering laboratory facilities.",
+    timestamp: "2026-08-15T09:00:00",
+  },
+
+  // Robotics & Circuits Tech Showcase (evt-7)
+  {
+    id: "audit-21",
+    eventId: "evt-7",
+    organizationId: "org-2",
+    userId: "user-adv-2",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Robotics & Circuits Tech Showcase'",
+    statusTo: "Created",
+    timestamp: "2026-08-18T14:30:00",
+  },
+  {
+    id: "audit-22",
+    eventId: "evt-7",
+    organizationId: "org-2",
+    userId: "user-adv-2",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted proposal 'Robotics & Circuits Tech Showcase' to Adviser",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-08-19T08:00:00",
+  },
+
+  // Lean Process Optimization Summit (evt-8)
+  {
+    id: "audit-23",
+    eventId: "evt-8",
+    organizationId: "org-3",
+    userId: "user-adv-3",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Lean Process Optimization Summit'",
+    statusTo: "Created",
+    timestamp: "2026-08-14T09:15:00",
+  },
+  {
+    id: "audit-24",
+    eventId: "evt-8",
+    organizationId: "org-3",
+    userId: "user-adv-3",
+    actorRole: "student",
+    action: "Submitted for Review",
+    details: "Submitted 'Lean Process Optimization Summit' to Adviser",
+    statusFrom: "Created",
+    statusTo: "For Review",
+    timestamp: "2026-08-14T14:00:00",
+  },
+  {
+    id: "audit-25",
+    eventId: "evt-8",
+    organizationId: "org-3",
+    userId: "user-adv-3",
+    actorRole: "adviser",
+    action: "Approved & Forwarded",
+    details: "Endorsed 'Lean Process Optimization Summit' to Dean",
+    statusFrom: "For Review",
+    statusTo: "For Approval",
+    remarks: "Highly recommended for industrial engineering accreditation.",
+    timestamp: "2026-08-15T09:00:00",
+  },
+  {
+    id: "audit-26",
+    eventId: "evt-8",
+    organizationId: "org-3",
+    userId: "user-dean",
+    actorRole: "dean",
+    action: "Executive Approval",
+    details: "Granted executive approval for 'Lean Process Optimization Summit'",
+    statusFrom: "For Approval",
+    statusTo: "Approved",
+    remarks: "Approved for professional development credit.",
+    timestamp: "2026-08-16T11:00:00",
+  },
+
+  // Supply Chain Simulation Challenge (evt-9)
+  {
+    id: "audit-27",
+    eventId: "evt-9",
+    organizationId: "org-3",
+    userId: "user-adv-3",
+    actorRole: "student",
+    action: "Created Event",
+    details: "Created event proposal for 'Supply Chain Simulation Challenge'",
+    statusTo: "Created",
+    timestamp: "2026-07-28T16:00:00",
+  },
+  {
+    id: "audit-28",
+    eventId: "evt-9",
+    organizationId: "org-3",
+    userId: "user-adv-3",
+    actorRole: "student",
+    action: "Event Completed",
+    details: "Completed execution and simulations for 'Supply Chain Simulation Challenge'",
+    statusFrom: "Approved",
+    statusTo: "Completed",
+    timestamp: "2026-08-20T16:30:00",
+  },
+
+  // Admin and General system actions
+  {
+    id: "audit-29",
     userId: "user-admin-1",
     actorRole: "admin",
     action: "Added User",
@@ -1043,9 +1200,27 @@ export const statusColors: Record<EventStatus, string> = {
   "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
   Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
-  Completed: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  "SDS Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
+  "CMO Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
+  Rejected: "bg-rose-100 text-rose-800 border border-rose-300 font-medium",
+  Completed: "bg-teal-100 text-teal-800 border border-teal-300 font-medium",
   Closed: "bg-gray-100 text-gray-700 border border-gray-300 font-medium",
 };
+
+export function getStatusBadgeClass(status: EventStatus, setting?: EventSetting): string {
+  if (status === "SDS Authorized") {
+    if (setting === "Off-campus") {
+      return "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60 font-medium";
+    }
+    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+  }
+
+  if (status === "CMO Authorized") {
+    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+  }
+
+  return statusColors[status] || "bg-slate-100 text-slate-700 border border-slate-300 font-medium";
+}
 
 export function isWebUrl(str?: string): boolean {
   if (!str) return false;
@@ -1096,6 +1271,9 @@ export function getActionBadgeClass(action: string): string {
   const act = action.toLowerCase();
   if (act.includes("executive approval") || act.includes("executive approved")) {
     return "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
+  }
+  if (act.includes("authoriz")) {
+    return "bg-indigo-100 text-indigo-900 border-indigo-300 font-bold";
   }
   if (act.includes("endorsed") || act.includes("endors")) {
     return "bg-blue-100 text-blue-800 border-blue-300 font-bold";

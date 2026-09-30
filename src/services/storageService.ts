@@ -14,7 +14,7 @@ export const STORAGE_BUCKETS = {
   TEAM_IMAGES: "team_images",
 } as const;
 
-export type AttachmentCategory = "APF" | "Appendices" | "Clearance" | "Liquidation";
+export type AttachmentCategory = "APF" | "PCF" | "Appendices" | "Clearance" | "Liquidation";
 
 /**
  * Generates an 8-character ID-based storage segment (e.g., org_01000000, event_e1000000, user_51000000)

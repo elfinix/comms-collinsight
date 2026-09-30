@@ -12,7 +12,7 @@ import {
   SkeletonTable,
 } from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Activity, ShieldCheck } from "lucide-react";
-import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
+import { formatCurrency, formatDate, statusColors, getStatusBadgeClass } from "../../services/dataService";
 
 export default function AdviserDashboard() {
   const { currentUser } = useAuth();
@@ -20,12 +20,16 @@ export default function AdviserDashboard() {
 
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
-  const orgEvents = events.filter((e) => e.organizationId === orgId);
+  const orgEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
   const pending = orgEvents.filter((e) => e.status === "For Review");
-  const approved = orgEvents.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
-  const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
+  const approved = orgEvents.filter((e) =>
+    ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+  );
+  const totalSpent = transactions
+    .filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted)
+    .reduce((s, t) => s + t.amount, 0);
 
-  const allocated = org?.allocatedBudget ?? 0;
+  const allocated = (org?.departmentalBudget ?? 0) + (org?.organizationalBudget ?? 0) || (org?.allocatedBudget ?? 0);
   const remaining = allocated - totalSpent;
   const utilizationPct = allocated > 0 ? (totalSpent / allocated) * 100 : 0;
 
@@ -139,6 +143,7 @@ export default function AdviserDashboard() {
               <thead>
                 <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Event</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Classification</th>
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Date</th>
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Proposed Budget</th>
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Status</th>
@@ -149,13 +154,27 @@ export default function AdviserDashboard() {
                 {pending.map((e) => (
                   <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
                     <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                          {e.category || "Organizational"}
+                        </span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                          e.setting === "Off-campus"
+                            ? "bg-blue-50 text-blue-800 border border-blue-200"
+                            : "bg-amber-50 text-amber-800 border border-amber-200"
+                        }`}>
+                          {e.setting || "On-campus"}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
                     <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
                     <td className="px-5 py-4">
-                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
+                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
                     </td>
                     <td className="px-5 py-4">
-                      <SignatoryProgress status={e.status} />
+                      <SignatoryProgress status={e.status} setting={e.setting} />
                     </td>
                   </tr>
                 ))}

@@ -8,6 +8,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import OrganizationsPage from "./pages/OrganizationsPage";
 import CalendarPage from "./pages/CalendarPage";
+import SignatoryActionPage from "./pages/external/SignatoryActionPage";
 
 import StudentDashboard from "./pages/student/Dashboard";
 import StudentEvents from "./pages/student/Events";
@@ -100,6 +101,9 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/organizations" element={<OrganizationsPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/sds-action" element={<SignatoryActionPage forcedRole="sds" />} />
+            <Route path="/cmo-action" element={<SignatoryActionPage forcedRole="cmo" />} />
+            <Route path="/signatory-action" element={<SignatoryActionPage />} />
 
             {/* Student Routes */}
             <Route element={<ProtectedRoute role="student" />}>

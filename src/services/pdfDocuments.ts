@@ -123,7 +123,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   doc.setLineWidth(0.5);
   doc.line(margin, 28, pageWidth - margin, 28);
 
-  const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const viewerRole = options?.viewerRole;
 
   let showAdviserSign = false;

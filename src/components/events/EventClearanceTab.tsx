@@ -1,5 +1,5 @@
 import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Eye } from "lucide-react";
-import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories } from "../../services/dataService";
+import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories, resolvePdfUrl } from "../../services/dataService";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";
@@ -23,7 +23,7 @@ export default function EventClearanceTab({
   const { organizations, eventTypes, users, eventSignatories } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const isDeanViewing = currentUser?.role === "dean" || currentUser?.role === "admin";
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
@@ -143,12 +143,12 @@ export default function EventClearanceTab({
           </div>
         </div>
       ) : isDeanViewing ? (
-        <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-900">
+        <div className="bg-blue-50/80 border border-blue-200/90 dark:bg-blue-950/40 dark:border-blue-800/80 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-blue-900 dark:text-blue-200">
           <div className="flex items-start gap-3">
-            <Clock size={18} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+            <Clock size={18} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <div className="text-xs space-y-0.5">
-              <p className="font-bold text-emerald-950">Clearance Template Ready for Approval</p>
-              <p className="text-emerald-800/90 leading-relaxed">
+              <p className="font-bold text-blue-950 dark:text-blue-100">Clearance Template Ready for Approval</p>
+              <p className="text-blue-800/90 dark:text-blue-300/90 leading-relaxed">
                 Institutional clearance certificate will be finalized and sealed with executive digital signatories upon approval.
               </p>
             </div>
@@ -157,7 +157,7 @@ export default function EventClearanceTab({
             variant="outline"
             size="sm"
             onClick={handlePreviewClearance}
-            className="border-emerald-300 bg-emerald-100/50 text-emerald-900 hover:bg-emerald-100 font-medium text-xs gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap flex-shrink-0 self-end sm:self-center"
+            className="border-blue-300 bg-blue-100/60 text-blue-800 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-200 font-medium text-xs gap-1.5 cursor-pointer shadow-2xs whitespace-nowrap flex-shrink-0 self-end sm:self-center"
           >
             <Eye size={13} /> Preview Clearance
           </Button>
@@ -204,6 +204,16 @@ export default function EventClearanceTab({
             <p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p>
             <p className="font-medium mt-0.5">{resolvedTypeName}</p>
           </div>
+          <div>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Category</p>
+            <p className="font-medium mt-0.5 font-bold text-[var(--primary)]">{event.category || "Organizational"}</p>
+          </div>
+          <div>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Setting</p>
+            <p className="font-semibold text-blue-700 dark:text-blue-400 mt-0.5">
+              {event.setting || "On-campus"}
+            </p>
+          </div>
           <div className="sm:col-span-2">
             <p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p>
             <p className="font-medium mt-0.5">
@@ -238,6 +248,26 @@ export default function EventClearanceTab({
               ✓ {event.apfUrl ? event.apfUrl.replace(/^.*[\\/]/, '') : "Activity Proposal Form Attached"}
             </p>
           </div>
+          {event.setting === "Off-campus" && (
+            <div className="sm:col-span-2">
+              <p className="font-mono text-[var(--muted-foreground)] font-bold">Parental Consent Form (PCF)</p>
+              {event.pcfUrl ? (
+                <a
+                  href={resolvePdfUrl(event.pcfUrl, "appendix")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-amber-700 dark:text-amber-400 font-bold mt-0.5 inline-flex items-center gap-1 hover:underline"
+                >
+                  ✓ {event.pcfName || event.pcfUrl.replace(/^.*[\\/]/, '')}
+                  <ExternalLink size={11} />
+                </a>
+              ) : (
+                <p className="font-mono text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  ⚠ Parental Consent Form (PCF) Required for Off-campus events
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {event.clearanceDetails && (

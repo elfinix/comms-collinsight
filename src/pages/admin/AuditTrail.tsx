@@ -8,7 +8,7 @@ import {
   ScrollText, FileText, ArrowRight, Activity, Building2, CheckCircle,
   ChevronDown, Loader2
 } from "lucide-react";
-import { formatDateTime, getActionBadgeClass, Event, statusColors } from "../../services/dataService";
+import { formatDateTime, getActionBadgeClass, Event } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -246,6 +246,9 @@ export default function AdminAuditTrail() {
       // ── 4. BADGE COLOR MAPPER (MATCHES EXACT UI THEME) ───────────────
       const getPillColors = (action: string) => {
         const act = action.toLowerCase();
+        if (act.includes("authoriz")) {
+          return { bg: [238, 242, 255], border: [199, 210, 254], text: [49, 46, 129] }; // Indigo
+        }
         if (act.includes("approve") || act.includes("endors") || act.includes("executive")) {
           return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] }; // Emerald
         }
@@ -262,7 +265,7 @@ export default function AdminAuditTrail() {
           return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] }; // Blue
         }
         if (act.includes("disburs") || act.includes("expense") || act.includes("financ") || act.includes("record")) {
-          return { bg: [240, 253, 244], border: [187, 247, 208], text: [21, 128, 61] }; // Emerald Green
+          return { bg: [243, 232, 255], border: [216, 180, 254], text: [107, 33, 168] }; // Purple
         }
         if (act.includes("completed") || act.includes("closed") || act.includes("closure")) {
           return { bg: [241, 245, 249], border: [203, 213, 225], text: [51, 65, 85] }; // Slate

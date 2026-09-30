@@ -16,6 +16,8 @@ export interface SendClearanceEmailParams {
   deanName?: string;
   feedback?: string;
   recipientEmail?: string;
+  signatoryRole?: "sds" | "cmo";
+  actionToken?: string;
 }
 
 /**
@@ -50,7 +52,7 @@ export async function urlToBase64(url: string): Promise<string | null> {
 }
 
 /**
- * Generates the responsive, professional HTML email body for Dean Event Clearance Approval
+ * Generates the responsive, professional HTML email body for Dean / SDS / CMO Event Clearance
  */
 export function generateClearanceEmailHtml(params: {
   event: Event;
@@ -59,8 +61,10 @@ export function generateClearanceEmailHtml(params: {
   deanName: string;
   feedback?: string;
   attachmentNames: string[];
+  signatoryRole?: "sds" | "cmo";
+  actionToken?: string;
 }): string {
-  const { event, organizationName, eventTypeName, deanName, feedback, attachmentNames } = params;
+  const { event, organizationName, eventTypeName, deanName, feedback, attachmentNames, signatoryRole = "sds", actionToken } = params;
   const cleanId = event.id.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
   const docRef = event.clearanceDocRef || `CLR-${cleanId}-${new Date(event.dateStart || Date.now()).getFullYear()}`;
   const approvalDate = new Date().toLocaleString("en-US", {
@@ -79,12 +83,25 @@ export function generateClearanceEmailHtml(params: {
     ? `<a href="${toWebUrl(event.location)}" target="_blank" style="color: #ea580c; text-decoration: underline; word-break: break-all;">${event.location}</a>`
     : (event.location || (isOnline ? "Online Platform" : "Venue TBD"));
 
+  const isCmo = signatoryRole === "cmo";
+  const officeName = isCmo ? "Crisis Management Office (CMO)" : "Student Development & Services (SDS)";
+  const headerSubtitle = isCmo ? "Institutional Crisis & Safety Clearance Transmission" : "Student Affairs & Clearance Compliance Transmission";
+  const statusBannerText = isCmo ? "Dean Approved · Cleared by SDS · Pending CMO Action" : "Dean Approved · Transmitted for SDS Authorization";
+
+  // Action Portal Links
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : "https://comms-collinsight.vercel.app";
+  const tokenQuery = actionToken ? `&token=${encodeURIComponent(actionToken)}` : "";
+  const roleRoute = isCmo ? "cmo-action" : "sds-action";
+  const acceptUrl = `${baseUrl}/${roleRoute}?action=accept&event=${encodeURIComponent(event.id)}${tokenQuery}`;
+  const revisionUrl = `${baseUrl}/${roleRoute}?action=revision&event=${encodeURIComponent(event.id)}${tokenQuery}`;
+  const rejectUrl = `${baseUrl}/${roleRoute}?action=reject&event=${encodeURIComponent(event.id)}${tokenQuery}`;
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Executive Event Clearance - ${event.name}</title>
+  <title>${isCmo ? "CMO Clearance Review" : "SDS Event Clearance"} - ${event.name}</title>
   <style>
     body {
       margin: 0;
@@ -150,8 +167,6 @@ export function generateClearanceEmailHtml(params: {
       border-radius: 12px;
       padding: 16px 20px;
       margin-bottom: 24px;
-      display: flex;
-      align-items: center;
     }
     .status-pill {
       display: inline-block;
@@ -258,6 +273,36 @@ export function generateClearanceEmailHtml(params: {
       margin-right: 10px;
       font-weight: bold;
     }
+    .action-box {
+      margin: 24px 0;
+      padding: 22px 20px;
+      background-color: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      text-align: center;
+    }
+    .action-btn {
+      display: inline-block;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      margin: 4px;
+      letter-spacing: 0.3px;
+    }
+    .btn-accept {
+      background-color: #059669;
+      color: #ffffff !important;
+    }
+    .btn-revision {
+      background-color: #d97706;
+      color: #ffffff !important;
+    }
+    .btn-reject {
+      background-color: #dc2626;
+      color: #ffffff !important;
+    }
     .footer {
       background-color: #0a1128;
       padding: 24px 28px;
@@ -301,8 +346,8 @@ export function generateClearanceEmailHtml(params: {
       
       <!-- Header -->
       <div class="header">
-        <div class="header-badge">Digital Document Transmission</div>
-        <h1>Event Clearance Approved</h1>
+        <div class="header-badge">${headerSubtitle}</div>
+        <h1>${isCmo ? "Crisis & Risk Review Required" : "Event Clearance Review"}</h1>
         <p>College of Information Technology & Engineering · LCUP</p>
       </div>
 
@@ -312,14 +357,14 @@ export function generateClearanceEmailHtml(params: {
         <!-- Status Card -->
         <div class="status-card">
           <div>
-            <span class="status-pill">✓ Approved by Dean</span>
-            <p class="status-title">Executive Clearance Granted</p>
-            <p class="status-desc">The digital clearance certificate and endorsed activity proposal have been transmitted for SDS compliance archiving.</p>
+            <span class="status-pill">${statusBannerText}</span>
+            <p class="status-title">${isCmo ? "Awaiting CMO Institutional Endorsement" : "Executive Clearance Transmitted"}</p>
+            <p class="status-desc">The activity proposal and compliance forms have been endorsed for ${officeName} review.</p>
           </div>
         </div>
 
         <!-- Event Metadata -->
-        <div class="section-title">Event Summary & Clearance Details</div>
+        <div class="section-title">Event Summary & Classification</div>
         <table class="meta-table">
           <tr>
             <td class="meta-label">Document Reference</td>
@@ -336,6 +381,10 @@ export function generateClearanceEmailHtml(params: {
           <tr>
             <td class="meta-label">Classification / Type</td>
             <td class="meta-value">${eventTypeName}</td>
+          </tr>
+          <tr>
+            <td class="meta-label">Category & Setting</td>
+            <td class="meta-value"><strong>${event.category || "Organizational"}</strong> · <span style="color: ${event.setting === "Off-campus" ? "#ea580c" : "#059669"}; font-weight: bold;">${event.setting || "On-campus"}</span></td>
           </tr>
           <tr>
             <td class="meta-label">Event Mode</td>
@@ -389,8 +438,23 @@ export function generateClearanceEmailHtml(params: {
             .join("")}
         </div>
 
+        <!-- 3 Interactive Action Buttons -->
+        <div class="action-box">
+          <p style="font-size: 13px; font-weight: 800; color: #0f172a; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+            ${officeName} Action
+          </p>
+          <div>
+            <a href="${acceptUrl}" target="_blank" class="action-btn btn-accept">✓ Accept & Authorize</a>
+            <a href="${revisionUrl}" target="_blank" class="action-btn btn-revision">✎ Request Revision</a>
+            <a href="${rejectUrl}" target="_blank" class="action-btn btn-reject">✕ Reject Proposal</a>
+          </div>
+          <p style="font-size: 11px; color: #64748b; margin: 12px 0 0 0;">
+            Clicking any button securely opens the institutional clearance verification portal.
+          </p>
+        </div>
+
         <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
-          <strong>Note for Student Development & Services (SDS):</strong> The attached Clearance Certificate and Activity Proposal Form (APF) represent verified, finalized executive clearance from the College Dean.
+          <strong>Note for ${officeName}:</strong> The attached Clearance Certificate and Activity Proposal Form (APF)${event.setting === "Off-campus" ? " and Parental Consent Form (PCF)" : ""} represent verified executive clearance from the College Dean.
         </p>
 
       </div>
@@ -417,7 +481,7 @@ export function generateClearanceEmailHtml(params: {
 }
 
 /**
- * Dispatches the complete Clearance email with all attachments (Clearance, APF, Appendices)
+ * Dispatches the complete Clearance email with all attachments (Clearance, APF, PCF if off-campus, Appendices)
  */
 export async function dispatchClearanceEmail(params: SendClearanceEmailParams): Promise<{
   success: boolean;
@@ -426,7 +490,18 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
   error?: string;
 }> {
   const resolvedEventTypeName = params.eventTypeName || getEventTypeById(params.event.typeId)?.name || "Academic Seminar";
-  const { event, organizationName = "Student Organization", eventTypeName = resolvedEventTypeName, officerName, adviserName, deanName = "Dr. Marilou Castro Villanueva, Ph.D.", feedback, recipientEmail } = params;
+  const {
+    event,
+    organizationName = "Student Organization",
+    eventTypeName = resolvedEventTypeName,
+    officerName,
+    adviserName,
+    deanName = "Dr. Marilou Castro Villanueva, Ph.D.",
+    feedback,
+    recipientEmail,
+    signatoryRole = "sds",
+    actionToken,
+  } = params;
 
   try {
     const attachments: ClearanceEmailAttachment[] = [];
@@ -464,7 +539,21 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
       }
     }
 
-    // 3. Fetch and attach all Appendices (if any, preserving numerical order)
+    // 3. Fetch and attach PCF (Parental Consent Form) for Off-campus events
+    if (event.setting === "Off-campus" && event.pcfUrl) {
+      const pcfResolvedUrl = resolvePdfUrl(event.pcfUrl, "appendix");
+      const pcfBase64 = await urlToBase64(pcfResolvedUrl);
+      if (pcfBase64) {
+        const pcfCleanName = event.pcfName || `PCF_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+        attachments.push({
+          filename: pcfCleanName,
+          contentBase64: pcfBase64,
+          contentType: "application/pdf",
+        });
+      }
+    }
+
+    // 4. Fetch and attach all Appendices (if any, preserving numerical order)
     if (event.appendices && event.appendices.length > 0) {
       const appendixAttachments = await Promise.all(
         event.appendices.map(async (appendixUrl, idx) => {
@@ -493,7 +582,7 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
       }
     }
 
-    // 4. Generate Branded HTML Body
+    // 5. Generate Branded HTML Body with Action Buttons
     const attachmentNames = attachments.map((a) => a.filename);
     const html = generateClearanceEmailHtml({
       event,
@@ -502,16 +591,21 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
       deanName,
       feedback,
       attachmentNames,
+      signatoryRole,
+      actionToken,
     });
 
-    const subject = `[CLEARANCE APPROVED] ${event.name} — ${organizationName}`;
+    const isCmo = signatoryRole === "cmo";
+    const subject = isCmo
+      ? `[CMO CRISIS CLEARANCE] ${event.name} — ${organizationName}`
+      : `[CLEARANCE APPROVED] ${event.name} — ${organizationName}`;
 
-    // 5. Send to API endpoint
+    // 6. Send to API endpoint
     const response = await fetch("/api/send-clearance-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        to: recipientEmail, // If empty, backend defaults to GMAIL_TO_EMAIL or projectcollinsight@gmail.com
+        to: recipientEmail,
         subject,
         html,
         attachments,
@@ -524,7 +618,7 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
       return { success: false, error: result.error || "Email dispatch failed." };
     }
 
-    console.log("[Mailer] Successfully dispatched email:", result);
+    console.log("[Mailer] Successfully dispatched clearance email:", result);
     return {
       success: true,
       to: result.to,
@@ -534,4 +628,12 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
     console.error("[Mailer] Unexpected error during clearance email dispatch:", err);
     return { success: false, error: err.message || "Failed to dispatch clearance email." };
   }
+}
+
+export async function dispatchSdsClearanceEmail(params: SendClearanceEmailParams) {
+  return dispatchClearanceEmail({ ...params, signatoryRole: "sds" });
+}
+
+export async function dispatchCmoClearanceEmail(params: SendClearanceEmailParams) {
+  return dispatchClearanceEmail({ ...params, signatoryRole: "cmo" });
 }

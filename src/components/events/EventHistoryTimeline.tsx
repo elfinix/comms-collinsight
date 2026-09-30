@@ -1,5 +1,5 @@
 import { useApp } from "../../context/AppContext";
-import { formatDateTime, Event, getActionBadgeClass, formatUserRole } from "../../services/dataService";
+import { formatDateTime, Event, EventStatus, getActionBadgeClass, getStatusBadgeClass, formatUserRole } from "../../services/dataService";
 import {
   Clock, CheckCircle, RotateCcw, MessageSquareQuote, FileText,
   User, Shield, DollarSign, Send, ArrowRight, Edit2, Trash2
@@ -28,6 +28,9 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
 
   function getActionIcon(action: string) {
     const act = action.toLowerCase();
+    if (act.includes("authoriz")) {
+      return <CheckCircle size={13} className="text-indigo-600" />;
+    }
     if (act.includes("approve") || act.includes("endors")) {
       return <CheckCircle size={13} className="text-emerald-600" />;
     }
@@ -132,7 +135,7 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
                     )}
                     {entry.statusFrom && entry.statusTo && <ArrowRight size={11} className="text-[var(--muted-foreground)]" />}
                     {entry.statusTo && (
-                      <span className={`px-1.5 py-0.5 rounded font-bold border ${entry.statusTo === "Approved" ? "bg-emerald-50 text-emerald-800 border-emerald-200" : "bg-orange-50 text-[var(--primary)] border-orange-200"}`}>
+                      <span className={`px-2 py-0.5 rounded font-bold border ${getStatusBadgeClass(entry.statusTo as EventStatus, activeEvent?.setting)}`}>
                         {entry.statusTo}
                       </span>
                     )}
@@ -143,7 +146,9 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
                 {entry.remarks && (
                   <div
                     className={`mt-2 border-l-4 rounded-r-lg p-2.5 text-xs flex items-start gap-2 ${
-                      entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
+                      entry.action.toLowerCase().includes("authoriz") || entry.statusTo?.includes("Authorized")
+                        ? "bg-indigo-50/80 border-indigo-500 text-indigo-950 dark:bg-indigo-950/40 dark:border-indigo-600 dark:text-indigo-200"
+                        : entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
                         ? "bg-emerald-50/80 border-emerald-500 text-emerald-950"
                         : "bg-amber-50/70 border-amber-400 text-amber-900"
                     }`}
@@ -151,7 +156,9 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
                     <MessageSquareQuote
                       size={14}
                       className={`flex-shrink-0 mt-0.5 ${
-                        entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
+                        entry.action.toLowerCase().includes("authoriz") || entry.statusTo?.includes("Authorized")
+                          ? "text-indigo-600 dark:text-indigo-400"
+                          : entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
                           ? "text-emerald-600"
                           : "text-amber-600"
                       }`}

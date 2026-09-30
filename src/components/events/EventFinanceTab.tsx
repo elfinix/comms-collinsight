@@ -30,7 +30,7 @@ export default function EventFinanceTab({
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const isApproved = ["Approved", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const isClosed = event.status === "Closed";
 
   const eventTxns = transactions.filter((t) => t.eventId === event.id && !t.deleted);

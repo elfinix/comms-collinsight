@@ -9,7 +9,7 @@ import {
   ArrowUpNarrowWide, ArrowDownWideNarrow, Trash2, Edit2, DollarSign
 } from "lucide-react";
 import {
-  formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getEventTypeById,
+  formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, getEventTypeById,
   Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass, formatUserRole
 } from "../services/dataService";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
@@ -17,13 +17,14 @@ import EventClearanceTab from "../components/events/EventClearanceTab";
 import EventFinanceTab from "../components/events/EventFinanceTab";
 
 type DateRangeType = "today" | "7days" | "month" | "all";
-type ActionFilterType = "ALL" | "CREATE" | "SUBMIT" | "APPROVE" | "REVISION" | "MODIFIED" | "FINANCE" | "CLOSURE";
+type ActionFilterType = "ALL" | "CREATE" | "SUBMIT" | "APPROVE" | "AUTHORIZED" | "REVISION" | "MODIFIED" | "FINANCE" | "CLOSURE";
 
 const ACTION_FILTERS: { id: ActionFilterType; label: string }[] = [
   { id: "ALL", label: "All" },
   { id: "CREATE", label: "Created Proposals" },
   { id: "SUBMIT", label: "For Review" },
   { id: "APPROVE", label: "Approvals & Endorsements" },
+  { id: "AUTHORIZED", label: "Authorized" },
   { id: "REVISION", label: "Revision Requests" },
   { id: "MODIFIED", label: "Edits & Deletions" },
   { id: "FINANCE", label: "Financial Records" },
@@ -32,7 +33,7 @@ const ACTION_FILTERS: { id: ActionFilterType; label: string }[] = [
 
 export default function HistoryPage() {
   const { currentUser } = useAuth();
-  const { auditTrail, events, eventTypes, users, transactions, isLoading } = useApp();
+  const { auditTrail, events, eventTypes, organizations, users, transactions, isLoading } = useApp();
 
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<DateRangeType>("7days"); // Default: Last 7 days
@@ -125,6 +126,14 @@ export default function HistoryPage() {
       let matchesAction = true;
       if (actionFilter === "APPROVE") {
         matchesAction = act.includes("approve") || act.includes("endors") || act.includes("executive");
+      } else if (actionFilter === "AUTHORIZED") {
+        matchesAction =
+          act.includes("authorized") ||
+          act.includes("clearance") ||
+          entry.statusTo === "SDS Authorized" ||
+          entry.statusTo === "CMO Authorized" ||
+          entry.actorRole === "sds" ||
+          entry.actorRole === "cmo";
       } else if (actionFilter === "REVISION") {
         matchesAction = act.includes("revision") || act.includes("change");
       } else if (actionFilter === "SUBMIT") {
@@ -329,8 +338,8 @@ export default function HistoryPage() {
             })}
           </div>
 
-          <span className="text-xs font-mono text-[var(--muted-foreground)] ml-auto flex-shrink-0">
-            Showing <strong className="text-[var(--foreground)]">{visibleEntries.length}</strong> of {filteredAndSortedEntries.length} activities
+          <span className="text-xs font-mono text-[var(--muted-foreground)] ml-auto flex-shrink-0 font-medium">
+            <strong className="text-[var(--foreground)] font-bold">{visibleEntries.length}</strong> of {filteredAndSortedEntries.length}
           </span>
         </div>
       </div>
@@ -432,7 +441,7 @@ export default function HistoryPage() {
                           )}
                           {entry.statusFrom && entry.statusTo && <ArrowRight size={11} className="text-[var(--muted-foreground)]" />}
                           {entry.statusTo && (
-                            <span className={`px-2 py-0.5 rounded font-bold border ${statusColors[entry.statusTo as EventStatus] || "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                            <span className={`px-2 py-0.5 rounded font-bold border ${getStatusBadgeClass(entry.statusTo as EventStatus, evt?.setting)}`}>
                               {entry.statusTo}
                             </span>
                           )}
@@ -442,7 +451,9 @@ export default function HistoryPage() {
                       {entry.remarks && (
                         <div
                           className={`border-l-4 p-3 rounded-r-xl text-xs leading-relaxed ${
-                            entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
+                            entry.action.toLowerCase().includes("authoriz") || entry.statusTo?.includes("Authorized")
+                              ? "bg-indigo-50/80 border-indigo-500 text-indigo-950 dark:bg-indigo-950/40 dark:border-indigo-600 dark:text-indigo-200"
+                              : entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
                               ? "bg-emerald-50/80 border-emerald-500 text-emerald-950"
                               : "bg-amber-50/80 border-amber-400 text-amber-900"
                           }`}
@@ -545,7 +556,7 @@ export default function HistoryPage() {
                             <span className="text-xs text-[var(--muted-foreground)] font-mono">System Record</span>
                           )}
                           {evt && (
-                            <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${statusColors[evt.status] || "bg-slate-100 text-slate-700 border-slate-300"}`}>
+                            <span className={`inline-block mt-1 text-[10px] font-mono px-2 py-0.5 rounded-full border ${getStatusBadgeClass(evt.status, evt.setting)}`}>
                               {evt.status}
                             </span>
                           )}
@@ -572,7 +583,9 @@ export default function HistoryPage() {
                           {entry.remarks && (
                             <div
                               className={`border-l-2 p-2 rounded text-[11px] leading-relaxed ${
-                                entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
+                                entry.action.toLowerCase().includes("authoriz") || entry.statusTo?.includes("Authorized")
+                                  ? "bg-indigo-50 border-indigo-500 text-indigo-950 dark:bg-indigo-950/40 dark:border-indigo-600 dark:text-indigo-200"
+                                  : entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors") || entry.action.toLowerCase().includes("executive") || entry.statusTo === "Approved"
                                   ? "bg-emerald-50 border-emerald-500 text-emerald-950"
                                   : "bg-amber-50 border-amber-400 text-amber-900"
                               }`}
@@ -621,16 +634,16 @@ export default function HistoryPage() {
         >
           <div className="flex flex-col min-h-0 flex-1">
             {/* Modal Header */}
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs">
+            <div className="sticky top-0 z-20 bg-white px-6 pt-4 shadow-2xs">
               <div className="flex items-center gap-3 pb-3">
-                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[selectedEvent.status]}`}>
+                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(selectedEvent.status, selectedEvent.setting)}`}>
                   {selectedEvent.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <SignatoryProgress status={selectedEvent.status} />
+                  <SignatoryProgress status={selectedEvent.status} setting={selectedEvent.setting} />
                 </div>
               </div>
-              <Tabs tabs={dialogTabs} activeTab={dialogTab} onChange={setDialogTab} />
+              <Tabs tabs={dialogTabs} activeTab={dialogTab} onChange={setDialogTab} className="-mx-6 px-6" />
             </div>
 
             {/* Modal Body */}
@@ -646,23 +659,31 @@ export default function HistoryPage() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p>
                     <p className="font-medium">{eventTypes.find((t) => t.id === selectedEvent.typeId)?.name || getEventTypeById(selectedEvent.typeId)?.name || "General Event"}</p>
                   </div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
-                    <p className="leading-relaxed">{selectedEvent.description || "—"}</p>
+                  <div>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Category</p>
+                    <p className="font-semibold text-orange-700">{selectedEvent.category || "Organizational"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Proposed Budget</p>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p>
+                    <p className="font-semibold text-blue-700">{selectedEvent.setting || "On-campus"}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
+                    <p>{selectedEvent.description || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p>
                     <p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(selectedEvent.proposedBudget)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p>
                     <p>{selectedEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p>
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p>
                     <p className="font-medium">{formatEventSchedule(selectedEvent.dateStart, selectedEvent.dateEnd)}</p>
                   </div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
                       {selectedEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
@@ -674,15 +695,19 @@ export default function HistoryPage() {
                         className="inline-flex items-center gap-1.5 text-[var(--primary)] hover:underline underline-offset-2 font-medium break-all"
                       >
                         {selectedEvent.location}
-                        <ExternalLink size={12} className="flex-shrink-0 text-[var(--primary)]" />
+                        <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                       </a>
                     ) : (
-                      <p className="font-medium">{selectedEvent.location || (selectedEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
+                      <p className="font-medium">{selectedEvent.location || "—"}</p>
                     )}
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
                     <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{selectedEvent.requisites || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p>
+                    <p className="font-semibold text-[var(--foreground)]">{organizations.find(o => o.id === selectedEvent.organizationId)?.name}</p>
                   </div>
                 </div>
               )}
@@ -709,6 +734,31 @@ export default function HistoryPage() {
                       <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>
                     )}
                   </div>
+
+                  {/* Parental Consent Form (PCF) for Off-campus events */}
+                  {selectedEvent.setting === "Off-campus" && (
+                    <div className="bg-[var(--muted)] rounded-xl p-4">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">
+                        PCF (Parental Consent Form) · For Off-campus Events
+                      </p>
+                      {selectedEvent.pcfUrl ? (
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          <a
+                            href={resolvePdfUrl(selectedEvent.pcfUrl, "pcf")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                          >
+                            <span>{selectedEvent.pcfName || selectedEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                            <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">
                       Appendices ({selectedEvent.appendices?.length ?? 0})

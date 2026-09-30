@@ -9,7 +9,7 @@ import {
   Paperclip, FileCheck, ExternalLink, Calendar, MapPin
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, formatDateTime, statusColors,
+  formatCurrency, formatDate, formatDateTime, statusColors, getStatusBadgeClass,
   getCategoryById, expenditureCategories, Transaction, Event, resolvePdfUrl, resolveEventSignatories
 } from "../../services/dataService";
 import {
@@ -432,8 +432,14 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
           <div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-bold text-[var(--foreground)] leading-tight">{activeEvent.name}</h1>
-              <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold shadow-2xs flex-shrink-0 ${statusColors[activeEvent.status]}`}>
+              <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(activeEvent.status, activeEvent.setting)}`}>
                 {activeEvent.status}
+              </span>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded-md font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                {activeEvent.category || "Organizational"}
+              </span>
+              <span className={`text-xs font-mono px-2.5 py-0.5 rounded-md font-bold border ${activeEvent.setting === "Off-campus" ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-blue-50 text-blue-700 border-blue-200"}`}>
+                {activeEvent.setting || "On-campus"}
               </span>
             </div>
             <p className="text-xs text-[var(--muted-foreground)] font-mono mt-1">
@@ -496,7 +502,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       {/* Action Bar */}
       {!readOnly && (
         <div className="flex items-center justify-end gap-3 flex-wrap mb-6">
-          {activeEvent.status === "Approved" && (
+          {["Approved", "SDS Authorized", "CMO Authorized"].includes(activeEvent.status) && (
             <Button
               variant="ghost"
               onClick={() => setShowCompleteEventConfirm(true)}
@@ -506,11 +512,11 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             </Button>
           )}
           {activeEvent.status === "Completed" && (
-            <Button variant="success" onClick={() => setShowLiquidationConfirm(true)}>
+            <Button variant="primary" onClick={() => setShowLiquidationConfirm(true)}>
               <CheckCircle size={14} /> Complete Liquidation
             </Button>
           )}
-          {activeEvent.status !== "Closed" && (
+          {["Approved", "SDS Authorized", "CMO Authorized", "Completed"].includes(activeEvent.status) && (
             <Button onClick={handleOpenAddRecord}>
               <Plus size={16} /> Add Record
             </Button>
@@ -1027,7 +1033,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             <Button variant="outline" onClick={() => setShowCompleteEventConfirm(false)}>
               Cancel
             </Button>
-            <Button variant="success" onClick={handleCompleteEvent}>
+            <Button variant="primary" onClick={handleCompleteEvent}>
               <CheckCircle size={14} /> Yes, Complete Event
             </Button>
           </div>
@@ -1054,7 +1060,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowLiquidationConfirm(false)}>Cancel</Button>
-            <Button variant="success" onClick={handleCompleteLiquidation}>
+            <Button variant="primary" onClick={handleCompleteLiquidation}>
               <CheckCircle size={14} /> Finalize & Generate PDF
             </Button>
           </div>
@@ -1298,7 +1304,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
             <Button variant="outline" size="sm" onClick={() => setShowPdfModal(false)}>
               Close
             </Button>
-            <Button variant="success" size="sm" onClick={handleTriggerOpenPdf} className="gap-1.5">
+            <Button variant="primary" size="sm" onClick={handleTriggerOpenPdf} className="gap-1.5">
               <ExternalLink size={14} /> Open PDF
             </Button>
           </div>

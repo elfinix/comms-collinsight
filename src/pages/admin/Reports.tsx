@@ -451,7 +451,7 @@ export default function AdminReports() {
           size="xl"
         >
           <div className="p-6 flex flex-col gap-4">
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs">
+            <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs">
               <div className="flex items-center gap-2">
                 <CheckCircle size={16} className="text-emerald-600 flex-shrink-0" />
                 <span>

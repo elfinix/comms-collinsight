@@ -11,7 +11,7 @@ import {
 } from "../../components/ui";
 import { Calendar, CheckCircle, Clock, Wallet, Landmark, Award } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { formatCurrency, statusColors, formatDate } from "../../services/dataService";
+import { formatCurrency, statusColors, getStatusBadgeClass, formatDate } from "../../services/dataService";
 
 export default function DeanDashboard() {
   const { events, transactions, organizations, isLoading } = useApp();
@@ -139,7 +139,7 @@ export default function DeanDashboard() {
                     <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
                     <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
                     <td className="px-5 py-4">
-                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
+                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
                     </td>
                   </tr>
                 ))}

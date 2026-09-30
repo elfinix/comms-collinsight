@@ -10,6 +10,7 @@ import {
   AuditEntry,
   OrganizationMember,
   EventSignatory,
+  Initiative,
 } from "./dataService";
 
 // ============================================================================
@@ -34,6 +35,9 @@ export function mapOrganizationFromDb(row: any): Organization {
     code: row.code,
     departmentId: row.department_id,
     allocatedBudget: Number(row.allocated_budget || 0),
+    departmentalBudget: Number(row.departmental_budget || row.allocated_budget || 0),
+    organizationalBudget: Number(row.organizational_budget || 0),
+    memberCount: Number(row.member_count || 0),
     adviserId: row.adviser_id || "",
     logoColor: row.logo_color || "#ea580c",
     description: row.description || "",
@@ -81,12 +85,38 @@ export function mapCategoryFromDb(row: any): ExpenditureCategory {
   };
 }
 
+export function mapInitiativeFromDb(row: any): Initiative {
+  const rev = Number(row.gross_revenue || 0);
+  const exp = Number(row.expenses || 0);
+  const net = Number(row.net_profit || (rev - exp));
+  return {
+    id: row.id,
+    organizationId: row.organization_id,
+    name: row.name,
+    title: row.name,
+    source: row.source || "Other",
+    grossRevenue: rev,
+    expenses: exp,
+    netProfit: net,
+    amount: net > 0 ? net : rev,
+    date: row.date || row.created_at || new Date().toISOString(),
+    description: row.description || "",
+    notes: row.notes || "",
+    eventId: row.event_id || undefined,
+    createdBy: row.created_by || undefined,
+    createdAt: row.created_at || new Date().toISOString(),
+    deleted: row.deleted ?? false,
+  };
+}
+
 export function mapEventFromDb(row: any): Event {
   return {
     id: row.id,
     organizationId: row.organization_id,
     name: row.name,
     typeId: row.type_id,
+    category: row.category || "Organizational",
+    setting: row.setting || "On-campus",
     description: row.description || "",
     proposedBudget: Number(row.proposed_budget || 0),
     requisites: row.requisites || "",
@@ -95,6 +125,12 @@ export function mapEventFromDb(row: any): Event {
     mode: row.mode || "FTF",
     location: row.location || "",
     apfUrl: row.apf_url || undefined,
+    pcfUrl: row.pcf_url || undefined,
+    pcfName: row.pcf_name || undefined,
+    sdsActionToken: row.sds_action_token || undefined,
+    cmoActionToken: row.cmo_action_token || undefined,
+    sdsFeedback: row.sds_feedback || undefined,
+    cmoFeedback: row.cmo_feedback || undefined,
     appendices: Array.isArray(row.appendices) ? row.appendices : [],
     clearanceDetails: row.clearance_details || undefined,
     clearanceDocRef: row.clearance_doc_ref || undefined,
@@ -182,6 +218,7 @@ export const supabaseApi = {
         txnsRes,
         auditRes,
         sigsRes,
+        initsRes,
       ] = await Promise.all([
         supabase.from("departments").select("*").order("name"),
         supabase.from("organizations").select("*").order("name"),
@@ -192,6 +229,7 @@ export const supabaseApi = {
         supabase.from("transactions").select("*").order("created_at", { ascending: false }),
         supabase.from("audit_trail").select("*").order("timestamp", { ascending: false }),
         supabase.from("event_signatories").select("*").order("created_at", { ascending: true }),
+        supabase.from("initiatives").select("*").order("date", { ascending: false }),
       ]);
 
       if (deptsRes.error) {
@@ -208,6 +246,7 @@ export const supabaseApi = {
         transactions: (txnsRes.data || []).map(mapTransactionFromDb),
         auditTrail: (auditRes.data || []).map(mapAuditEntryFromDb),
         eventSignatories: (sigsRes.data || []).map(mapEventSignatoryFromDb),
+        initiatives: (initsRes.data || []).map(mapInitiativeFromDb),
       };
     } catch (err) {
       console.error("Supabase fetchAllState failed:", err);
@@ -224,6 +263,8 @@ export const supabaseApi = {
       organization_id: event.organizationId,
       name: event.name,
       type_id: event.typeId,
+      category: event.category || "Organizational",
+      setting: event.setting || "On-campus",
       description: event.description,
       proposed_budget: event.proposedBudget,
       requisites: event.requisites,
@@ -232,6 +273,12 @@ export const supabaseApi = {
       mode: event.mode,
       location: event.location,
       apf_url: event.apfUrl || null,
+      pcf_url: event.pcfUrl || null,
+      pcf_name: event.pcfName || null,
+      sds_action_token: event.sdsActionToken || null,
+      cmo_action_token: event.cmoActionToken || null,
+      sds_feedback: event.sdsFeedback || null,
+      cmo_feedback: event.cmoFeedback || null,
       appendices: event.appendices || [],
       clearance_details: event.clearanceDetails || null,
       clearance_doc_ref: event.clearanceDocRef || null,
@@ -251,6 +298,8 @@ export const supabaseApi = {
     const dbPayload: any = {};
     if (updates.name !== undefined) dbPayload.name = updates.name;
     if (updates.typeId !== undefined) dbPayload.type_id = updates.typeId;
+    if (updates.category !== undefined) dbPayload.category = updates.category;
+    if (updates.setting !== undefined) dbPayload.setting = updates.setting;
     if (updates.description !== undefined) dbPayload.description = updates.description;
     if (updates.proposedBudget !== undefined) dbPayload.proposed_budget = updates.proposedBudget;
     if (updates.requisites !== undefined) dbPayload.requisites = updates.requisites;
@@ -259,6 +308,12 @@ export const supabaseApi = {
     if (updates.mode !== undefined) dbPayload.mode = updates.mode;
     if (updates.location !== undefined) dbPayload.location = updates.location;
     if (updates.apfUrl !== undefined) dbPayload.apf_url = updates.apfUrl;
+    if (updates.pcfUrl !== undefined) dbPayload.pcf_url = updates.pcfUrl;
+    if (updates.pcfName !== undefined) dbPayload.pcf_name = updates.pcfName;
+    if (updates.sdsActionToken !== undefined) dbPayload.sds_action_token = updates.sdsActionToken;
+    if (updates.cmoActionToken !== undefined) dbPayload.cmo_action_token = updates.cmoActionToken;
+    if (updates.sdsFeedback !== undefined) dbPayload.sds_feedback = updates.sdsFeedback;
+    if (updates.cmoFeedback !== undefined) dbPayload.cmo_feedback = updates.cmoFeedback;
     if (updates.appendices !== undefined) dbPayload.appendices = updates.appendices;
     if (updates.clearanceDetails !== undefined) dbPayload.clearance_details = updates.clearanceDetails;
     if (updates.clearanceDocRef !== undefined) dbPayload.clearance_doc_ref = updates.clearanceDocRef;
@@ -274,6 +329,56 @@ export const supabaseApi = {
 
   async softDeleteEvent(id: string) {
     return supabase.from("events").update({ deleted: true }).eq("id", id);
+  },
+
+  // --------------------------------------------------------------------------
+  // Initiatives API (Organizational Revenues, Membership Fees & Grants)
+  // --------------------------------------------------------------------------
+  async createInitiative(initiative: Initiative) {
+    const effectiveName = initiative.name || initiative.title || "Initiative";
+    const effectiveAmt = initiative.amount ?? initiative.netProfit ?? initiative.grossRevenue ?? 0;
+    const dbPayload = {
+      id: initiative.id,
+      organization_id: initiative.organizationId,
+      name: effectiveName,
+      source: initiative.source,
+      gross_revenue: initiative.grossRevenue ?? effectiveAmt,
+      expenses: initiative.expenses ?? 0,
+      net_profit: initiative.netProfit ?? effectiveAmt,
+      date: initiative.date,
+      description: initiative.description || "",
+      notes: initiative.notes || "",
+      event_id: initiative.eventId || null,
+      created_by: initiative.createdBy || null,
+      created_at: initiative.createdAt || new Date().toISOString(),
+      deleted: initiative.deleted || false,
+    };
+    return supabase.from("initiatives").upsert(dbPayload).select();
+  },
+
+  async updateInitiative(id: string, updates: Partial<Initiative>) {
+    const dbPayload: any = {};
+    if (updates.name !== undefined) dbPayload.name = updates.name;
+    if (updates.title !== undefined) dbPayload.name = updates.title;
+    if (updates.source !== undefined) dbPayload.source = updates.source;
+    if (updates.grossRevenue !== undefined) dbPayload.gross_revenue = updates.grossRevenue;
+    if (updates.expenses !== undefined) dbPayload.expenses = updates.expenses;
+    if (updates.netProfit !== undefined) dbPayload.net_profit = updates.netProfit;
+    if (updates.amount !== undefined) {
+      dbPayload.gross_revenue = updates.amount;
+      dbPayload.net_profit = updates.amount;
+    }
+    if (updates.date !== undefined) dbPayload.date = updates.date;
+    if (updates.description !== undefined) dbPayload.description = updates.description;
+    if (updates.notes !== undefined) dbPayload.notes = updates.notes;
+    if (updates.eventId !== undefined) dbPayload.event_id = updates.eventId;
+    if (updates.deleted !== undefined) dbPayload.deleted = updates.deleted;
+
+    return supabase.from("initiatives").update(dbPayload).eq("id", id).select();
+  },
+
+  async softDeleteInitiative(id: string) {
+    return supabase.from("initiatives").update({ deleted: true }).eq("id", id);
   },
 
   // --------------------------------------------------------------------------
@@ -402,6 +507,9 @@ export const supabaseApi = {
       code: org.code,
       department_id: org.departmentId || null,
       allocated_budget: org.allocatedBudget,
+      departmental_budget: org.departmentalBudget ?? org.allocatedBudget,
+      organizational_budget: org.organizationalBudget ?? 0,
+      member_count: org.memberCount ?? 0,
       adviser_id: org.adviserId || null,
       logo_color: org.logoColor || "#ea580c",
       description: org.description || "",
@@ -417,6 +525,9 @@ export const supabaseApi = {
     if (updates.code !== undefined) dbPayload.code = updates.code;
     if (updates.departmentId !== undefined) dbPayload.department_id = updates.departmentId;
     if (updates.allocatedBudget !== undefined) dbPayload.allocated_budget = updates.allocatedBudget;
+    if (updates.departmentalBudget !== undefined) dbPayload.departmental_budget = updates.departmentalBudget;
+    if (updates.organizationalBudget !== undefined) dbPayload.organizational_budget = updates.organizationalBudget;
+    if (updates.memberCount !== undefined) dbPayload.member_count = updates.memberCount;
     if (updates.adviserId !== undefined) dbPayload.adviser_id = updates.adviserId || null;
     if (updates.logoColor !== undefined) dbPayload.logo_color = updates.logoColor;
     if (updates.description !== undefined) dbPayload.description = updates.description;

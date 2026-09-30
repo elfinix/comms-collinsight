@@ -20,14 +20,14 @@ import {
   Building2, X, RotateCcw
 } from "lucide-react";
 import {
-  formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, Event,
+  formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, getStatusBadgeClass, Event,
   getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../../services/dataService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
-const STATUS_FILTERS = ["All", "Approved", "Completed", "Closed"] as const;
+const STATUS_FILTERS = ["All", "Approved", "Authorized", "Completed", "Closed"] as const;
 type StatusFilterType = (typeof STATUS_FILTERS)[number];
 
 export default function DeanApprovedEvents() {
@@ -49,7 +49,7 @@ export default function DeanApprovedEvents() {
   };
 
   const baseApproved = useMemo(() => {
-    return events.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
+    return events.filter((e) => ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
   }, [events]);
 
   const totalSpent = useMemo(() => {
@@ -74,7 +74,13 @@ export default function DeanApprovedEvents() {
     return baseApproved
       .filter((e) => {
         // Status filter
-        if (statusFilter !== "All" && e.status !== statusFilter) return false;
+        if (statusFilter !== "All") {
+          if (statusFilter === "Authorized") {
+            if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+          } else if (e.status !== statusFilter) {
+            return false;
+          }
+        }
 
         // Org filter
         if (orgFilter !== "all" && e.organizationId !== orgFilter) return false;
@@ -132,8 +138,8 @@ export default function DeanApprovedEvents() {
   }
 
   const viewTabs = [
-    { id: "details", label: "Details" },
-    { id: "compliance", label: "Compliance Docs" },
+    { id: "details", label: "Event Details" },
+    { id: "compliance", label: "Event Compliance" },
     { id: "clearance", label: "Event Clearance", dividerAfter: true },
     { id: "history", label: "History" },
     { id: "finance", label: "Finance" },
@@ -289,9 +295,12 @@ export default function DeanApprovedEvents() {
             </span>
             {STATUS_FILTERS.map((s) => {
               const isActive = statusFilter === s;
-              const count = s === "All"
-                ? baseApproved.length
-                : baseApproved.filter((e) => e.status === s).length;
+              const count =
+                s === "All"
+                  ? baseApproved.length
+                  : s === "Authorized"
+                  ? baseApproved.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                  : baseApproved.filter((e) => e.status === s).length;
 
               return (
                 <button
@@ -360,7 +369,7 @@ export default function DeanApprovedEvents() {
               >
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                    <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadgeClass(e.status, e.setting)}`}>
                       {e.status}
                     </span>
                     <span
@@ -393,6 +402,20 @@ export default function DeanApprovedEvents() {
                         <span className="truncate">{e.location}</span>
                       </p>
                     </div>
+
+                    {/* Event Classifications */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                        {e.category || "Organizational"}
+                      </span>
+                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full ${
+                        e.setting === "Off-campus"
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}>
+                        {e.setting || "On-campus"}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 p-2.5 rounded-xl bg-[var(--muted)]/30 border border-[var(--border)] font-mono text-xs">
@@ -407,7 +430,7 @@ export default function DeanApprovedEvents() {
                   </div>
 
                   <div className="pt-4 pb-1 border-t border-[var(--border)]/60">
-                    <SignatoryProgress status={e.status} />
+                    <SignatoryProgress status={e.status} setting={e.setting} />
                   </div>
                 </div>
 
@@ -454,6 +477,18 @@ export default function DeanApprovedEvents() {
                         >
                           {e.name}
                         </button>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.2 rounded-md bg-orange-50 text-orange-800 border border-orange-200">
+                            {e.category || "Organizational"}
+                          </span>
+                          <span className={`text-[10px] font-mono font-medium px-2 py-0.2 rounded-md ${
+                            e.setting === "Off-campus"
+                              ? "bg-blue-50 text-blue-800 border border-blue-200"
+                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                          }`}>
+                            {e.setting || "On-campus"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3.5 text-xs font-mono text-[var(--muted-foreground)]">
                         <span
@@ -471,7 +506,7 @@ export default function DeanApprovedEvents() {
                       <td className="px-4 py-3.5 font-mono text-xs">{formatCurrency(e.proposedBudget)}</td>
                       <td className="px-4 py-3.5 font-mono text-xs text-[var(--primary)] font-semibold">{formatCurrency(spent)}</td>
                       <td className="px-4 py-3.5">
-                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadgeClass(e.status, e.setting)}`}>
                           {e.status}
                         </span>
                       </td>
@@ -499,16 +534,16 @@ export default function DeanApprovedEvents() {
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
           <div className="flex flex-col min-h-0 flex-1 h-full">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs flex-shrink-0">
+            <div className="sticky top-0 z-20 bg-white px-6 pt-4 shadow-2xs flex-shrink-0">
               <div className="flex items-center gap-3 pb-3">
-                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
+                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(viewEvent.status, viewEvent.setting)}`}>
                   {viewEvent.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <SignatoryProgress status={viewEvent.status} />
+                  <SignatoryProgress status={viewEvent.status} setting={viewEvent.setting} />
                 </div>
               </div>
-              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
+              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} className="-mx-6 px-6" />
             </div>
 
             <div className="p-6 flex-1">
@@ -522,13 +557,21 @@ export default function DeanApprovedEvents() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p>
                     <p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p>
                   </div>
+                  <div>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Category</p>
+                    <p className="font-semibold text-orange-700">{viewEvent.category || "Organizational"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p>
+                    <p className="font-semibold text-blue-700">{viewEvent.setting || "On-campus"}</p>
+                  </div>
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
                     <p className="text-xs leading-relaxed text-[var(--foreground)]">{viewEvent.description || "—"}</p>
                   </div>
                   <div>
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Proposed Budget</p>
-                    <p className="font-mono font-bold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p>
+                    <p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p>
@@ -555,7 +598,7 @@ export default function DeanApprovedEvents() {
                         <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                       </a>
                     ) : (
-                      <p className="font-medium">{viewEvent.location || (viewEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
+                      <p className="font-medium">{viewEvent.location || "—"}</p>
                     )}
                   </div>
                   <div className="sm:col-span-2">
@@ -582,15 +625,37 @@ export default function DeanApprovedEvents() {
                           rel="noopener noreferrer"
                           className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
                         >
-                          <span>{viewEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
+                          <span>{viewEvent.apfUrl.replace(/^.*[\\/]/, '')}</span>
                           <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                         </a>
                       </div>
-                    ) : (
-                      <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>
-                    )}
+                    ) : <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>}
                   </div>
 
+                  {/* Parental Consent Form (PCF) for Off-campus events */}
+                  {viewEvent.setting === "Off-campus" && (
+                    <div className="bg-[var(--muted)] rounded-xl p-4">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">
+                        PCF (Parental Consent Form) · For Off-campus Events
+                      </p>
+                      {viewEvent.pcfUrl ? (
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          <a
+                            href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                          >
+                            <span>{viewEvent.pcfName || viewEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                            <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Appendices ({viewEvent.appendices?.length ?? 0})</p>
                     {viewEvent.appendices && viewEvent.appendices.length > 0 ? (

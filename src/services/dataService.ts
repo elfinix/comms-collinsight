@@ -13,15 +13,30 @@
 export type UserRole = "student" | "adviser" | "dean" | "admin";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";
+export type EventCategory = "Organizational" | "Departmental";
+export type EventSetting = "On-campus" | "Off-campus";
 export type EventStatus =
   | "Created"
   | "For Review"
   | "For Approval"
-  | "Pending Revision"
   | "Approved"
+  | "SDS Authorized"
+  | "CMO Authorized"
+  | "Pending Revision"
+  | "Rejected"
   | "Completed"
   | "Closed";
 export type TransactionStatus = "Pending" | "Paid" | "Reimbursed";
+export type InitiativeSource =
+  | "Membership Fees"
+  | "Membership Fee"
+  | "Merchandise Sales"
+  | "Sponsorship & Donations"
+  | "Sponsorship"
+  | "Donation"
+  | "Fundraising"
+  | "Event Revenue"
+  | "Other";
 
 // ============================================================================
 // 2. DOMAIN INTERFACES
@@ -66,6 +81,9 @@ export interface Organization {
   code: string;
   departmentId: string;
   allocatedBudget: number;
+  departmentalBudget?: number;
+  organizationalBudget?: number;
+  memberCount?: number;
   adviserId: string;
   logoColor: string;
   description?: string;
@@ -102,11 +120,30 @@ export interface EventSignatory {
   id: string;
   eventId: string;
   userId: string;
-  role: "student" | "adviser" | "dean" | "sds";
-  status: "Pending" | "Endorsed" | "Approved" | "Revision Requested" | "Resolved";
+  role: "student" | "adviser" | "dean" | "sds" | "cmo";
+  status: "Pending" | "Endorsed" | "Approved" | "Revision Requested" | "Resolved" | "Rejected";
   feedback?: string;
   signedAt?: string;
   createdAt?: string;
+}
+
+export interface Initiative {
+  id: string;
+  organizationId: string;
+  name?: string;
+  title?: string;
+  source: InitiativeSource | string;
+  grossRevenue?: number;
+  expenses?: number;
+  netProfit?: number;
+  amount: number;
+  date: string;
+  description?: string;
+  notes?: string;
+  eventId?: string;
+  createdBy?: string;
+  createdAt?: string;
+  deleted?: boolean;
 }
 
 export interface Event {
@@ -114,6 +151,8 @@ export interface Event {
   organizationId: string;
   name: string;
   typeId: string;
+  category?: EventCategory;
+  setting?: EventSetting;
   description: string;
   proposedBudget: number;
   requisites: string;
@@ -122,6 +161,12 @@ export interface Event {
   mode: EventMode;
   location: string;
   apfUrl?: string;
+  pcfUrl?: string;
+  pcfName?: string;
+  sdsActionToken?: string;
+  cmoActionToken?: string;
+  sdsFeedback?: string;
+  cmoFeedback?: string;
   appendices?: string[];
   clearanceDetails?: string;
   clearanceDocRef?: string;
@@ -155,7 +200,7 @@ export interface AuditEntry {
   timestamp: string;
   eventId?: string;
   organizationId?: string;
-  actorRole?: "student" | "adviser" | "dean" | "admin" | "sds";
+  actorRole?: "student" | "adviser" | "dean" | "admin" | "sds" | "cmo";
   statusFrom?: EventStatus;
   statusTo?: EventStatus;
   remarks?: string;
@@ -212,28 +257,123 @@ export const departments: Department[] = [
 ];
 
 export const organizations: Organization[] = [
-  { id: "org-1", name: "IT Student Guild", code: "ITSG", departmentId: "dept-1", allocatedBudget: 50000, adviserId: "user-adv-1", logoColor: "#ea580c" },
-  { id: "org-2", name: "CompE Society", code: "CES", departmentId: "dept-2", allocatedBudget: 40000, adviserId: "user-adv-2", logoColor: "#3b82f6" },
-  { id: "org-3", name: "IE Innovation Club", code: "IEIC", departmentId: "dept-3", allocatedBudget: 35000, adviserId: "user-adv-3", logoColor: "#6366f1" },
+  {
+    id: "org-1",
+    name: "IT Student Guild",
+    code: "ITSG",
+    departmentId: "dept-1",
+    allocatedBudget: 50000,
+    departmentalBudget: 50000,
+    organizationalBudget: 21500,
+    memberCount: 142,
+    adviserId: "user-adv-1",
+    logoColor: "#ea580c",
+  },
+  {
+    id: "org-2",
+    name: "CompE Society",
+    code: "CES",
+    departmentId: "dept-2",
+    allocatedBudget: 40000,
+    departmentalBudget: 40000,
+    organizationalBudget: 12000,
+    memberCount: 98,
+    adviserId: "user-adv-2",
+    logoColor: "#3b82f6",
+  },
+  {
+    id: "org-3",
+    name: "IE Innovation Club",
+    code: "IEIC",
+    departmentId: "dept-3",
+    allocatedBudget: 35000,
+    departmentalBudget: 35000,
+    organizationalBudget: 10000,
+    memberCount: 85,
+    adviserId: "user-adv-3",
+    logoColor: "#6366f1",
+  },
+];
+
+export const initiatives: Initiative[] = [
+  {
+    id: "init-1",
+    organizationId: "org-1",
+    name: "AY 2026-2027 1st Sem Guild Membership Dues Collection",
+    title: "AY 2026-2027 1st Sem Guild Membership Dues Collection",
+    source: "Membership Fees",
+    grossRevenue: 15000,
+    expenses: 0,
+    netProfit: 15000,
+    amount: 15000,
+    date: "2026-08-10T08:00:00Z",
+    description: "Semestral guild membership dues collected from 150 enrolled BSIT students (PHP 100.00 per student).",
+    notes: "Official receipts issued to class representatives.",
+    createdBy: "user-stu-1",
+  },
+  {
+    id: "init-2",
+    organizationId: "org-1",
+    name: "CITE Tech Org Lanyard & Dev Sticker Pack Sale",
+    title: "CITE Tech Org Lanyard & Dev Sticker Pack Sale",
+    source: "Merchandise Sales",
+    grossRevenue: 8500,
+    expenses: 3200,
+    netProfit: 5300,
+    amount: 5300,
+    date: "2026-08-25T04:00:00Z",
+    description: "Exclusive pre-ordered CITE lanyard and vinyl developer stickers sold during freshmen orientation week.",
+    notes: "Production cost: PHP 3,200.00 paid to local printer.",
+    createdBy: "user-stu-1",
+  },
+  {
+    id: "init-3",
+    organizationId: "org-1",
+    name: "Surplus Reversion: ITSG Midyear General Assembly",
+    title: "Surplus Reversion: ITSG Midyear General Assembly",
+    source: "Event Revenue",
+    grossRevenue: 4000,
+    expenses: 2800,
+    netProfit: 1200,
+    amount: 1200,
+    date: "2026-08-25T07:30:00Z",
+    description: "Net surplus reconciled and deposited back to ITSG treasury following successful event liquidation.",
+    notes: "Reconciled against Dean liquidation report.",
+    eventId: "f1000000-0000-0000-0000-000000000004",
+    createdBy: "user-stu-1",
+  },
 ];
 
 export const eventTypes: EventType[] = [
+  { id: "b1000000-0000-0000-0000-000000000001", name: "Academic Seminar" },
+  { id: "b1000000-0000-0000-0000-000000000002", name: "Leadership Training" },
+  { id: "b1000000-0000-0000-0000-000000000003", name: "Community Outreach" },
+  { id: "b1000000-0000-0000-0000-000000000004", name: "Sports & E-Sports Fest" },
+  { id: "b1000000-0000-0000-0000-000000000005", name: "Cultural Festival" },
+  { id: "b1000000-0000-0000-0000-000000000006", name: "Technical Workshop" },
   { id: "et-1", name: "Academic Seminar" },
   { id: "et-2", name: "Leadership Training" },
   { id: "et-3", name: "Community Outreach" },
-  { id: "et-4", name: "Sports Fest" },
+  { id: "et-4", name: "Sports & E-Sports Fest" },
   { id: "et-5", name: "Cultural Festival" },
   { id: "et-6", name: "Technical Workshop" },
 ];
 
 export const expenditureCategories: ExpenditureCategory[] = [
+  { id: "c1000000-0000-0000-0000-000000000001", name: "Venue & Logistics" },
+  { id: "c1000000-0000-0000-0000-000000000002", name: "Food & Catering" },
+  { id: "c1000000-0000-0000-0000-000000000003", name: "Supplies & Materials" },
+  { id: "c1000000-0000-0000-0000-000000000004", name: "Transportation & Fuel" },
+  { id: "c1000000-0000-0000-0000-000000000005", name: "Printing & Documentation" },
+  { id: "c1000000-0000-0000-0000-000000000006", name: "Speaker & Honorarium" },
+  { id: "c1000000-0000-0000-0000-000000000007", name: "Promotional & Prizes" },
   { id: "ec-1", name: "Venue & Logistics" },
   { id: "ec-2", name: "Food & Catering" },
   { id: "ec-3", name: "Supplies & Materials" },
-  { id: "ec-4", name: "Transportation" },
+  { id: "ec-4", name: "Transportation & Fuel" },
   { id: "ec-5", name: "Printing & Documentation" },
   { id: "ec-6", name: "Speaker & Honorarium" },
-  { id: "ec-7", name: "Promotional Materials" },
+  { id: "ec-7", name: "Promotional & Prizes" },
 ];
 
 export const users: User[] = [
@@ -379,11 +519,53 @@ export function getDeptById(id: string): Department | undefined {
 }
 
 export function getEventTypeById(id: string): EventType | undefined {
-  return eventTypes.find((et) => et.id === id);
+  if (!id) return undefined;
+  const found = eventTypes.find((et) => et.id === id);
+  if (found) return found;
+  const fallbackMap: Record<string, string> = {
+    "b1000000-0000-0000-0000-000000000001": "Academic Seminar",
+    "b1000000-0000-0000-0000-000000000002": "Leadership Training",
+    "b1000000-0000-0000-0000-000000000003": "Community Outreach",
+    "b1000000-0000-0000-0000-000000000004": "Sports & E-Sports Fest",
+    "b1000000-0000-0000-0000-000000000005": "Cultural Festival",
+    "b1000000-0000-0000-0000-000000000006": "Technical Workshop",
+    "et-1": "Academic Seminar",
+    "et-2": "Leadership Training",
+    "et-3": "Community Outreach",
+    "et-4": "Sports & E-Sports Fest",
+    "et-5": "Cultural Festival",
+    "et-6": "Technical Workshop",
+  };
+  if (fallbackMap[id]) {
+    return { id, name: fallbackMap[id], description: "" };
+  }
+  return undefined;
 }
 
 export function getCategoryById(id: string): ExpenditureCategory | undefined {
-  return expenditureCategories.find((c) => c.id === id);
+  if (!id) return undefined;
+  const found = expenditureCategories.find((c) => c.id === id);
+  if (found) return found;
+  const fallbackMap: Record<string, string> = {
+    "c1000000-0000-0000-0000-000000000001": "Venue & Logistics",
+    "c1000000-0000-0000-0000-000000000002": "Food & Catering",
+    "c1000000-0000-0000-0000-000000000003": "Supplies & Materials",
+    "c1000000-0000-0000-0000-000000000004": "Transportation & Fuel",
+    "c1000000-0000-0000-0000-000000000005": "Printing & Documentation",
+    "c1000000-0000-0000-0000-000000000006": "Speaker & Honorarium",
+    "c1000000-0000-0000-0000-000000000007": "Promotional & Prizes",
+    "ec-1": "Venue & Logistics",
+    "ec-2": "Food & Catering",
+    "ec-3": "Supplies & Materials",
+    "ec-4": "Transportation & Fuel",
+    "ec-5": "Printing & Documentation",
+    "ec-6": "Speaker & Honorarium",
+    "ec-7": "Promotional & Prizes",
+  };
+  if (fallbackMap[id]) {
+    return { id, name: fallbackMap[id], description: "" };
+  }
+  return undefined;
 }
 
 export function getEventsByOrg(orgId: string): Event[] {
@@ -396,6 +578,10 @@ export function getTransactionsByEvent(eventId: string): Transaction[] {
 
 export function getUsersByOrg(orgId: string): User[] {
   return users.filter((u) => u.organizationId === orgId && !u.deleted);
+}
+
+export function getInitiativesByOrg(orgId: string): Initiative[] {
+  return initiatives.filter((i) => i.organizationId === orgId && !i.deleted);
 }
 
 // ============================================================================
@@ -530,11 +716,37 @@ export const statusColors: Record<EventStatus, string> = {
   Created: "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
   "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
   "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
-  "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
   Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
-  Completed: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  "SDS Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
+  "CMO Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
+  "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
+  Rejected: "bg-rose-100 text-rose-800 border border-rose-300 font-medium",
+  Completed: "bg-teal-100 text-teal-800 border border-teal-300 font-medium",
   Closed: "bg-gray-100 text-gray-700 border border-gray-300 font-medium",
 };
+
+/**
+ * Returns the contextual CSS classes for an event status badge based on its setting.
+ * For Off-campus:
+ *   - "SDS Authorized" = Light softer indigo bg, dark indigo text (intermediate step)
+ *   - "CMO Authorized" = Light indigo bg, dark indigo text (final authorized phase)
+ * For On-campus:
+ *   - "SDS Authorized" = Light indigo bg, dark indigo text (final authorized phase)
+ */
+export function getStatusBadgeClass(status: EventStatus, setting?: EventSetting): string {
+  if (status === "SDS Authorized") {
+    if (setting === "Off-campus") {
+      return "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60 font-medium";
+    }
+    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+  }
+
+  if (status === "CMO Authorized") {
+    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+  }
+
+  return statusColors[status] || "bg-slate-100 text-slate-700 border border-slate-300 font-medium";
+}
 
 export function isWebUrl(str?: string): boolean {
   if (!str) return false;
@@ -550,6 +762,7 @@ export function toWebUrl(str: string): string {
 
 export const SAMPLE_FIXTURES = {
   apf: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
+  pcf: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
   clearance: "/fixtures/TechnoFest_2025_Activity_Proposal_Form_Sample.pdf",
   appendix: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
   venue: "/fixtures/TechnoFest_2025_Appendices_Sample.pdf",
@@ -558,7 +771,7 @@ export const SAMPLE_FIXTURES = {
 
 export function resolvePdfUrl(
   url?: string,
-  fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"
+  fallbackType: "apf" | "pcf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"
 ): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType] || SAMPLE_FIXTURES.apf;
   if (url.startsWith("/fixtures")) return url;
@@ -568,7 +781,15 @@ export function resolvePdfUrl(
   if (url.includes("/storage/v1/object/public/receipts/") || url.includes("/mock-receipt.jpg")) {
     return SAMPLE_FIXTURES.receipt;
   }
-  if (url.includes("APF_Community_Code_Outreach") || url.includes("Program_Flow_and_Curriculum") || url.includes("Venue_Clearance_and_Laboratories")) {
+  if (
+    url.includes("/storage/v1/object/public/documents/") ||
+    url.includes("apf_") ||
+    url.includes("pcf_") ||
+    url.includes("APF_") ||
+    url.includes("PCF_") ||
+    url.includes("Program_Flow") ||
+    url.includes("Venue_Clearance")
+  ) {
     return SAMPLE_FIXTURES[fallbackType] || SAMPLE_FIXTURES.apf;
   }
 
@@ -587,6 +808,9 @@ export function getActionBadgeClass(action: string): string {
   const act = action.toLowerCase();
   if (act.includes("executive approval") || act.includes("executive approved")) {
     return "bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold";
+  }
+  if (act.includes("authoriz")) {
+    return "bg-indigo-100 text-indigo-900 border border-indigo-300 font-bold";
   }
   if (act.includes("approved & forwarded") || act.includes("endorsed") || act.includes("endors")) {
     return "bg-blue-100 text-blue-800 border border-blue-300 font-bold";

@@ -16,7 +16,7 @@ export function Button({ variant = "primary", size = "md", className = "", child
     outline: "border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--muted)] bg-transparent",
     ghost: "text-[var(--foreground)] hover:bg-[var(--muted)] bg-transparent",
     danger: "bg-red-500 text-white hover:bg-red-600 shadow-sm",
-    success: "bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm",
+    success: "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[#c2410c] shadow-sm",
   };
   return (
     <button className={`${base} ${sizes[size]} ${variants[variant]} ${className}`} {...props}>
@@ -567,32 +567,125 @@ export function Textarea({
 }
 
 // --- Select ---
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
-  error?: string;
-  options: { value: string; label: string }[];
+export interface SelectOption {
+  value: string;
+  label: string;
+  icon?: ReactNode;
+  description?: string;
+  disabled?: boolean;
 }
 
-export function Select({ label, error, options, className = "", ...props }: SelectProps) {
+export interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, "options"> {
+  label?: string;
+  error?: string;
+  placeholder?: string;
+  options: (SelectOption | { value: string; label: string; icon?: ReactNode; description?: string; disabled?: boolean })[];
+  onValueChange?: (value: string) => void;
+}
+
+export function Select({ label, error, options, className = "", value, onChange, onValueChange, disabled, placeholder, name, id, ...props }: SelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const selectedOption = options.find((o) => String(o.value) === String(value));
+
+  const handleSelect = (val: string) => {
+    if (disabled) return;
+    if (onChange) {
+      const syntheticEvent = {
+        target: { value: val, name: name || id },
+        currentTarget: { value: val, name: name || id },
+        persist: () => {},
+      } as unknown as React.ChangeEvent<HTMLSelectElement>;
+      onChange(syntheticEvent);
+    }
+    if (onValueChange) {
+      onValueChange(val);
+    }
+    setIsOpen(false);
+  };
+
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 w-full" ref={containerRef}>
       {label && <label className="text-sm font-medium text-[var(--foreground)]">{label}</label>}
-      <div className="relative flex items-center">
-        <select
-          className={`w-full pl-3.5 pr-10 py-2 text-sm border border-[var(--border)] rounded-xl bg-white text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition appearance-none cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--muted)]/50 ${className}`}
-          {...props}
+      <div className="relative">
+        <button
+          type="button"
+          id={id}
+          disabled={disabled}
+          onClick={() => setIsOpen((prev) => !prev)}
+          className={`w-full flex items-center justify-between pl-3.5 pr-3 py-2 text-sm border border-[var(--border)] rounded-xl bg-white text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] focus:border-transparent transition text-left cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[var(--muted)]/50 ${isOpen ? "ring-2 ring-[var(--ring)] border-transparent" : ""} ${className}`}
         >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <div className="absolute right-3.5 pointer-events-none text-[var(--muted-foreground)] flex items-center justify-center">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </div>
+          <span className="flex items-center gap-2.5 truncate">
+            {selectedOption?.icon && (
+              <span className="shrink-0 flex items-center justify-center">
+                {selectedOption.icon}
+              </span>
+            )}
+            <span className={selectedOption ? "text-[var(--foreground)] font-normal" : "text-[var(--muted-foreground)]"}>
+              {selectedOption ? selectedOption.label : (placeholder || "Select option...")}
+            </span>
+          </span>
+          <span className={`shrink-0 ml-2 text-[var(--muted-foreground)] transition-transform duration-200 ${isOpen ? "rotate-180 text-[var(--primary)]" : ""}`}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </span>
+        </button>
+
+        {isOpen && !disabled && (
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-white border border-slate-200 rounded-xl shadow-xl p-1.5 max-h-60 overflow-y-auto animate-in fade-in-0 zoom-in-95 duration-100">
+            {options.map((o) => {
+              const isSelected = String(o.value) === String(value);
+              return (
+                <button
+                  type="button"
+                  key={o.value}
+                  disabled={o.disabled}
+                  onClick={() => handleSelect(o.value)}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm rounded-lg text-left transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                    isSelected
+                      ? "bg-orange-50/90 text-orange-600 font-semibold"
+                      : "text-slate-700 hover:bg-slate-100/80"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5 truncate">
+                    {o.icon && (
+                      <span className={`shrink-0 flex items-center justify-center ${isSelected ? "text-orange-600" : "text-slate-600"}`}>
+                        {o.icon}
+                      </span>
+                    )}
+                    <span className="truncate">{o.label}</span>
+                  </span>
+                  {isSelected && (
+                    <span className="shrink-0 text-orange-600">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
@@ -746,30 +839,36 @@ export interface TabsProps {
 export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
   return (
     <div
-      className={`flex items-center border-b border-[var(--border)] overflow-x-auto overflow-y-hidden [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${className}`}
+      className={`flex items-center border-b border-[var(--border)] overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden relative ${className}`}
     >
-      {tabs.map((tab) => (
-        <Fragment key={tab.id}>
-          <button
-            type="button"
-            disabled={tab.disabled}
-            onClick={() => !tab.disabled && onChange(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px flex-shrink-0 ${
-              tab.disabled
-                ? "border-transparent text-[var(--muted-foreground)] opacity-40 cursor-not-allowed select-none"
-                : activeTab === tab.id
-                ? "border-[var(--primary)] text-[var(--primary)] font-bold bg-[var(--primary)]/5 cursor-pointer"
-                : "border-transparent text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 cursor-pointer"
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-          {tab.dividerAfter && (
-            <div className="h-4 w-[1px] bg-[var(--border)] self-center mx-2 flex-shrink-0" />
-          )}
-        </Fragment>
-      ))}
+      {tabs.map((tab) => {
+        const isActive = activeTab === tab.id;
+        return (
+          <Fragment key={tab.id}>
+            <button
+              type="button"
+              disabled={tab.disabled}
+              onClick={() => !tab.disabled && onChange(tab.id)}
+              className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors flex-shrink-0 ${
+                tab.disabled
+                  ? "text-[var(--muted-foreground)] opacity-40 cursor-not-allowed select-none"
+                  : isActive
+                  ? "text-[var(--primary)] font-bold bg-[var(--primary)]/5 cursor-pointer"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]/30 cursor-pointer"
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+              {isActive && (
+                <span className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-[var(--primary)] z-10" />
+              )}
+            </button>
+            {tab.dividerAfter && (
+              <div className="h-4 w-[1px] bg-[var(--border)] self-center mx-2 flex-shrink-0" />
+            )}
+          </Fragment>
+        );
+      })}
     </div>
   );
 }
@@ -1040,63 +1139,116 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
 }
 
 // --- Signatory Progress ---
-export function SignatoryProgress({ status }: { status: string }) {
+export function SignatoryProgress({ status, setting = "On-campus" }: { status: string; setting?: string }) {
   const isRevision = status === "Pending Revision";
-  const steps = [
-    { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
-    { label: "Adviser", sub: "Endorsement" },
-    { label: "Dean", sub: "Approval" },
-    { label: "SDS", sub: "Final Clearance" },
-  ];
-  const stepIndex = {
-    Created: 0,
-    "Pending Revision": 0,
-    "For Review": 1,
-    "For Approval": 2,
-    Approved: 3,
-    Completed: 3,
-    Closed: 3,
-  }[status] ?? 0;
+  const isRejected = status === "Rejected";
+  const isOffCampus = setting === "Off-campus";
+
+  const steps = isOffCampus
+    ? [
+        { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
+        { label: "Adviser", sub: "Endorsement" },
+        { label: "Dean", sub: "Dean Approval" },
+        { label: "SDS", sub: "SDS Clearance" },
+        { label: "CMO", sub: "CMO Clearance" },
+      ]
+    : [
+        { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
+        { label: "Adviser", sub: "Endorsement" },
+        { label: "Dean", sub: "Dean Approval" },
+        { label: "SDS", sub: "Final Clearance" },
+      ];
+
+  const totalSteps = steps.length;
+
+  const stepIndex = isOffCampus
+    ? ({
+        Created: 0,
+        "Pending Revision": 0,
+        "For Review": 1,
+        "For Approval": 2,
+        Approved: 3,
+        "SDS Authorized": 4,
+        "CMO Authorized": 5,
+        Rejected: 4,
+        Completed: 5,
+        Closed: 5,
+      }[status] ?? 0)
+    : ({
+        Created: 0,
+        "Pending Revision": 0,
+        "For Review": 1,
+        "For Approval": 2,
+        Approved: 3,
+        "SDS Authorized": 4,
+        Rejected: 3,
+        Completed: 4,
+        Closed: 4,
+      }[status] ?? 0);
 
   return (
     <div className="w-full py-1.5 overflow-hidden">
       <div className="relative flex items-start justify-between w-full">
-        {/* Continuous connector track line behind nodes */}
-        <div className="absolute left-[12.5%] right-[12.5%] top-4 h-0.5 bg-[var(--border)] -z-0" />
-        <div
-          className="absolute left-[12.5%] top-4 h-0.5 bg-[var(--primary)] transition-all duration-500 -z-0"
-          style={{
-            width: `${(stepIndex / (steps.length - 1)) * 75}%`,
-          }}
-        />
-
         {steps.map((step, i) => {
           const isPassed = i < stepIndex;
-          const isCurrent = i === stepIndex;
+          const isCurrent = i === stepIndex || (stepIndex >= totalSteps && i === totalSteps - 1);
 
-          const nodeBg = isPassed
-            ? "bg-[var(--primary)] text-white shadow-2xs"
-            : isCurrent
-            ? isRevision
-              ? "bg-amber-500 text-white ring-3 ring-amber-400/30 ring-offset-2 ring-offset-[var(--card)] shadow-xs"
-              : "bg-[var(--primary)] text-white ring-3 ring-[var(--primary)]/25 ring-offset-2 ring-offset-[var(--card)] shadow-xs"
-            : "bg-[var(--card)] text-[var(--muted-foreground)] border-2 border-[var(--border)]";
+          let nodeBg = "bg-[var(--card)] text-[var(--muted-foreground)] border-2 border-[var(--border)]";
+          if (isPassed) {
+            nodeBg = "bg-[var(--primary)] text-white shadow-2xs";
+          } else if (isCurrent) {
+            if (isRejected) {
+              nodeBg = "bg-rose-600 text-white ring-3 ring-rose-400/30 ring-offset-2 ring-offset-[var(--card)] shadow-xs";
+            } else if (isRevision) {
+              nodeBg = "bg-amber-500 text-white ring-3 ring-amber-400/30 ring-offset-2 ring-offset-[var(--card)] shadow-xs";
+            } else if (stepIndex >= totalSteps) {
+              nodeBg = "bg-emerald-600 text-white shadow-2xs";
+            } else {
+              nodeBg = "bg-[var(--primary)] text-white ring-3 ring-[var(--primary)]/25 ring-offset-2 ring-offset-[var(--card)] shadow-xs";
+            }
+          }
 
           return (
-            <div key={step.label} className="relative z-10 flex flex-col items-center flex-1 min-w-0 px-0.5 text-center">
+            <div key={step.label} className="relative flex flex-col items-center flex-1 min-w-0 px-0.5 text-center">
+              {/* Left connector segment (connects from previous step center to this center) */}
+              {i > 0 && (
+                <div
+                  className={`absolute top-4 right-1/2 w-full h-0.5 z-0 transition-all duration-300 ${
+                    i <= stepIndex
+                      ? isRejected && i === stepIndex
+                        ? "bg-rose-500"
+                        : "bg-[var(--primary)]"
+                      : "bg-[var(--border)]"
+                  }`}
+                />
+              )}
+
+              {/* Right connector segment (connects from this center to next step center) */}
+              {i < totalSteps - 1 && (
+                <div
+                  className={`absolute top-4 left-1/2 w-full h-0.5 z-0 transition-all duration-300 ${
+                    i < stepIndex
+                      ? "bg-[var(--primary)]"
+                      : "bg-[var(--border)]"
+                  }`}
+                />
+              )}
+
               {/* Circle node */}
               <div
-                className={`w-8 h-8 rounded-full text-xs flex items-center justify-center font-bold transition-all ${nodeBg}`}
+                className={`w-8 h-8 rounded-full text-xs flex items-center justify-center font-bold transition-all relative z-10 ${nodeBg}`}
               >
-                {isPassed ? "✓" : i + 1}
+                {isPassed || stepIndex >= totalSteps ? "✓" : isRejected && isCurrent ? "✕" : i + 1}
               </div>
 
               {/* Text labels */}
-              <div className="flex flex-col items-center gap-0.5 mt-2 w-full">
+              <div className="flex flex-col items-center gap-0.5 mt-2 w-full relative z-10">
                 <span
                   className={`text-[11px] font-bold tracking-tight leading-tight truncate max-w-full ${
                     isPassed || isCurrent
-                      ? isRevision && isCurrent
+                      ? isRejected && isCurrent
+                        ? "text-rose-600 font-extrabold"
+                        : isRevision && isCurrent
                         ? "text-amber-600 font-extrabold"
                         : "text-[var(--foreground)]"
                       : "text-[var(--muted-foreground)]"
@@ -1107,7 +1259,11 @@ export function SignatoryProgress({ status }: { status: string }) {
                 </span>
                 <span
                   className={`text-[9px] font-mono leading-tight truncate max-w-full hidden sm:block ${
-                    isRevision && isCurrent ? "text-amber-600 font-bold" : "text-[var(--muted-foreground)]"
+                    isRejected && isCurrent
+                      ? "text-rose-600 font-bold"
+                      : isRevision && isCurrent
+                      ? "text-amber-600 font-bold"
+                      : "text-[var(--muted-foreground)]"
                   }`}
                   title={step.sub}
                 >

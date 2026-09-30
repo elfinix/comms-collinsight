@@ -24,10 +24,11 @@ import {
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
   ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, ExternalLink, ArrowRight, MessageSquareQuote,
-  Wallet, CreditCard, Coins, X, Loader2, Clock, MapPin, Video
+  Wallet, CreditCard, Coins, X, Loader2, Clock, MapPin, Video,
+  Users, GraduationCap, Building2, Compass
 } from "lucide-react";
 import {
-  getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, eventTypes, expenditureCategories,
+  getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, getStatusBadgeClass, eventTypes, expenditureCategories,
   Event, EventStatus, resolvePdfUrl, formatCardSchedule, isWebUrl, toWebUrl
 } from "../../services/dataService";
 import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
@@ -36,11 +37,21 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 const MODES = [
-  { value: "FTF", label: "FTF (Face-to-Face)" },
-  { value: "Online/Virtual", label: "Online/Virtual" },
+  { value: "FTF", label: "FTF (Face-to-Face)", icon: <Users size={15} className="text-emerald-600" /> },
+  { value: "Online/Virtual", label: "Online/Virtual", icon: <Video size={15} className="text-indigo-600" /> },
 ];
 
-const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"];
+const CATEGORIES = [
+  { value: "Organizational", label: "Organizational", icon: <Users size={15} className="text-blue-600" /> },
+  { value: "Departmental", label: "Departmental", icon: <GraduationCap size={15} className="text-indigo-600" /> },
+];
+
+const SETTINGS = [
+  { value: "On-campus", label: "On-campus", icon: <Building2 size={15} className="text-emerald-600" /> },
+  { value: "Off-campus", label: "Off-campus", icon: <Compass size={15} className="text-amber-600" /> },
+];
+
+const STATUS_FILTERS = ["All", "Created", "For Review", "For Approval", "Approved", "Authorized", "Pending Revision", "Rejected", "Completed", "Closed"];
 
 function formatNumberWithCommas(num: number | string): string {
   if (num === "" || num === 0 || num === "0") return "";
@@ -56,6 +67,8 @@ function newEventShell(createdBy: string, orgId: string, defaultTypeId: string =
     organizationId: orgId,
     name: "",
     typeId: defaultTypeId,
+    category: "Organizational",
+    setting: "On-campus",
     description: "",
     proposedBudget: 0,
     requisites: "",
@@ -64,6 +77,8 @@ function newEventShell(createdBy: string, orgId: string, defaultTypeId: string =
     mode: "FTF",
     location: "",
     apfUrl: "",
+    pcfUrl: "",
+    pcfName: "",
     appendices: [],
     clearanceDetails: "",
     remarks: [],
@@ -138,18 +153,21 @@ export default function StudentEvents() {
   const [draft, setDraft] = useState<Omit<Event, "id">>(newEventShell(currentUser?.id ?? "", orgId, eventTypes[0]?.id ?? ""));
 
   const apfInputRef = useRef<HTMLInputElement>(null);
+  const pcfInputRef = useRef<HTMLInputElement>(null);
   const appendicesInputRef = useRef<HTMLInputElement>(null);
   const editApfInputRef = useRef<HTMLInputElement>(null);
+  const editPcfInputRef = useRef<HTMLInputElement>(null);
   const editAppendicesInputRef = useRef<HTMLInputElement>(null);
 
   const isDateRangeValid = !draft.dateStart || !draft.dateEnd || new Date(draft.dateEnd) > new Date(draft.dateStart);
 
   // Organization Budget and Allocated Budget Calculation
-  const organizationBudget = org?.allocatedBudget ?? 0;
+  const organizationBudget = (org?.departmentalBudget || 0) + (org?.organizationalBudget || 0) || (org?.allocatedBudget ?? 0);
   const orgAllEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
 
   // Total allocated among proposed events so far (active proposed + closed spent)
   const currentAllocatedBudget = orgAllEvents.reduce((sum, e) => {
+    if (e.status === "Rejected") return sum; // Rejected events do not lock budget
     if (e.status === "Closed") {
       const eventTxns = transactions.filter((t) => t.eventId === e.id && !t.deleted);
       const spent = eventTxns.reduce((s, t) => s + t.amount, 0);
@@ -164,6 +182,7 @@ export default function StudentEvents() {
   const otherEventsAllocated = orgAllEvents
     .filter((e) => e.id !== editEvent?.id)
     .reduce((sum, e) => {
+      if (e.status === "Rejected") return sum;
       if (e.status === "Closed") {
         const eventTxns = transactions.filter((t) => t.eventId === e.id && !t.deleted);
         const spent = eventTxns.reduce((s, t) => s + t.amount, 0);
@@ -177,6 +196,8 @@ export default function StudentEvents() {
   const isDetailsValid = !!(
     draft.name.trim() &&
     draft.typeId &&
+    draft.category &&
+    draft.setting &&
     draft.proposedBudget > 0 &&
     draft.proposedBudget <= remainingBudget &&
     draft.description.trim() &&
@@ -195,6 +216,8 @@ export default function StudentEvents() {
     editEvent &&
     editEvent.name.trim() &&
     editEvent.typeId &&
+    editEvent.category &&
+    editEvent.setting &&
     editEvent.proposedBudget > 0 &&
     editEvent.proposedBudget <= editAvailableBudget &&
     editEvent.description.trim() &&
@@ -209,7 +232,13 @@ export default function StudentEvents() {
 
   const filtered = orgEvents
     .filter((e) => {
-      if (statusFilter !== "All" && e.status !== statusFilter) return false;
+      if (statusFilter !== "All") {
+        if (statusFilter === "Authorized") {
+          if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+        } else if (e.status !== statusFilter) {
+          return false;
+        }
+      }
       if (search && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     })
@@ -222,14 +251,17 @@ export default function StudentEvents() {
     });
 
   const [apfFile, setApfFile] = useState<File | null>(null);
+  const [pcfFile, setPcfFile] = useState<File | null>(null);
   const [appendixFiles, setAppendixFiles] = useState<File[]>([]);
   const [editApfFile, setEditApfFile] = useState<File | null>(null);
+  const [editPcfFile, setEditPcfFile] = useState<File | null>(null);
   const [editAppendixFiles, setEditAppendixFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
   function handleCreate() {
     setDraft(newEventShell(currentUser?.id ?? "", orgId, eventTypes[0]?.id ?? ""));
     setApfFile(null);
+    setPcfFile(null);
     setAppendixFiles([]);
     setCreateTab("details");
     setShowCreate(true);
@@ -238,6 +270,7 @@ export default function StudentEvents() {
   function handleOpenEdit(e: Event) {
     setEditEvent({ ...e, appendices: e.appendices ? [...e.appendices] : [] });
     setEditApfFile(null);
+    setEditPcfFile(null);
     setEditAppendixFiles([]);
     setEditTab("details");
   }
@@ -249,6 +282,8 @@ export default function StudentEvents() {
     const orgName = org?.name || org?.code || "Organization";
 
     let finalApfUrl = draft.apfUrl;
+    let finalPcfUrl = draft.pcfUrl;
+    let finalPcfName = draft.pcfName || (pcfFile ? pcfFile.name : "");
     let finalAppendices = draft.appendices ? [...draft.appendices] : [];
 
     try {
@@ -267,7 +302,23 @@ export default function StudentEvents() {
         }
       }
 
-      // 2. Upload Appendices to Supabase Storage if file objects are present
+      // 2. Upload PCF to Supabase Storage if Off-campus and file present
+      if (pcfFile && draft.setting === "Off-campus") {
+        const pcfRes = await uploadEventAttachment({
+          organizationId: org?.id,
+          organizationName: orgName,
+          eventId: id,
+          eventName: draft.name,
+          category: "PCF",
+          file: pcfFile,
+        });
+        if (pcfRes.path) {
+          finalPcfUrl = pcfRes.path;
+          finalPcfName = pcfFile.name;
+        }
+      }
+
+      // 3. Upload Appendices to Supabase Storage if file objects are present
       if (appendixFiles.length > 0) {
         const appRes = await uploadEventAppendices({
           organizationId: org?.id,
@@ -285,12 +336,15 @@ export default function StudentEvents() {
         ...draft,
         id,
         apfUrl: finalApfUrl,
+        pcfUrl: finalPcfUrl,
+        pcfName: finalPcfName,
         appendices: finalAppendices,
       };
       addEvent(createdEventObj);
 
       setShowCreate(false);
       setApfFile(null);
+      setPcfFile(null);
       setAppendixFiles([]);
       toast.success("Event Proposal Created", `'${draft.name}' was created and attachments uploaded.`, {
         action: {
@@ -315,6 +369,8 @@ export default function StudentEvents() {
     const orgName = org?.name || org?.code || "Organization";
 
     let finalApfUrl = editEvent.apfUrl;
+    let finalPcfUrl = editEvent.pcfUrl;
+    let finalPcfName = editEvent.pcfName || (editPcfFile ? editPcfFile.name : "");
     let finalAppendices = editEvent.appendices ? [...editEvent.appendices] : [];
 
     try {
@@ -333,7 +389,23 @@ export default function StudentEvents() {
         }
       }
 
-      // 2. Upload new Appendices if added
+      // 2. Upload new PCF if changed
+      if (editPcfFile && editEvent.setting === "Off-campus") {
+        const pcfRes = await uploadEventAttachment({
+          organizationId: org?.id,
+          organizationName: orgName,
+          eventId: editEvent.id,
+          eventName: editEvent.name,
+          category: "PCF",
+          file: editPcfFile,
+        });
+        if (pcfRes.path) {
+          finalPcfUrl = pcfRes.path;
+          finalPcfName = editPcfFile.name;
+        }
+      }
+
+      // 3. Upload new Appendices if added
       const newFileNames = new Set(editAppendixFiles.map((f) => f.name));
       const existingAppendices = (editEvent.appendices || []).filter((a) => !newFileNames.has(a));
 
@@ -353,6 +425,8 @@ export default function StudentEvents() {
       const targetEvent: Event = {
         ...editEvent,
         apfUrl: finalApfUrl,
+        pcfUrl: finalPcfUrl,
+        pcfName: finalPcfName,
         appendices: finalAppendices,
       };
       updateEvent(editEvent.id, targetEvent);
@@ -368,6 +442,7 @@ export default function StudentEvents() {
 
       setEditEvent(null);
       setEditApfFile(null);
+      setEditPcfFile(null);
       setEditAppendixFiles([]);
     } catch (err: any) {
       console.error("Save edit error:", err);
@@ -554,7 +629,12 @@ export default function StudentEvents() {
                 </span>
                 {STATUS_FILTERS.map((s) => {
                   const isActive = statusFilter === s;
-                  const count = s === "All" ? orgEvents.length : orgEvents.filter((e) => e.status === s).length;
+                  const count =
+                    s === "All"
+                      ? orgEvents.length
+                      : s === "Authorized"
+                      ? orgEvents.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                      : orgEvents.filter((e) => e.status === s).length;
                   return (
                     <button
                       key={s}
@@ -591,9 +671,9 @@ export default function StudentEvents() {
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filtered.map((e) => (
                 <div key={e.id} className="bg-gradient-to-br from-[var(--card)] via-[var(--card)] to-[var(--muted)]/40 border border-[var(--border)] rounded-2xl p-5 hover:shadow-md transition flex flex-col gap-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>
-                    <span className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode === "Online/Virtual" ? "Virtual" : e.mode}</span>
+                  <div className="flex items-start justify-between gap-2 flex-wrap">
+                    <span className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
+                    <span className="text-xs text-[var(--muted-foreground)] font-mono font-semibold">{e.mode === "Online/Virtual" ? "Virtual" : e.mode}</span>
                   </div>
                   <h3 className="font-bold text-[var(--foreground)] leading-snug">{e.name}</h3>
                   <div className="space-y-1.5 text-xs text-[var(--muted-foreground)]">
@@ -624,6 +704,15 @@ export default function StudentEvents() {
                           {e.location || (e.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}
                         </span>
                       )}
+                    </div>
+                    {/* Event Classifications */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                        {e.category || "Organizational"}
+                      </span>
+                      <span className={`text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${e.setting === "Off-campus" ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-blue-50 text-blue-800 border-blue-200"}`}>
+                        {e.setting || "On-campus"}
+                      </span>
                     </div>
                   </div>
                   <p className="text-sm font-mono text-[var(--primary)] font-extrabold">{formatCurrency(e.proposedBudget)}</p>
@@ -699,6 +788,7 @@ export default function StudentEvents() {
                   <thead>
                     <tr className="bg-[var(--muted)]/70 border-b border-[var(--border)] text-xs font-mono text-[var(--muted-foreground)]">
                       <th className="px-5 py-3.5 text-left">Event Name</th>
+                      <th className="px-5 py-3.5 text-left">Classification</th>
                       <th className="px-5 py-3.5 text-left">Date & Time</th>
                       <th className="px-5 py-3.5 text-left">Location</th>
                       <th className="px-5 py-3.5 text-left">Proposed Budget</th>
@@ -711,6 +801,16 @@ export default function StudentEvents() {
                     {filtered.map((e) => (
                       <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
                         <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
+                        <td className="px-5 py-4 text-xs">
+                          <div className="flex flex-col gap-1">
+                            <span className="font-mono text-[10px] text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200 inline-block w-max">
+                              {e.category || "Organizational"}
+                            </span>
+                            <span className={`font-mono text-[10px] px-2 py-0.5 rounded-md border inline-block w-max ${e.setting === "Off-campus" ? "bg-amber-50 text-amber-800 border-amber-200 font-bold" : "bg-blue-50 text-blue-700 border-blue-200"}`}>
+                              {e.setting || "On-campus"}
+                            </span>
+                          </div>
+                        </td>
                         <td className="px-5 py-4 font-mono text-xs text-[var(--muted-foreground)] whitespace-nowrap">
                           {formatDateTime(e.dateStart)}
                         </td>
@@ -719,12 +819,12 @@ export default function StudentEvents() {
                           {formatCurrency(e.proposedBudget)}
                         </td>
                         <td className="px-5 py-4">
-                          <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>
+                          <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>
                             {e.status}
                           </span>
                         </td>
                         <td className="px-5 py-4">
-                          <SignatoryProgress status={e.status} />
+                          <SignatoryProgress status={e.status} setting={e.setting} />
                         </td>
                         <td className="px-5 py-4 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1.5">
@@ -787,8 +887,8 @@ export default function StudentEvents() {
       {/* Create Event Dialog */}
       <Dialog open={showCreate} onClose={() => setShowCreate(false)} title="Create New Event" size="xl">
         <div className="flex flex-col min-h-0 flex-1">
-          <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 shadow-2xs">
-            <Tabs tabs={createEventTabsDef} activeTab={createTab} onChange={setCreateTab} />
+          <div className="sticky top-0 z-20 bg-white px-6 shadow-2xs">
+            <Tabs tabs={createEventTabsDef} activeTab={createTab} onChange={setCreateTab} className="-mx-6 px-6" />
           </div>
           
           <div className="p-6">
@@ -803,6 +903,20 @@ export default function StudentEvents() {
                     placeholder="e.g., TechFest 2026: Innovation Summit"
                   />
                 </div>
+
+                <Select
+                  label="Category *"
+                  value={draft.category}
+                  onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value as any }))}
+                  options={CATEGORIES}
+                />
+
+                <Select
+                  label="Setting *"
+                  value={draft.setting}
+                  onChange={(e) => setDraft((d) => ({ ...d, setting: e.target.value as any }))}
+                  options={SETTINGS}
+                />
 
                 <Select
                   label="Event Type *"
@@ -921,6 +1035,19 @@ export default function StudentEvents() {
                 />
                 <input
                   type="file"
+                  ref={pcfInputRef}
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPcfFile(file);
+                      setDraft((d) => ({ ...d, pcfUrl: file.name, pcfName: file.name }));
+                    }
+                  }}
+                />
+                <input
+                  type="file"
                   ref={appendicesInputRef}
                   className="hidden"
                   multiple
@@ -982,6 +1109,51 @@ export default function StudentEvents() {
                   )}
                 </div>
 
+                {/* PCF Upload Section (Optional for Off-campus) */}
+                {draft.setting === "Off-campus" && (
+                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${draft.pcfUrl ? "border-emerald-300 bg-emerald-50/30" : "border-slate-300 bg-slate-50/40 hover:border-slate-400"}`}>
+                    <UploadCloud size={36} className={`mx-auto mb-2.5 ${draft.pcfUrl ? "text-emerald-600" : "text-slate-500"}`} />
+                    <div className="flex items-center justify-center gap-2 mb-1">
+                      <p className="font-bold text-sm text-[var(--foreground)]">Upload PCF (Parental Consent Form)</p>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
+                        For Off-Campus
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG up to 5MB)</p>
+
+                    {draft.pcfUrl ? (
+                      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
+                        <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                        <span className="font-bold truncate max-w-[260px]">{draft.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDraft((d) => ({ ...d, pcfUrl: "", pcfName: "" }));
+                            setPcfFile(null);
+                            if (pcfInputRef.current) pcfInputRef.current.value = "";
+                          }}
+                          className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
+                          title="Remove file"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => pcfInputRef.current?.click()}
+                        className="bg-white shadow-2xs font-bold text-xs text-amber-900 border-amber-300 hover:bg-amber-50"
+                      >
+                        <UploadCloud size={14} /> Choose PCF Document
+                      </Button>
+                    )}
+                  </div>
+                )}
+
                 {/* Appendices Upload Section (Optional) */}
                 <div className="border-2 border-dashed border-[var(--border)] rounded-2xl p-6 text-center bg-[var(--card)] hover:border-[var(--primary)]/40 transition">
                   <UploadCloud size={36} className="mx-auto text-[var(--muted-foreground)] mb-2.5" />
@@ -1040,12 +1212,17 @@ export default function StudentEvents() {
                   <p className="font-bold text-[var(--foreground)] text-sm">Clearance Template Summary</p>
                   <div className="grid sm:grid-cols-2 gap-3 text-xs">
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p><p className="font-bold text-[var(--foreground)] mt-0.5">{draft.name || "—"}</p></div>
+                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Classification</p><p className="font-medium mt-0.5">{draft.category} · {draft.setting}</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p><p className="font-medium mt-0.5">{getEventType(draft.typeId)?.name || "—"}</p></div>
+                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p><p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(draft.proposedBudget)}</p></div>
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{draft.description || "—"}</p></div>
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(draft.dateStart, draft.dateEnd)}</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{draft.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{draft.location || (draft.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({draft.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
-                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p><p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(draft.proposedBudget)}</p></div>
+                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">{draft.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}</p></div>
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {draft.apfUrl}</p></div>
+                    {draft.setting === "Off-campus" && (
+                      <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached PCF (Parental Consent)</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {draft.pcfUrl || draft.pcfName}</p></div>
+                    )}
                   </div>
                 </div>
 
@@ -1125,8 +1302,8 @@ export default function StudentEvents() {
       {editEvent && (
         <Dialog open={!!editEvent} onClose={() => setEditEvent(null)} title={`Edit Event: ${editEvent.name}`} size="xl">
           <div className="flex flex-col min-h-0 flex-1">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 shadow-2xs">
-              <Tabs tabs={editEventTabsDef} activeTab={editTab} onChange={setEditTab} />
+            <div className="sticky top-0 z-20 bg-white px-6 shadow-2xs">
+              <Tabs tabs={editEventTabsDef} activeTab={editTab} onChange={setEditTab} className="-mx-6 px-6" />
             </div>
 
             <div className="p-6">
@@ -1161,6 +1338,20 @@ export default function StudentEvents() {
                       placeholder="e.g., TechFest 2026: Innovation Summit"
                     />
                   </div>
+
+                  <Select
+                    label="Category *"
+                    value={editEvent.category || "Organizational"}
+                    onChange={(e) => setEditEvent((d) => (d ? { ...d, category: e.target.value as any } : null))}
+                    options={CATEGORIES}
+                  />
+
+                  <Select
+                    label="Setting *"
+                    value={editEvent.setting || "On-campus"}
+                    onChange={(e) => setEditEvent((d) => (d ? { ...d, setting: e.target.value as any } : null))}
+                    options={SETTINGS}
+                  />
 
                   <Select
                     label="Event Type *"
@@ -1279,6 +1470,19 @@ export default function StudentEvents() {
                   />
                   <input
                     type="file"
+                    ref={editPcfInputRef}
+                    className="hidden"
+                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setEditPcfFile(file);
+                        setEditEvent((d) => (d ? { ...d, pcfUrl: file.name, pcfName: file.name } : null));
+                      }
+                    }}
+                  />
+                  <input
+                    type="file"
                     ref={editAppendicesInputRef}
                     className="hidden"
                     multiple
@@ -1336,6 +1540,51 @@ export default function StudentEvents() {
                       </Button>
                     )}
                   </div>
+
+                  {/* PCF Upload Section (Optional for Off-campus) */}
+                  {editEvent.setting === "Off-campus" && (
+                    <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${editEvent.pcfUrl ? "border-emerald-300 bg-emerald-50/30" : "border-slate-300 bg-slate-50/40 hover:border-slate-400"}`}>
+                      <UploadCloud size={36} className={`mx-auto mb-2.5 ${editEvent.pcfUrl ? "text-emerald-600" : "text-slate-500"}`} />
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <p className="font-bold text-sm text-[var(--foreground)]">Upload PCF (Parental Consent Form)</p>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
+                          For Off-Campus
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG up to 5MB)</p>
+
+                      {editEvent.pcfUrl ? (
+                        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
+                          <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                          <span className="font-bold truncate max-w-[260px]">{editEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEditEvent((d) => (d ? { ...d, pcfUrl: "", pcfName: "" } : null));
+                              setEditPcfFile(null);
+                              if (editPcfInputRef.current) editPcfInputRef.current.value = "";
+                            }}
+                            className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
+                            title="Remove file"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => editPcfInputRef.current?.click()}
+                          className="bg-white shadow-2xs font-bold text-xs text-amber-900 border-amber-300 hover:bg-amber-50"
+                        >
+                          <UploadCloud size={14} /> Choose PCF Document
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Appendices Upload Section */}
                   <div className="border-2 border-dashed border-[var(--border)] rounded-2xl p-6 text-center bg-[var(--card)] hover:border-[var(--primary)]/40 transition">
@@ -1396,12 +1645,17 @@ export default function StudentEvents() {
                     <p className="font-bold text-[var(--foreground)] text-sm">Clearance Template Summary</p>
                     <div className="grid sm:grid-cols-2 gap-3 text-xs">
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p><p className="font-bold text-[var(--foreground)] mt-0.5">{editEvent.name || "—"}</p></div>
+                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Classification</p><p className="font-medium mt-0.5">{editEvent.category || "Organizational"} · {editEvent.setting || "On-campus"}</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p><p className="font-medium mt-0.5">{getEventType(editEvent.typeId)?.name || "—"}</p></div>
+                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p><p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(editEvent.proposedBudget)}</p></div>
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{editEvent.description || "—"}</p></div>
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(editEvent.dateStart, editEvent.dateEnd)}</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{editEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{editEvent.location || (editEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({editEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
-                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Budget</p><p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(editEvent.proposedBudget)}</p></div>
+                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">{editEvent.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}</p></div>
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {editEvent.apfUrl}</p></div>
+                      {editEvent.setting === "Off-campus" && (
+                        <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached PCF (Parental Consent)</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {editEvent.pcfUrl || editEvent.pcfName}</p></div>
+                      )}
                     </div>
                   </div>
 
@@ -1477,30 +1731,29 @@ export default function StudentEvents() {
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
           <div className="flex flex-col min-h-0 flex-1">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs">
+            <div className="sticky top-0 z-20 bg-white px-6 pt-4 shadow-2xs">
               <div className="flex items-center gap-3 pb-3">
-                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
+                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(viewEvent.status, viewEvent.setting)}`}>
                   {viewEvent.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <SignatoryProgress status={viewEvent.status} />
+                  <SignatoryProgress status={viewEvent.status} setting={viewEvent.setting} />
                 </div>
               </div>
-              <Tabs tabs={viewTabsDef} activeTab={viewTab} onChange={setViewTab} />
+              <Tabs tabs={viewTabsDef} activeTab={viewTab} onChange={setViewTab} className="-mx-6 px-6" />
             </div>
             <div className="p-6">
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{getEventType(viewEvent.typeId)?.name || "General Event"}</p></div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p className="leading-relaxed">{viewEvent.description || "—"}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Proposed Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p className="font-medium">{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p></div>
-                  <div className="sm:col-span-2">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p>
-                    <p className="font-medium">{formatEventSchedule(viewEvent.dateStart, viewEvent.dateEnd)}</p>
-                  </div>
-                  <div className="sm:col-span-2">
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Category</p><p className="font-semibold text-orange-700">{viewEvent.category || "Organizational"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p><p className="font-semibold text-blue-700">{viewEvent.setting || "On-campus"}</p></div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p>{viewEvent.description || "—"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p><p className="font-medium">{formatEventSchedule(viewEvent.dateStart, viewEvent.dateEnd)}</p></div>
+                  <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
                       {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
@@ -1509,16 +1762,20 @@ export default function StudentEvents() {
                         href={toWebUrl(viewEvent.location)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-[var(--primary)] hover:underline font-medium break-all"
+                        className="inline-flex items-center gap-1.5 text-[var(--primary)] hover:underline underline-offset-2 font-medium break-all"
                       >
                         {viewEvent.location}
-                        <ExternalLink size={13} className="flex-shrink-0" />
+                        <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                       </a>
                     ) : (
-                      <p className="font-medium">{viewEvent.location || (viewEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
+                      <p className="font-medium">{viewEvent.location || "—"}</p>
                     )}
                   </div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p><p>{viewEvent.requisites || "—"}</p></div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
+                    <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{viewEvent.requisites || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p><p className="font-semibold text-[var(--foreground)]">{organizations.find(o => o.id === viewEvent.organizationId)?.name}</p></div>
                   
                   {/* Active Revision Feedback banner (shows only when pending revision) */}
                   {viewEvent.status === "Pending Revision" && (() => {
@@ -1562,6 +1819,30 @@ export default function StudentEvents() {
                       <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>
                     )}
                   </div>
+
+                  {/* Parental Consent Form if Off-campus */}
+                  {viewEvent.setting === "Off-campus" && (
+                    <div className="bg-[var(--muted)] rounded-xl p-4">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">PCF (Parental Consent Form) · For Off-campus Events</p>
+                      {viewEvent.pcfUrl ? (
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          <a
+                            href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                          >
+                            <span>{(viewEvent.pcfName || viewEvent.pcfUrl).replace(/^.*[\\/]/, '')}</span>
+                            <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                      )}
+                    </div>
+                  )}
+
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Appendices</p>
                     {viewEvent.appendices && viewEvent.appendices.length > 0 ? (

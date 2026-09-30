@@ -2,7 +2,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
 import { Card, CardHeader, CardBody, Button, RefreshButton, Skeleton, SkeletonStatCard, SkeletonTable } from "../../components/ui";
 import { FileText, Mail, CheckCircle, Clock } from "lucide-react";
-import { formatDate, statusColors } from "../../services/dataService";
+import { formatDate, statusColors, getStatusBadgeClass } from "../../services/dataService";
 
 export default function SDSWorkspace() {
   const { currentUser } = useAuth();
@@ -92,7 +92,7 @@ export default function SDSWorkspace() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${statusColors[e.status]}`}>{e.status}</span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
                     </td>
                   </tr>
                 ))

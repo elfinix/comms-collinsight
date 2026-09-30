@@ -15,14 +15,14 @@ import {
   SkeletonTable,
 } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, FileText, UploadCloud, Calendar, MapPin, Video, ExternalLink, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/dataService";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl } from "../../services/dataService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 export default function AdviserPendingReview() {
   const { currentUser } = useAuth();
-  const { events, eventTypes, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
+  const { events, eventTypes, organizations, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
   const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
   const pending = events.filter((e) => e.organizationId === orgId && e.status === "For Review");
@@ -150,7 +150,7 @@ export default function AdviserPendingReview() {
             >
               <div className="space-y-3.5">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                  <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadgeClass(e.status, e.setting)}`}>
                     {e.status}
                   </span>
                   <span className="text-[11px] font-mono text-[var(--muted-foreground)] bg-[var(--muted)]/60 px-2 py-0.5 rounded-md border border-[var(--border)] font-medium">
@@ -176,6 +176,20 @@ export default function AdviserPendingReview() {
                       <span className="truncate">{e.location}</span>
                     </p>
                   </div>
+
+                  {/* Event Classifications */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                    <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                      {e.category || "Organizational"}
+                    </span>
+                    <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full ${
+                      e.setting === "Off-campus"
+                        ? "bg-blue-50 text-blue-800 border border-blue-200"
+                        : "bg-amber-50 text-amber-800 border border-amber-200"
+                    }`}>
+                      {e.setting || "On-campus"}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-[var(--muted)]/30 border border-[var(--border)] flex items-center justify-between font-mono text-xs">
@@ -185,7 +199,7 @@ export default function AdviserPendingReview() {
 
                 {/* Signatory Progress Stepper */}
                 <div className="pt-4 pb-1 border-t border-[var(--border)]/60">
-                  <SignatoryProgress status={e.status} />
+                  <SignatoryProgress status={e.status} setting={e.setting} />
                 </div>
               </div>
 
@@ -208,6 +222,7 @@ export default function AdviserPendingReview() {
               <thead>
                 <tr className="bg-[var(--muted)] border-b border-[var(--border)]">
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Proposal Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Category & Setting</th>
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Schedule & Location</th>
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Proposed Budget</th>
                   <th className="px-4 py-3 text-left text-xs font-mono font-semibold text-[var(--muted-foreground)]">Status</th>
@@ -221,6 +236,20 @@ export default function AdviserPendingReview() {
                       <div className="font-bold text-[var(--foreground)]">{e.name}</div>
                       <div className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</div>
                     </td>
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                          {e.category || "Organizational"}
+                        </span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                          e.setting === "Off-campus"
+                            ? "bg-blue-50 text-blue-800 border border-blue-200"
+                            : "bg-amber-50 text-amber-800 border border-amber-200"
+                        }`}>
+                          {e.setting || "On-campus"}
+                        </span>
+                      </div>
+                    </td>
                     <td className="px-4 py-3.5 font-mono text-xs text-[var(--muted-foreground)]">
                       <div>{formatDate(e.dateStart)}</div>
                       <div className="text-[11px] truncate max-w-[200px]">{e.location}</div>
@@ -229,7 +258,7 @@ export default function AdviserPendingReview() {
                       {formatCurrency(e.proposedBudget)}
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadgeClass(e.status, e.setting)}`}>
                         {e.status}
                       </span>
                     </td>
@@ -256,27 +285,29 @@ export default function AdviserPendingReview() {
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
           <div className="flex flex-col min-h-0 flex-1 h-full">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs flex-shrink-0">
+            <div className="sticky top-0 z-20 bg-white px-6 pt-4 shadow-2xs flex-shrink-0">
               <div className="flex items-center gap-3 pb-3">
-                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
+                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(viewEvent.status, viewEvent.setting)}`}>
                   {viewEvent.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <SignatoryProgress status={viewEvent.status} />
+                  <SignatoryProgress status={viewEvent.status} setting={viewEvent.setting} />
                 </div>
               </div>
-              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
+              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} className="-mx-6 px-6" />
             </div>
             <div className="p-6 flex-1">
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p></div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p className="leading-relaxed">{viewEvent.description}</p></div>
-                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Proposed Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Category</p><p className="font-semibold text-orange-700">{viewEvent.category || "Organizational"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p><p className="font-semibold text-blue-700">{viewEvent.setting || "On-campus"}</p></div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p>{viewEvent.description || "—"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Scheduled Date & Time</p><p className="font-medium">{formatEventSchedule(viewEvent.dateStart, viewEvent.dateEnd)}</p></div>
-                  <div className="sm:col-span-2">
+                  <div>
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">
                       {viewEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
                     </p>
@@ -291,10 +322,14 @@ export default function AdviserPendingReview() {
                         <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                       </a>
                     ) : (
-                      <p className="font-medium">{viewEvent.location || (viewEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")}</p>
+                      <p className="font-medium">{viewEvent.location || "—"}</p>
                     )}
                   </div>
-                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Requisites</p><p>{viewEvent.requisites || "—"}</p></div>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Attendee Requisites</p>
+                    <p className="font-medium text-sm text-[var(--foreground)] leading-relaxed">{viewEvent.requisites || "—"}</p>
+                  </div>
+                  <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Organization</p><p className="font-semibold text-[var(--foreground)]">{organizations.find(o => o.id === viewEvent.organizationId)?.name}</p></div>
                 </div>
               )}
               {viewTab === "compliance" && (
@@ -316,6 +351,31 @@ export default function AdviserPendingReview() {
                       </div>
                     ) : <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>}
                   </div>
+
+                  {/* Parental Consent Form (PCF) for Off-campus events */}
+                  {viewEvent.setting === "Off-campus" && (
+                    <div className="bg-[var(--muted)] rounded-xl p-4">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">
+                        PCF (Parental Consent Form) · For Off-campus Events
+                      </p>
+                      {viewEvent.pcfUrl ? (
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          <a
+                            href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                          >
+                            <span>{viewEvent.pcfName || viewEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                            <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Appendices</p>
                     {viewEvent.appendices && viewEvent.appendices.length > 0 ? (
@@ -371,7 +431,7 @@ export default function AdviserPendingReview() {
                     <Button variant="secondary" onClick={() => setShowApproveRemarks(true)}>
                       <MessageSquare size={14} /> Approve with Remarks
                     </Button>
-                    <Button variant="success" onClick={handleApprove} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+                    <Button variant="primary" onClick={handleApprove}>
                       <CheckCircle size={14} /> Approve
                     </Button>
                   </>
@@ -389,7 +449,7 @@ export default function AdviserPendingReview() {
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Add any notes or conditions..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowApproveRemarks(false)}>Cancel</Button>
-            <Button variant="success" onClick={handleApprove} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+            <Button variant="primary" onClick={handleApprove}>
               <CheckCircle size={14} /> Approve & Forward to Dean
             </Button>
           </div>

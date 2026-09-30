@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import {
   getEventTypeById,
-  formatDate, formatEventSchedule, formatCurrency, statusColors, Event, Transaction, isWebUrl, toWebUrl, resolvePdfUrl
+  formatDate, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, Transaction, isWebUrl, toWebUrl, resolvePdfUrl
 } from "../services/dataService";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../services/storageService";
@@ -47,7 +47,17 @@ const MONTH_NAMES = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"
 ];
-const STATUS_FILTER_OPTIONS = ["All", "Approved", "For Approval", "For Review", "Pending Revision", "Completed", "Closed"] as const;
+const STATUS_FILTER_OPTIONS = [
+  "All",
+  "Approved",
+  "SDS Authorized",
+  "CMO Authorized",
+  "For Approval",
+  "For Review",
+  "Pending Revision",
+  "Completed",
+  "Closed",
+] as const;
 type StatusFilter = (typeof STATUS_FILTER_OPTIONS)[number];
 
 function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mode?: string; size?: number; className?: string }) {
@@ -663,7 +673,7 @@ export default function OrganizationsPage() {
                                         <p className="text-sm font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition truncate">
                                           {e.name}
                                         </p>
-                                        <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>
+                                        <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${getStatusBadgeClass(e.status, e.setting)}`}>
                                           {e.status}
                                         </span>
                                       </div>
@@ -970,7 +980,7 @@ export default function OrganizationsPage() {
                             <span className="text-[11px] font-mono font-bold text-[var(--primary)] bg-[var(--primary)]/10 px-2.5 py-0.5 rounded-full">
                               {formatDate(e.dateStart)}
                             </span>
-                            <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>
+                            <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>
                               {e.status}
                             </span>
                           </div>
@@ -1048,7 +1058,7 @@ export default function OrganizationsPage() {
                               <h3 className="font-bold text-sm sm:text-base text-[var(--foreground)] group-hover:text-[var(--primary)] transition truncate">
                                 {e.name}
                               </h3>
-                              <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${statusColors[e.status]}`}>
+                              <span className={`text-[11px] font-mono px-2.5 py-0.5 rounded-full ${getStatusBadgeClass(e.status, e.setting)}`}>
                                 {e.status}
                               </span>
                             </div>
@@ -1117,9 +1127,19 @@ export default function OrganizationsPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className={`text-xs font-mono px-3 py-1 rounded-full ${statusColors[selectedEvent.status]}`}>
+                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                    <span className={`text-xs font-mono px-3 py-1 rounded-full ${getStatusBadgeClass(selectedEvent.status, selectedEvent.setting)}`}>
                       {selectedEvent.status}
+                    </span>
+                    <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                      {selectedEvent.category || "Organizational"}
+                    </span>
+                    <span className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-full ${
+                      selectedEvent.setting === "Off-campus"
+                        ? "bg-blue-50 text-blue-800 border border-blue-200"
+                        : "bg-amber-50 text-amber-800 border border-amber-200"
+                    }`}>
+                      {selectedEvent.setting || "On-campus"}
                     </span>
                     <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
                       {selectedEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}
@@ -1423,10 +1443,10 @@ export default function OrganizationsPage() {
                       Signatory Approval Progression
                     </p>
                     <span className="text-[10px] font-mono text-[var(--primary)] font-bold">
-                      Student → Adviser → Dean → SDS
+                      {selectedEvent.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}
                     </span>
                   </div>
-                  <SignatoryProgress status={selectedEvent.status} />
+                  <SignatoryProgress status={selectedEvent.status} setting={selectedEvent.setting} />
                 </div>
               </div>
             );

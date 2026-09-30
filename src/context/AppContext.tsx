@@ -13,6 +13,8 @@ import {
   initialExportedReports,
   EventSignatory,
   eventSignatories as initialEventSignatories,
+  Initiative,
+  initiatives as initialInitiatives,
 } from "../services/dataService";
 import { supabaseApi } from "../services/supabaseService";
 
@@ -27,6 +29,7 @@ interface AppContextType {
   auditTrail: AuditEntry[];
   exportedReports: ExportedReport[];
   eventSignatories: EventSignatory[];
+  initiatives: Initiative[];
   isLoading: boolean;
   isRefreshing: boolean;
   isSupabaseConnected: boolean;
@@ -50,6 +53,9 @@ interface AppContextType {
   deleteEventType: (id: string) => void;
   addCategory: (cat: ExpenditureCategory) => void;
   deleteCategory: (id: string) => void;
+  addInitiative: (init: Initiative) => void;
+  updateInitiative: (id: string, updates: Partial<Initiative>) => void;
+  deleteInitiative: (id: string) => void;
   setEventStatus: (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string) => void;
   addEventSignatory: (sig: EventSignatory) => void;
   resolvePendingSignatories: (eventId: string) => void;
@@ -84,6 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [cats, setCats] = useState<ExpenditureCategory[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [eventSigs, setEventSigs] = useState<EventSignatory[]>(() => initialEventSignatories || []);
+  const [inits, setInits] = useState<Initiative[]>(() => initialInitiatives || []);
   const [reports, setReports] = useState<ExportedReport[]>(() => {
     try {
       const saved = localStorage.getItem("collinsight_exported_reports");
@@ -197,6 +204,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAudit(liveData.auditTrail);
         if (liveData.eventSignatories && liveData.eventSignatories.length > 0) {
           setEventSigs(liveData.eventSignatories);
+        }
+        if (liveData.initiatives && liveData.initiatives.length > 0) {
+          setInits(liveData.initiatives);
         }
         setIsSupabaseConnected(true);
       }
@@ -492,6 +502,87 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const addInitiative = (init: Initiative) => {
+    const effectiveName = init.name || init.title || "Initiative";
+    const effectiveAmount = init.amount ?? init.netProfit ?? init.grossRevenue ?? 0;
+    const initWithId: Initiative = {
+      ...init,
+      id: init.id || generateId(),
+      name: effectiveName,
+      title: effectiveName,
+      grossRevenue: init.grossRevenue ?? effectiveAmount,
+      expenses: init.expenses ?? 0,
+      netProfit: init.netProfit ?? effectiveAmount,
+      amount: effectiveAmount,
+      createdAt: init.createdAt || new Date().toISOString(),
+    };
+    setInits((p) => [initWithId, ...p]);
+    supabaseApi.createInitiative(initWithId).catch((err) =>
+      console.warn("Supabase createInitiative error:", err)
+    );
+
+    // Dynamically update organizational_budget on the organization
+    const targetOrg = orgs.find((o) => o.id === init.organizationId);
+    if (targetOrg) {
+      const newOrgBudget = (targetOrg.organizationalBudget || 0) + effectiveAmount;
+      updateOrganization(targetOrg.id, { organizationalBudget: newOrgBudget });
+    }
+
+    addAuditEntry({
+      id: generateId(),
+      organizationId: init.organizationId,
+      userId: init.createdBy || "51000000-0000-0000-0000-000000000001",
+      actorRole: "student",
+      action: "Recorded Initiative",
+      details: `Recorded initiative revenue of ₱${effectiveAmount.toLocaleString()} for '${effectiveName}' (${init.source})`,
+      timestamp: new Date().toISOString(),
+    });
+  };
+
+  const updateInitiative = (id: string, u: Partial<Initiative>) => {
+    let prevInit: Initiative | undefined;
+    setInits((p) =>
+      p.map((item) => {
+        if (item.id !== id) return item;
+        prevInit = item;
+        const newAmt = u.amount ?? u.netProfit ?? item.amount ?? item.netProfit ?? 0;
+        const newName = u.name ?? u.title ?? item.name ?? item.title ?? "Initiative";
+        return { ...item, ...u, name: newName, title: newName, amount: newAmt, netProfit: newAmt };
+      })
+    );
+    supabaseApi.updateInitiative(id, u).catch((err) =>
+      console.warn("Supabase updateInitiative error:", err)
+    );
+
+    const newAmt = u.amount ?? u.netProfit;
+    if (prevInit && newAmt !== undefined) {
+      const prevAmt = (prevInit as Initiative).amount ?? (prevInit as Initiative).netProfit ?? 0;
+      const targetOrg = orgs.find((o) => o.id === (prevInit as Initiative).organizationId);
+      if (targetOrg) {
+        const diff = newAmt - prevAmt;
+        const newOrgBudget = (targetOrg.organizationalBudget || 0) + diff;
+        updateOrganization(targetOrg.id, { organizationalBudget: newOrgBudget });
+      }
+    }
+  };
+
+  const deleteInitiative = (id: string) => {
+    const targetInit = inits.find((i) => i.id === id);
+    setInits((p) => p.map((i) => (i.id === id ? { ...i, deleted: true } : i)));
+    supabaseApi.softDeleteInitiative(id).catch((err) =>
+      console.warn("Supabase softDeleteInitiative error:", err)
+    );
+
+    if (targetInit) {
+      const targetOrg = orgs.find((o) => o.id === targetInit.organizationId);
+      if (targetOrg) {
+        const initAmt = targetInit.amount ?? targetInit.netProfit ?? 0;
+        const newOrgBudget = Math.max(0, (targetOrg.organizationalBudget || 0) - initAmt);
+        updateOrganization(targetOrg.id, { organizationalBudget: newOrgBudget });
+      }
+    }
+  };
+
   const addEventSignatory = (sig: EventSignatory) => {
     const sigWithId: EventSignatory = {
       ...sig,
@@ -532,6 +623,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...e,
           status,
           ...(generatedDocRef ? { clearanceDocRef: generatedDocRef } : {}),
+          ...(feedback ? (status === "SDS Authorized" ? { sdsFeedback: feedback } : status === "CMO Authorized" ? { cmoFeedback: feedback } : {}) : {}),
         };
       })
     );
@@ -539,6 +631,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const updatePayload: Partial<Event> = { status };
     if (generatedDocRef) {
       updatePayload.clearanceDocRef = generatedDocRef;
+    }
+    if (feedback) {
+      if (status === "SDS Authorized") updatePayload.sdsFeedback = feedback;
+      if (status === "CMO Authorized") updatePayload.cmoFeedback = feedback;
     }
 
     supabaseApi.updateEvent(eventId, updatePayload).catch((err) =>
@@ -548,7 +644,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (targetEvt) {
       const isDeanApproval = status === "Approved";
       const isAdviserApproval = status === "For Approval";
+      const isSdsApproval = status === "SDS Authorized";
+      const isCmoApproval = status === "CMO Authorized";
       const isRevision = status === "Pending Revision";
+      const isRejected = status === "Rejected";
       const isSubmission = status === "For Review";
       const isCompleted = status === "Completed";
       const isClosed = status === "Closed";
@@ -567,7 +666,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // ── Event Signatory Iteration Record Creation ──
       if (isRevision && feedback) {
         const isFromDean = targetEvt.status === "For Approval";
-        const sigRole = (actingUser?.role as "student" | "adviser" | "dean" | "sds") || (isFromDean ? "dean" : "adviser");
+        const isFromSds = targetEvt.status === "Approved";
+        const isFromCmo = targetEvt.status === "SDS Authorized";
+        const sigRole = (actingUser?.role as any) || (isFromCmo ? "cmo" : isFromSds ? "sds" : isFromDean ? "dean" : "adviser");
         const sigUserId = actorUserId || (isFromDean ? actualDean?.id : actualAdviser?.id) || "ad100000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
@@ -575,6 +676,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
           userId: sigUserId,
           role: sigRole,
           status: "Revision Requested",
+          feedback,
+          signedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      } else if (isRejected && feedback) {
+        const isFromCmo = targetEvt.status === "SDS Authorized" && targetEvt.setting === "Off-campus";
+        const sigRole = (actingUser?.role as any) || (isFromCmo ? "cmo" : "sds");
+        const sigUserId = actorUserId || "ad100000-0000-0000-0000-000000000001";
+        addEventSignatory({
+          id: generateId(),
+          eventId,
+          userId: sigUserId,
+          role: sigRole,
+          status: "Rejected",
           feedback,
           signedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
@@ -603,6 +718,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
           signedAt: new Date().toISOString(),
           createdAt: new Date().toISOString(),
         });
+      } else if (isSdsApproval) {
+        const sigUserId = actorUserId || "sds-external-token";
+        addEventSignatory({
+          id: generateId(),
+          eventId,
+          userId: sigUserId,
+          role: "sds",
+          status: "Approved",
+          feedback: feedback || undefined,
+          signedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
+      } else if (isCmoApproval) {
+        const sigUserId = actorUserId || "cmo-external-token";
+        addEventSignatory({
+          id: generateId(),
+          eventId,
+          userId: sigUserId,
+          role: "cmo",
+          status: "Approved",
+          feedback: feedback || undefined,
+          signedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        });
       } else if (isSubmission && targetEvt.status === "Pending Revision") {
         resolvePendingSignatories(eventId);
       }
@@ -611,8 +750,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "Executive Approval"
         : isAdviserApproval
         ? "Approved & Forwarded"
+        : isSdsApproval
+        ? "SDS Authorized"
+        : isCmoApproval
+        ? "CMO Authorized"
         : isRevision
         ? "Requested Revision"
+        : isRejected
+        ? "Proposal Rejected"
         : isSubmission
         ? "Submitted for Review"
         : isCompleted
@@ -621,7 +766,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "Event Closed"
         : `Status updated to ${status}`;
 
-      const role = actingUser?.role || (isDeanApproval ? "dean" : isAdviserApproval || isRevision ? "adviser" : "student");
+      const role = actingUser?.role || (isDeanApproval ? "dean" : isSdsApproval ? "sds" : isCmoApproval ? "cmo" : isAdviserApproval || isRevision ? "adviser" : "student");
       const userId = actorUserId || (isDeanApproval
         ? actualDean?.id || "e1000000-0000-0000-0000-000000000001"
         : isAdviserApproval || isRevision
@@ -630,11 +775,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       let actionDetails = "";
       if (isDeanApproval) {
-        actionDetails = `Granted executive approval for '${targetEvt.name}'`;
+        actionDetails = `Granted executive approval for '${targetEvt.name}' and dispatched to SDS`;
       } else if (isAdviserApproval) {
         actionDetails = `Endorsed and forwarded proposal '${targetEvt.name}' to Dean for approval`;
+      } else if (isSdsApproval) {
+        actionDetails = targetEvt.setting === "Off-campus"
+          ? `Authorized by Student Development & Services (SDS) and dispatched to CMO for '${targetEvt.name}'`
+          : `Authorized by Student Development & Services (SDS). Finance ledger unlocked for '${targetEvt.name}'`;
+      } else if (isCmoApproval) {
+        actionDetails = `Authorized by Crisis Management Office (CMO). Finance ledger unlocked for '${targetEvt.name}'`;
       } else if (isRevision) {
         actionDetails = `Requested revisions for proposal '${targetEvt.name}'`;
+      } else if (isRejected) {
+        actionDetails = `Rejected event proposal '${targetEvt.name}'`;
       } else if (isSubmission) {
         actionDetails = `Submitted proposal '${targetEvt.name}' to Adviser for review`;
       } else if (isCompleted) {
@@ -643,6 +796,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const rev = targetEvt.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
         actionDetails = `Finalized liquidation and closed event '${targetEvt.name}'${revStr}`;
+
+        // Auto-deposit event surplus revenue to organizational initiatives
+        if (rev && rev > 0) {
+          const orgLabel = targetOrg?.code || targetOrg?.name || "organization";
+          const initPayload: Initiative = {
+            id: generateId(),
+            organizationId: targetEvt.organizationId,
+            name: `Surplus Reversion: ${targetEvt.name}`,
+            title: `Surplus Reversion: ${targetEvt.name}`,
+            source: "Event Revenue",
+            grossRevenue: rev,
+            expenses: 0,
+            netProfit: rev,
+            amount: rev,
+            date: new Date().toISOString(),
+            description: `Net surplus reconciled and deposited back to ${orgLabel} treasury following successful event liquidation.`,
+            notes: `Reconciled from event liquidation report for '${targetEvt.name}'.`,
+            eventId: targetEvt.id,
+            createdBy: targetEvt.createdBy,
+          };
+          setInits((prev) => [initPayload, ...prev]);
+          supabaseApi.createInitiative(initPayload).catch((err) =>
+            console.warn("Supabase auto createInitiative error:", err)
+          );
+
+          if (targetOrg) {
+            const updatedOrgBudget = (targetOrg.organizationalBudget || 0) + rev;
+            updateOrganization(targetOrg.id, { organizationalBudget: updatedOrgBudget });
+          }
+        }
       } else {
         actionDetails = `Updated status to '${status}' for '${targetEvt.name}'`;
       }
@@ -670,6 +853,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const activeEtypes = etypes.filter((t) => !t.deleted);
   const activeCats = cats.filter((c) => !c.deleted);
   const activeTxns = txns.filter((t) => !t.deleted);
+  const activeInits = inits.filter((i) => !i.deleted);
 
   return (
     <AppContext.Provider
@@ -684,6 +868,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         auditTrail: audit,
         exportedReports: reports,
         eventSignatories: eventSigs,
+        initiatives: activeInits,
         addExportedReport,
         isLoading,
         isRefreshing,
@@ -708,6 +893,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteEventType,
         addCategory,
         deleteCategory,
+        addInitiative,
+        updateInitiative,
+        deleteInitiative,
         setEventStatus,
         addEventSignatory,
         resolvePendingSignatories,

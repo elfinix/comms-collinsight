@@ -14,7 +14,7 @@ import {
 } from "../../components/ui";
 import { Calendar, Wallet, CheckCircle, Clock, TrendingUp, Shapes, FileText } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { formatCurrency, formatDate, statusColors } from "../../services/dataService";
+import { formatCurrency, formatDate, statusColors, getStatusBadgeClass } from "../../services/dataService";
 
 const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981"];
 
@@ -25,17 +25,34 @@ export default function StudentDashboard() {
   const currentUser = users.find((u) => u.id === authUser?.id) || authUser;
   const orgId = currentUser?.organizationId;
   const org = orgId ? organizations.find((o) => o.id === orgId) : null;
-  const orgEvents = events.filter((e) => e.organizationId === orgId);
-  const approvedEvents = orgEvents.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
-  const totalSpent = transactions.filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
-  const allocatedBudget = org?.allocatedBudget ?? 0;
+  const orgEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
+  const approvedEvents = orgEvents.filter((e) =>
+    ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+  );
+  const totalSpent = transactions
+    .filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted)
+    .reduce((s, t) => s + t.amount, 0);
+  const allocatedBudget = (org?.departmentalBudget ?? 0) + (org?.organizationalBudget ?? 0) || (org?.allocatedBudget ?? 0);
   const remainingBudget = Math.max(0, allocatedBudget - totalSpent);
   const totalProposed = orgEvents.reduce((s, e) => s + (e.proposedBudget || 0), 0);
 
-  const byStatus = ["Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"].map((s) => ({
-    name: s,
-    count: orgEvents.filter((e) => e.status === s).length,
-  })).filter((s) => s.count > 0);
+  const byStatus = [
+    "Created",
+    "For Review",
+    "For Approval",
+    "Approved",
+    "SDS Authorized",
+    "CMO Authorized",
+    "Pending Revision",
+    "Rejected",
+    "Completed",
+    "Closed",
+  ]
+    .map((s) => ({
+      name: s,
+      count: orgEvents.filter((e) => e.status === s).length,
+    }))
+    .filter((s) => s.count > 0);
 
   const byType = Object.entries(
     orgEvents.reduce<Record<string, number>>((acc, e) => {
@@ -222,6 +239,7 @@ export default function StudentDashboard() {
             <thead>
               <tr className="bg-[var(--muted)]/40 border-b border-[var(--border)]">
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Event</th>
+                <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Classification</th>
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Date</th>
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Budget</th>
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Status</th>
@@ -232,18 +250,32 @@ export default function StudentDashboard() {
               {recent.map((e) => (
                 <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
                   <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                        {e.category || "Organizational"}
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                        e.setting === "Off-campus"
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}>
+                        {e.setting || "On-campus"}
+                      </span>
+                    </div>
+                  </td>
                   <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
                   <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
                   <td className="px-5 py-4">
-                    <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${statusColors[e.status]}`}>{e.status}</span>
+                    <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
                   </td>
                   <td className="px-5 py-4">
-                    <SignatoryProgress status={e.status} />
+                    <SignatoryProgress status={e.status} setting={e.setting} />
                   </td>
                 </tr>
               ))}
               {recent.length === 0 && (
-                <tr><td colSpan={5} className="px-5 py-8 text-center text-xs font-mono text-[var(--muted-foreground)]">No proposals submitted yet.</td></tr>
+                <tr><td colSpan={6} className="px-5 py-8 text-center text-xs font-mono text-[var(--muted-foreground)]">No proposals submitted yet.</td></tr>
               )}
             </tbody>
           </table>

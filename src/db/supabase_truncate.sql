@@ -21,6 +21,7 @@ ALTER TABLE IF EXISTS public.organizations DROP CONSTRAINT IF EXISTS fk_org_advi
 -- Truncate all tables in public schema
 TRUNCATE TABLE
   public.exported_reports,
+  public.initiatives,
   public.event_signatories,
   public.organization_members,
   public.audit_trail,

@@ -15,7 +15,7 @@ import {
   SkeletonTable,
 } from "../../components/ui";
 import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories } from "../../services/dataService";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories } from "../../services/dataService";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
 import { dispatchClearanceEmail } from "../../services/mailerService";
@@ -213,7 +213,7 @@ export default function DeanPendingApproval() {
               >
                 <div className="space-y-3.5">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                    <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadgeClass(e.status, e.setting)}`}>
                       {e.status}
                     </span>
                     <span
@@ -246,6 +246,20 @@ export default function DeanPendingApproval() {
                         <span className="truncate">{e.location}</span>
                       </p>
                     </div>
+
+                    {/* Event Classifications */}
+                    <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                        {e.category || "Organizational"}
+                      </span>
+                      <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full ${
+                        e.setting === "Off-campus"
+                          ? "bg-blue-50 text-blue-800 border border-blue-200"
+                          : "bg-amber-50 text-amber-800 border border-amber-200"
+                      }`}>
+                        {e.setting || "On-campus"}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-[var(--muted)]/30 border border-[var(--border)] flex items-center justify-between font-mono text-xs">
@@ -255,7 +269,7 @@ export default function DeanPendingApproval() {
 
                   {/* Signatory Stepper */}
                   <div className="pt-4 pb-1 border-t border-[var(--border)]/60">
-                    <SignatoryProgress status={e.status} />
+                    <SignatoryProgress status={e.status} setting={e.setting} />
                   </div>
                 </div>
 
@@ -293,7 +307,19 @@ export default function DeanPendingApproval() {
                     <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="font-bold text-[var(--foreground)]">{e.name}</div>
-                        <div className="text-xs text-[var(--muted-foreground)] font-mono">{e.mode}</div>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="text-[10px] font-mono font-medium px-2 py-0.2 rounded-md bg-orange-50 text-orange-800 border border-orange-200">
+                            {e.category || "Organizational"}
+                          </span>
+                          <span className={`text-[10px] font-mono font-medium px-2 py-0.2 rounded-md ${
+                            e.setting === "Off-campus"
+                              ? "bg-blue-50 text-blue-800 border border-blue-200"
+                              : "bg-amber-50 text-amber-800 border border-amber-200"
+                          }`}>
+                            {e.setting || "On-campus"}
+                          </span>
+                          <span className="text-xs text-[var(--muted-foreground)] font-mono ml-1">{e.mode}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3.5 text-xs font-mono text-[var(--muted-foreground)]">
                         <span
@@ -315,7 +341,7 @@ export default function DeanPendingApproval() {
                         {formatCurrency(e.proposedBudget)}
                       </td>
                       <td className="px-4 py-3.5">
-                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${statusColors[e.status]}`}>
+                        <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${getStatusBadgeClass(e.status, e.setting)}`}>
                           {e.status}
                         </span>
                       </td>
@@ -341,22 +367,24 @@ export default function DeanPendingApproval() {
       {viewEvent && (
         <Dialog open={!!viewEvent} onClose={() => setViewEvent(null)} title={viewEvent.name} size="xl">
           <div className="flex flex-col min-h-0 flex-1 h-full">
-            <div className="sticky top-0 z-20 bg-white border-b border-[var(--border)] px-6 pt-4 shadow-2xs flex-shrink-0">
+            <div className="sticky top-0 z-20 bg-white px-6 pt-4 shadow-2xs flex-shrink-0">
               <div className="flex items-center gap-3 pb-3">
-                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${statusColors[viewEvent.status]}`}>
+                <span className={`text-xs font-mono px-3 py-1 rounded-full whitespace-nowrap text-center inline-flex items-center justify-center font-semibold shadow-2xs flex-shrink-0 ${getStatusBadgeClass(viewEvent.status, viewEvent.setting)}`}>
                   {viewEvent.status}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <SignatoryProgress status={viewEvent.status} />
+                  <SignatoryProgress status={viewEvent.status} setting={viewEvent.setting} />
                 </div>
               </div>
-              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} />
+              <Tabs tabs={viewTabs} activeTab={viewTab} onChange={setViewTab} className="-mx-6 px-6" />
             </div>
             <div className="p-6 flex-1">
               {viewTab === "details" && (
                 <div className="grid sm:grid-cols-2 gap-4 text-sm">
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Name</p><p className="font-medium">{viewEvent.name}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Type</p><p className="font-medium">{eventTypes.find((t) => t.id === viewEvent.typeId)?.name || getEventTypeById(viewEvent.typeId)?.name || "General Event"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Category</p><p className="font-semibold text-orange-700">{viewEvent.category || "Organizational"}</p></div>
+                  <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p><p className="font-semibold text-blue-700">{viewEvent.setting || "On-campus"}</p></div>
                   <div className="sm:col-span-2"><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p><p>{viewEvent.description}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Budget</p><p className="font-mono font-semibold text-[var(--primary)]">{formatCurrency(viewEvent.proposedBudget)}</p></div>
                   <div><p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Mode</p><p>{viewEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}</p></div>
@@ -405,6 +433,31 @@ export default function DeanPendingApproval() {
                       </div>
                     ) : <p className="text-sm text-[var(--muted-foreground)]">No APF uploaded.</p>}
                   </div>
+
+                  {/* Parental Consent Form (PCF) for Off-campus events */}
+                  {viewEvent.setting === "Off-campus" && (
+                    <div className="bg-[var(--muted)] rounded-xl p-4">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">
+                        PCF (Parental Consent Form) · For Off-campus Events
+                      </p>
+                      {viewEvent.pcfUrl ? (
+                        <div className="flex items-center gap-2">
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          <a
+                            href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
+                          >
+                            <span>{viewEvent.pcfName || viewEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                            <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                      )}
+                    </div>
+                  )}
                   <div className="bg-[var(--muted)] rounded-xl p-4">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">Appendices ({viewEvent.appendices?.length ?? 0})</p>
                     {viewEvent.appendices && viewEvent.appendices.length > 0 ? (
@@ -460,7 +513,7 @@ export default function DeanPendingApproval() {
                     <Button variant="secondary" onClick={() => setShowApproveRemarks(true)} disabled={isApproving}>
                       <MessageSquare size={14} /> Approve with Remarks
                     </Button>
-                    <Button variant="success" onClick={handleApprove} disabled={isApproving} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+                    <Button variant="primary" onClick={handleApprove} disabled={isApproving}>
                       <CheckCircle size={14} /> {isApproving ? "Approving & Dispatching..." : "Approve & Dispatch"}
                     </Button>
                   </>
@@ -477,7 +530,7 @@ export default function DeanPendingApproval() {
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Optional notes..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowApproveRemarks(false)} disabled={isApproving}>Cancel</Button>
-            <Button variant="success" onClick={handleApprove} disabled={isApproving} className="!bg-emerald-700 hover:!bg-emerald-800 text-white shadow-2xs">
+            <Button variant="primary" onClick={handleApprove} disabled={isApproving}>
               <CheckCircle size={14} /> {isApproving ? "Approving & Dispatching..." : "Approve & Dispatch"}
             </Button>
           </div>

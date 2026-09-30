@@ -120,7 +120,7 @@ export default function LandingPage() {
                   </div>
                   <p className="font-bold text-white text-sm mb-4">TechFest 2026: IT Innovation Summit</p>
                   <div className="flex items-center gap-0 mb-4">
-                    {["Student","Adviser","Dean","SDS"].map((step, i) => (
+                    {["Student", "Adviser", "Dean", "SDS / CMO"].map((step, i) => (
                       <div key={step} className="flex items-center">
                         <div className="flex flex-col items-center gap-1">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 2 ? "bg-orange-500 text-white shadow-sm" : i === 2 ? "bg-blue-500 text-white ring-2 ring-offset-1 ring-orange-300 ring-offset-transparent shadow-sm" : "bg-white/20 text-slate-300"}`}>
@@ -202,10 +202,10 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: <Calendar size={22} />, title: "Event Management", desc: "Propose, schedule, and track events through a structured multi-stage approval pipeline.", stat: "5 statuses", statLabel: "tracked end-to-end", iconBg: "bg-orange-50", iconColor: "text-orange-600", accent: "border-t-orange-500", delay: 0 },
-            { icon: <FileText size={22} />, title: "Compliance Monitoring", desc: "Automated APF submission tracking, PDF clearance generation, and SDS email dispatch.", stat: "100%", statLabel: "automated reporting", iconBg: "bg-blue-50", iconColor: "text-blue-600", accent: "border-t-blue-500", delay: 80 },
-            { icon: <BarChart2 size={22} />, title: "Financial Ledger", desc: "Per-event expenditure recording with receipt uploads, liquidation reports, and PDF export.", stat: "Per-event", statLabel: "budget tracking", iconBg: "bg-indigo-50", iconColor: "text-indigo-600", accent: "border-t-indigo-500", delay: 160 },
-            { icon: <FileText size={22} />, title: "Governance Reports", desc: "Role-stratified analytics and downloadable reports for officers, advisers, dean, and admin.", stat: "4 roles", statLabel: "with tailored views", iconBg: "bg-amber-50", iconColor: "text-amber-600", accent: "border-t-amber-500", delay: 240 },
+            { icon: <Calendar size={22} />, title: "Event Management", desc: "Propose, classify, and track events through a 10-status signatory lifecycle with On/Off-campus routing.", stat: "10 statuses", statLabel: "tracked end-to-end", iconBg: "bg-orange-50", iconColor: "text-orange-600", accent: "border-t-orange-500", delay: 0 },
+            { icon: <FileText size={22} />, title: "Compliance Monitoring", desc: "Automated APF/PCF submission, parental consent tracking, and tokenized SDS & CMO external action portals.", stat: "100%", statLabel: "automated reporting", iconBg: "bg-blue-50", iconColor: "text-blue-600", accent: "border-t-blue-500", delay: 80 },
+            { icon: <BarChart2 size={22} />, title: "Dual Budget & Ledgers", desc: "Departmental allocations + organizational revenue initiatives with auto-surplus liquidation.", stat: "Real-time", statLabel: "dual treasury", iconBg: "bg-indigo-50", iconColor: "text-indigo-600", accent: "border-t-indigo-500", delay: 160 },
+            { icon: <FileText size={22} />, title: "Governance Reports", desc: "Global range filtering, On/Off-campus distribution charts, and dual-table institutional PDF exports.", stat: "4 roles", statLabel: "with tailored views", iconBg: "bg-amber-50", iconColor: "text-amber-600", accent: "border-t-amber-500", delay: 240 },
           ].map((f) => (
             <FadeSection key={f.title} delay={f.delay}>
               <div className={`group bg-[var(--card)] border border-[var(--border)] border-t-2 ${f.accent} rounded-2xl p-6 h-full hover:shadow-lg transition-all duration-300 flex flex-col`}>
@@ -246,10 +246,10 @@ export default function LandingPage() {
                 icon: <ClipboardList size={20} className="text-white" />,
                 headerBg: "bg-[var(--primary)]",
                 steps: [
-                  { label: "Draft", desc: "Officers create event details, upload APF and clearance documents." },
+                  { label: "Draft", desc: "Officers create event details, choose Category & Setting, and upload APF/PCF compliance documents." },
                   { label: "Adviser Review", desc: "Faculty adviser reviews the proposal and provides feedback or approval." },
-                  { label: "Dean Approval", desc: "College Dean gives final sign-off on the cleared event." },
-                  { label: "SDS Dispatch", desc: "System auto-emails APF and clearance to the SDS office." },
+                  { label: "Dean Approval", desc: "College Dean gives final collegiate endorsement and generates official clearance." },
+                  { label: "SDS & CMO Authorization", desc: "External review by SDS (and CMO for off-campus events) grants final clearance and unlocks the finance ledger." },
                 ],
               },
               {
@@ -257,10 +257,10 @@ export default function LandingPage() {
                 icon: <BarChart2 size={20} className="text-white" />,
                 headerBg: "bg-[#1e3a8a]",
                 steps: [
-                  { label: "Ledger Unlocked", desc: "Approval unlocks the event's financial ledger for expense entry." },
-                  { label: "Log Expenses", desc: "Officers record expenditures by category with receipt uploads." },
-                  { label: "Track Budget", desc: "System shows real-time spending vs. the approved budget cap." },
-                  { label: "Liquidation", desc: "Completing all entries generates a downloadable PDF liquidation report." },
+                  { label: "Ledger Unlocked", desc: "SDS/CMO Authorization unlocks the event's financial ledger for disbursement entry." },
+                  { label: "Log Expenses", desc: "Officers record expenditures by category with digital receipt uploads." },
+                  { label: "Track Budget", desc: "System tracks departmental and self-generated organizational funds in real-time." },
+                  { label: "Liquidation & Surplus", desc: "Event closure auto-deposits remaining surplus revenues into the organization's treasury." },
                 ],
               },
             ].map((ph) => (
@@ -298,7 +298,7 @@ export default function LandingPage() {
           </div>
 
           <FadeSection>
-            <div className="bg-[var(--muted)] rounded-2xl p-5">
+            <div className="bg-[var(--muted)] rounded-2xl p-5 sm:p-6">
               <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-4 text-center">Event Status Flow</p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {[
@@ -310,16 +310,34 @@ export default function LandingPage() {
                   { label: "→", color: "text-[var(--muted-foreground)]" },
                   { label: "Approved", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Completed", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+                  { label: "SDS Authorized", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+                  { label: "→", color: "text-[var(--muted-foreground)]" },
+                  { label: "CMO Authorized", sub: "Off-campus", color: "bg-indigo-100 text-indigo-900 border-indigo-300" },
+                  { label: "→", color: "text-[var(--muted-foreground)]" },
+                  { label: "Completed", color: "bg-teal-100 text-teal-800 border-teal-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
                   { label: "Closed", color: "bg-gray-100 text-gray-600 border-gray-200" },
                 ].map((item, i) =>
                   item.label === "→" ? (
                     <ChevronRight key={i} size={14} className={item.color} />
                   ) : (
-                    <span key={i} className={`text-xs font-mono px-3 py-1 rounded-full border ${item.color}`}>{item.label}</span>
+                    <div key={i} className="flex flex-col items-center">
+                      <span className={`text-xs font-mono px-3 py-1 rounded-full border ${item.color}`}>{item.label}</span>
+                      {item.sub && <span className="text-[9px] font-mono text-[var(--muted-foreground)] mt-0.5">{item.sub}</span>}
+                    </div>
                   )
                 )}
+              </div>
+              <div className="flex items-center justify-center gap-3 mt-4 pt-3 border-t border-[var(--border)] text-xs text-[var(--muted-foreground)]">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-orange-500 inline-block" />
+                  <span>Pending Revision: Returned to student for updates</span>
+                </span>
+                <span className="text-[var(--border)]">•</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                  <span>Rejected: Declined with reviewer reason</span>
+                </span>
               </div>
             </div>
           </FadeSection>
