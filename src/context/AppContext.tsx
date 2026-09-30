@@ -35,7 +35,7 @@ interface AppContextType {
   isSupabaseConnected: boolean;
   refreshData: () => Promise<void>;
   addEvent: (event: Event) => void;
-  updateEvent: (id: string, updates: Partial<Event>) => void;
+  updateEvent: (id: string, updates: Partial<Event>, skipAudit?: boolean) => void;
   deleteEvent: (id: string) => void;
   addTransaction: (txn: Transaction) => void;
   updateTransaction: (id: string, updates: Partial<Transaction>) => void;
@@ -56,7 +56,7 @@ interface AppContextType {
   addInitiative: (init: Initiative) => void;
   updateInitiative: (id: string, updates: Partial<Initiative>) => void;
   deleteInitiative: (id: string) => void;
-  setEventStatus: (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string) => void;
+  setEventStatus: (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string, extraFields?: Partial<Event>) => void;
   addEventSignatory: (sig: EventSignatory) => void;
   resolvePendingSignatories: (eventId: string) => void;
   addAuditEntry: (entry: AuditEntry) => void;
@@ -265,7 +265,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const updateEvent = (id: string, u: Partial<Event>) => {
+  const PROPOSAL_CONTENT_KEYS: (keyof Event)[] = [
+    "name",
+    "description",
+    "proposedBudget",
+    "requisites",
+    "dateStart",
+    "dateEnd",
+    "location",
+    "setting",
+    "category",
+    "mode",
+    "typeId",
+    "apfUrl",
+    "pcfUrl",
+    "appendices",
+  ];
+
+  const updateEvent = (id: string, u: Partial<Event>, skipAudit = false) => {
     const targetEvt = evts.find((e) => e.id === id);
     setEvts((p) =>
       p.map((e) => {
@@ -277,7 +294,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.warn("Supabase updateEvent error:", err)
     );
 
-    if (targetEvt) {
+    if (targetEvt && !skipAudit) {
       if (u.status === "Closed") {
         const rev = u.revenue !== undefined ? u.revenue : targetEvt.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
@@ -294,16 +311,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           timestamp: new Date().toISOString(),
         });
       } else if (!u.status || u.status === targetEvt.status) {
-        addAuditEntry({
-          id: generateId(),
-          eventId: id,
-          organizationId: targetEvt.organizationId,
-          userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
-          actorRole: "student",
-          action: "Modified Proposal",
-          details: `Updated proposal details for '${u.name || targetEvt.name}'`,
-          timestamp: new Date().toISOString(),
-        });
+        const hasContentChanges = Object.keys(u).some((k) =>
+          PROPOSAL_CONTENT_KEYS.includes(k as keyof Event)
+        );
+        if (hasContentChanges) {
+          addAuditEntry({
+            id: generateId(),
+            eventId: id,
+            organizationId: targetEvt.organizationId,
+            userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
+            actorRole: "student",
+            action: "Modified Proposal",
+            details: `Updated proposal details for '${u.name || targetEvt.name}'`,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
     }
   };
@@ -609,12 +631,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const setEventStatus = (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string) => {
+  const setEventStatus = (
+    eventId: string,
+    status: EventStatus,
+    feedback?: string,
+    actorUserId?: string,
+    extraFields?: Partial<Event>
+  ) => {
     const targetEvt = evts.find((e) => e.id === eventId);
     const cleanId = eventId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
     const generatedDocRef = status === "Approved"
       ? (targetEvt?.clearanceDocRef || `CLR-${cleanId}-${new Date(targetEvt?.dateStart || Date.now()).getFullYear()}`)
       : undefined;
+
+    const isSdsActor = actorUserId === "sds-external-token" || status === "SDS Authorized";
+    const isCmoActor = actorUserId === "cmo-external-token" || status === "CMO Authorized";
+    const isFromCmo = (targetEvt?.status === "SDS Authorized" && (status === "Pending Revision" || status === "Rejected")) || actorUserId === "cmo-external-token";
+    const isFromSds = (targetEvt?.status === "Approved" && (status === "Pending Revision" || status === "Rejected")) || actorUserId === "sds-external-token";
 
     setEvts((p) =>
       p.map((e) => {
@@ -623,18 +656,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
           ...e,
           status,
           ...(generatedDocRef ? { clearanceDocRef: generatedDocRef } : {}),
-          ...(feedback ? (status === "SDS Authorized" ? { sdsFeedback: feedback } : status === "CMO Authorized" ? { cmoFeedback: feedback } : {}) : {}),
+          ...(feedback ? (
+            status === "SDS Authorized" || (status === "Pending Revision" && isFromSds) || (status === "Rejected" && isFromSds) ? { sdsFeedback: feedback } :
+            status === "CMO Authorized" || (status === "Pending Revision" && isFromCmo) || (status === "Rejected" && isFromCmo) ? { cmoFeedback: feedback } :
+            {}
+          ) : {}),
+          ...(extraFields || {}),
         };
       })
     );
 
-    const updatePayload: Partial<Event> = { status };
+    const updatePayload: Partial<Event> = { status, ...(extraFields || {}) };
     if (generatedDocRef) {
       updatePayload.clearanceDocRef = generatedDocRef;
     }
     if (feedback) {
-      if (status === "SDS Authorized") updatePayload.sdsFeedback = feedback;
-      if (status === "CMO Authorized") updatePayload.cmoFeedback = feedback;
+      if (status === "SDS Authorized" || (status === "Pending Revision" && isFromSds) || (status === "Rejected" && isFromSds)) {
+        updatePayload.sdsFeedback = feedback;
+      }
+      if (status === "CMO Authorized" || (status === "Pending Revision" && isFromCmo) || (status === "Rejected" && isFromCmo)) {
+        updatePayload.cmoFeedback = feedback;
+      }
     }
 
     supabaseApi.updateEvent(eventId, updatePayload).catch((err) =>
@@ -666,10 +708,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // ── Event Signatory Iteration Record Creation ──
       if (isRevision && feedback) {
         const isFromDean = targetEvt.status === "For Approval";
-        const isFromSds = targetEvt.status === "Approved";
-        const isFromCmo = targetEvt.status === "SDS Authorized";
-        const sigRole = (actingUser?.role as any) || (isFromCmo ? "cmo" : isFromSds ? "sds" : isFromDean ? "dean" : "adviser");
-        const sigUserId = actorUserId || (isFromDean ? actualDean?.id : actualAdviser?.id) || "ad100000-0000-0000-0000-000000000001";
+        const sigRole = isFromCmo ? "cmo" : isFromSds ? "sds" : isFromDean ? "dean" : (actingUser?.role as any) || "adviser";
+        const sigUserId = sigRole === "cmo"
+          ? "cmo-external-token"
+          : sigRole === "sds"
+          ? "sds-external-token"
+          : isFromDean
+          ? actualDean?.id || "e1000000-0000-0000-0000-000000000001"
+          : actualAdviser?.id || "ad100000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
@@ -681,9 +727,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isRejected && feedback) {
-        const isFromCmo = targetEvt.status === "SDS Authorized" && targetEvt.setting === "Off-campus";
-        const sigRole = (actingUser?.role as any) || (isFromCmo ? "cmo" : "sds");
-        const sigUserId = actorUserId || "ad100000-0000-0000-0000-000000000001";
+        const sigRole = isFromCmo ? "cmo" : (actingUser?.role as any) || "sds";
+        const sigUserId = sigRole === "cmo"
+          ? "cmo-external-token"
+          : "sds-external-token";
         addEventSignatory({
           id: generateId(),
           eventId,
@@ -695,7 +742,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isAdviserApproval) {
-        const sigUserId = actorUserId || actualAdviser?.id || "ad100000-0000-0000-0000-000000000001";
+        const sigUserId = actualAdviser?.id || actorUserId || "ad100000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
@@ -707,7 +754,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isDeanApproval) {
-        const sigUserId = actorUserId || actualDean?.id || "e1000000-0000-0000-0000-000000000001";
+        const sigUserId = actualDean?.id || actorUserId || "e1000000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
@@ -719,11 +766,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isSdsApproval) {
-        const sigUserId = actorUserId || "sds-external-token";
         addEventSignatory({
           id: generateId(),
           eventId,
-          userId: sigUserId,
+          userId: "sds-external-token",
           role: "sds",
           status: "Approved",
           feedback: feedback || undefined,
@@ -731,11 +777,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           createdAt: new Date().toISOString(),
         });
       } else if (isCmoApproval) {
-        const sigUserId = actorUserId || "cmo-external-token";
         addEventSignatory({
           id: generateId(),
           eventId,
-          userId: sigUserId,
+          userId: "cmo-external-token",
           role: "cmo",
           status: "Approved",
           feedback: feedback || undefined,
@@ -766,12 +811,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "Event Closed"
         : `Status updated to ${status}`;
 
-      const role = actingUser?.role || (isDeanApproval ? "dean" : isSdsApproval ? "sds" : isCmoApproval ? "cmo" : isAdviserApproval || isRevision ? "adviser" : "student");
-      const userId = actorUserId || (isDeanApproval
+      const role = isDeanApproval
+        ? "dean"
+        : isAdviserApproval
+        ? "adviser"
+        : isSdsApproval
+        ? "sds"
+        : isCmoApproval
+        ? "cmo"
+        : isSubmission
+        ? "student"
+        : isCompleted || isClosed
+        ? "student"
+        : isRevision
+        ? (isFromCmo ? "cmo" : isFromSds ? "sds" : targetEvt.status === "For Approval" ? "dean" : "adviser")
+        : isRejected
+        ? (isFromCmo ? "cmo" : "sds")
+        : actingUser?.role || "student";
+
+      const userId = role === "sds"
+        ? "sds-external-token"
+        : role === "cmo"
+        ? "cmo-external-token"
+        : isDeanApproval
         ? actualDean?.id || "e1000000-0000-0000-0000-000000000001"
-        : isAdviserApproval || isRevision
+        : isAdviserApproval
         ? actualAdviser?.id || "ad100000-0000-0000-0000-000000000001"
-        : targetEvt.createdBy || actualStudent?.id || "51000000-0000-0000-0000-000000000001");
+        : isSubmission || isCompleted || isClosed
+        ? targetEvt.createdBy || actualStudent?.id || "51000000-0000-0000-0000-000000000001"
+        : isRevision
+        ? (role === "dean" ? actualDean?.id : actualAdviser?.id) || "ad100000-0000-0000-0000-000000000001"
+        : actorUserId || targetEvt.createdBy || actualStudent?.id || "51000000-0000-0000-0000-000000000001";
 
       let actionDetails = "";
       if (isDeanApproval) {
@@ -785,9 +855,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else if (isCmoApproval) {
         actionDetails = `Authorized by Crisis Management Office (CMO). Finance ledger unlocked for '${targetEvt.name}'`;
       } else if (isRevision) {
-        actionDetails = `Requested revisions for proposal '${targetEvt.name}'`;
+        const actorLabel = role === "sds"
+          ? "Student Development & Services (SDS)"
+          : role === "cmo"
+          ? "Crisis Management Office (CMO)"
+          : role === "dean"
+          ? "College Dean"
+          : "Faculty Adviser";
+        actionDetails = `Requested revisions for proposal '${targetEvt.name}' by ${actorLabel}`;
       } else if (isRejected) {
-        actionDetails = `Rejected event proposal '${targetEvt.name}'`;
+        const actorLabel = role === "sds"
+          ? "Student Development & Services (SDS)"
+          : role === "cmo"
+          ? "Crisis Management Office (CMO)"
+          : role === "dean"
+          ? "College Dean"
+          : "Faculty Adviser";
+        actionDetails = `Rejected event proposal '${targetEvt.name}' by ${actorLabel}`;
       } else if (isSubmission) {
         actionDetails = `Submitted proposal '${targetEvt.name}' to Adviser for review`;
       } else if (isCompleted) {

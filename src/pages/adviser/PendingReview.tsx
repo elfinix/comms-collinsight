@@ -372,7 +372,7 @@ export default function AdviserPendingReview() {
                           </a>
                         </div>
                       ) : (
-                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                        <p className="text-sm text-[var(--muted-foreground)]">None Attached (Optional)</p>
                       )}
                     </div>
                   )}

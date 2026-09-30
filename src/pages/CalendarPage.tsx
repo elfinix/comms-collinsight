@@ -7,11 +7,11 @@ import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, Clock, MapPin, ArrowLeft, ChevronLeft, ChevronRight,
-  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet
+  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet, XCircle
 } from "lucide-react";
 import {
   getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, Transaction,
-  isWebUrl, toWebUrl, resolvePdfUrl
+  isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories
 } from "../services/dataService";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../services/storageService";
@@ -280,6 +280,7 @@ export default function CalendarPage() {
     transactions: liveTxns,
     organizations,
     departments,
+    users,
     expenditureCategories,
     isLoading,
   } = useApp();
@@ -293,13 +294,21 @@ export default function CalendarPage() {
 
   const publicEvents = useMemo(() => {
     return liveEvents.filter((e) =>
-      ["Created", "For Review", "For Approval", "Pending Revision", "Approved", "Completed", "Closed"].includes(e.status)
+      ["Created", "For Review", "For Approval", "Pending Revision", "Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed", "Rejected"].includes(e.status)
     );
   }, [liveEvents]);
 
   const filtered = useMemo(() => {
     return publicEvents.filter((e) => {
-      if (statusFilter !== "All" && e.status !== statusFilter) return false;
+      if (statusFilter !== "All") {
+        if (statusFilter === "Closed") {
+          if (e.status !== "Closed" && e.status !== "Completed" && e.status !== "Rejected") return false;
+        } else if (statusFilter === "Approved") {
+          if (e.status !== "Approved" && e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+        } else if (e.status !== statusFilter) {
+          return false;
+        }
+      }
       if (selectedOrgFilter !== "all" && e.organizationId !== selectedOrgFilter) return false;
       if (selectedDay) {
         const d = new Date(e.dateStart);
@@ -326,7 +335,7 @@ export default function CalendarPage() {
     });
   }, [publicEvents, statusFilter, selectedOrgFilter, selectedDay, calendarSearch]);
 
-  const approvedCount = publicEvents.filter((e) => e.status === "Approved").length;
+  const approvedCount = publicEvents.filter((e) => e.status === "Approved" || e.status === "SDS Authorized" || e.status === "CMO Authorized").length;
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col">
@@ -960,8 +969,28 @@ export default function CalendarPage() {
                   </div>
                 )}
 
+                {/* Rejection Banner if Rejected */}
+                {selectedEvent.status === "Rejected" && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-950 rounded-xl p-4 shadow-sm flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-rose-100 border border-rose-300 flex items-center justify-center text-rose-600 flex-shrink-0">
+                      <XCircle size={20} />
+                    </div>
+                    <div className="space-y-0.5 text-xs">
+                      <p className="font-bold text-rose-950">Proposal Rejected</p>
+                      <p className="text-rose-800 leading-relaxed">
+                        This event proposal was marked as Rejected during institutional clearance review and its allocated budget was revoked.
+                      </p>
+                      {(selectedEvent.cmoFeedback || selectedEvent.sdsFeedback) && (
+                        <p className="text-[11px] italic text-rose-900 mt-1.5 bg-white/90 border border-rose-200 rounded-lg p-2.5">
+                          Recorded Justification: "{selectedEvent.cmoFeedback || selectedEvent.sdsFeedback}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Official Clearance Banner if Approved */}
-                {["Approved", "Completed", "Closed"].includes(selectedEvent.status) && (
+                {["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(selectedEvent.status) && (
                   <div className="bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-sky-300 flex-shrink-0">
@@ -1037,27 +1066,15 @@ export default function CalendarPage() {
                         type="button"
                         onClick={async () => {
                           const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
-                          const liquidationFileName = `Liquidation_Report_${selectedEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-                          try {
-                            const storagePath = buildAttachmentPath(selectedEvent.organizationId || org?.name, selectedEvent.id || selectedEvent.name, "Liquidation", liquidationFileName);
-                            const storageUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
-                            let opened = false;
-                            if (storageUrl) {
-                              try {
-                                const resp = await fetch(storageUrl, { method: "HEAD" });
-                                if (resp.ok) {
-                                  window.open(storageUrl, "_blank", "noopener,noreferrer");
-                                  opened = true;
-                                }
-                              } catch {}
-                            }
-                            if (!opened) {
-                              printLiquidationDocument(selectedEvent, eventTxns, { organizationName: org?.name });
-                            }
-                            toast.success("Liquidation Report Opened", "Viewing official stored liquidation from database.");
-                          } catch {
-                            printLiquidationDocument(selectedEvent, eventTxns, { organizationName: org?.name });
-                          }
+                          const sig = resolveEventSignatories(selectedEvent, users, organizations);
+                          printLiquidationDocument(selectedEvent, eventTxns, {
+                            organizationName: org?.name,
+                            officerName: sig.officerName,
+                            adviserName: sig.adviserName,
+                            deanName: sig.deanName,
+                            categories: expenditureCategories,
+                          });
+                          toast.success("Liquidation Report Opened", "Viewing official liquidation report.");
                         }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition cursor-pointer shadow-2xs whitespace-nowrap"
                       >

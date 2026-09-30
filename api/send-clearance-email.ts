@@ -15,7 +15,11 @@ export default async function handler(req: any, res: any) {
     const senderEmail = env.GMAIL_USER || 'projectcollinsight@gmail.com';
     const recipientEmail =
       (payload.to && payload.to.trim()) ||
+      (payload.signatoryRole === 'cmo' && env.CMO_EMAIL && env.CMO_EMAIL.trim()) ||
+      (payload.signatoryRole === 'sds' && env.SDS_EMAIL && env.SDS_EMAIL.trim()) ||
       (env.GMAIL_TO_EMAIL && env.GMAIL_TO_EMAIL.trim()) ||
+      (payload.signatoryRole === 'cmo' ? env.CMO_EMAIL : env.SDS_EMAIL) ||
+      env.GMAIL_USER ||
       'projectcollinsight@gmail.com';
 
     if (!clientId || !clientSecret || !refreshToken) {

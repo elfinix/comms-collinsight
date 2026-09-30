@@ -1,5 +1,5 @@
-import { BadgeCheck, Stamp, CheckCircle, ExternalLink, Clock, Eye } from "lucide-react";
-import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories, resolvePdfUrl } from "../../services/dataService";
+import { BadgeCheck, Stamp, CheckCircle, XCircle, ExternalLink, Clock, Eye } from "lucide-react";
+import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories, resolvePdfUrl, EventSignatory } from "../../services/dataService";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";
@@ -20,7 +20,7 @@ export default function EventClearanceTab({
   eventTypeName,
   onViewPdf,
 }: EventClearanceTabProps) {
-  const { organizations, eventTypes, users, eventSignatories } = useApp();
+  const { organizations, eventTypes, users, eventSignatories, auditTrail } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
   const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
@@ -38,13 +38,61 @@ export default function EventClearanceTab({
   const resolvedSig = resolveEventSignatories(event, users, organizations);
 
   // Feedbacks / Signatory actions for this event, sorted newest first
-  const relevantSignatories = (eventSignatories || [])
-    .filter((s) => s.eventId === event.id && s.feedback && s.feedback.trim().length > 0)
-    .sort((a, b) => {
-      const dateA = new Date(a.signedAt || a.createdAt || 0).getTime();
-      const dateB = new Date(b.signedAt || b.createdAt || 0).getTime();
-      return dateB - dateA;
+  const sigList = (eventSignatories || [])
+    .filter((s) => s.eventId === event.id && s.feedback && s.feedback.trim().length > 0);
+
+  const synthesizedSignatories: EventSignatory[] = [...sigList];
+
+  if (event.sdsFeedback && !synthesizedSignatories.some((s) => s.role === "sds" && s.feedback === event.sdsFeedback)) {
+    synthesizedSignatories.push({
+      id: `synth-sds-${event.id}`,
+      eventId: event.id,
+      userId: "sds-external-token",
+      role: "sds",
+      status: event.status === "Pending Revision" ? "Revision Requested" : event.status === "Rejected" ? "Rejected" : "Approved",
+      feedback: event.sdsFeedback,
+      createdAt: event.createdAt,
     });
+  }
+
+  if (event.cmoFeedback && !synthesizedSignatories.some((s) => s.role === "cmo" && s.feedback === event.cmoFeedback)) {
+    synthesizedSignatories.push({
+      id: `synth-cmo-${event.id}`,
+      eventId: event.id,
+      userId: "cmo-external-token",
+      role: "cmo",
+      status: event.status === "Pending Revision" ? "Revision Requested" : event.status === "Rejected" ? "Rejected" : "Approved",
+      feedback: event.cmoFeedback,
+      createdAt: event.createdAt,
+    });
+  }
+
+  // Also include any audit trail entries with explicit remarks if not already captured
+  (auditTrail || [])
+    .filter((a) => a.eventId === event.id && a.remarks && a.remarks.trim().length > 0)
+    .forEach((a) => {
+      const alreadyCaptured = synthesizedSignatories.some((s) => s.feedback === a.remarks);
+      if (!alreadyCaptured) {
+        const role = (a.actorRole as any) || (a.action.toLowerCase().includes("sds") ? "sds" : a.action.toLowerCase().includes("cmo") ? "cmo" : a.action.toLowerCase().includes("dean") ? "dean" : "adviser");
+        const status = a.action === "Requested Revision" ? "Revision Requested" : a.action === "Proposal Rejected" ? "Rejected" : "Approved";
+        synthesizedSignatories.push({
+          id: `audit-${a.id}`,
+          eventId: event.id,
+          userId: a.userId,
+          role,
+          status,
+          feedback: a.remarks,
+          signedAt: a.timestamp,
+          createdAt: a.timestamp,
+        });
+      }
+    });
+
+  const relevantSignatories = synthesizedSignatories.sort((a, b) => {
+    const dateA = new Date(a.signedAt || a.createdAt || 0).getTime();
+    const dateB = new Date(b.signedAt || b.createdAt || 0).getTime();
+    return dateB - dateA;
+  });
 
   // Official Clearance Viewer from Database Storage (for approved events)
   const handleViewClearance = () => {
@@ -197,32 +245,22 @@ export default function EventClearanceTab({
 
         <div className="grid sm:grid-cols-2 gap-3 text-xs">
           <div>
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Name</p>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Proposal Name</p>
             <p className="font-bold text-[var(--foreground)] mt-0.5">{event.name}</p>
           </div>
           <div>
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Type</p>
-            <p className="font-medium mt-0.5">{resolvedTypeName}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Category</p>
-            <p className="font-medium mt-0.5 font-bold text-[var(--primary)]">{event.category || "Organizational"}</p>
-          </div>
-          <div>
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Setting</p>
-            <p className="font-semibold text-blue-700 dark:text-blue-400 mt-0.5">
-              {event.setting || "On-campus"}
-            </p>
-          </div>
-          <div className="sm:col-span-2">
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Schedule</p>
             <p className="font-medium mt-0.5">
               {formatEventSchedule(event.dateStart, event.dateEnd)}
             </p>
           </div>
-          <div className="sm:col-span-2">
+          <div>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Organizing Body</p>
+            <p className="font-bold text-blue-800 dark:text-blue-400 mt-0.5">{resolvedOrgName}</p>
+          </div>
+          <div>
             <p className="font-mono text-[var(--muted-foreground)] font-bold">
-              {isOnline ? "Platform / Link" : "Venue / Location"}
+              {isOnline ? "Venue / Platform Location" : "Venue / Platform Location"}
             </p>
             {isWebUrl(event.location) ? (
               <a
@@ -239,10 +277,24 @@ export default function EventClearanceTab({
             )}
           </div>
           <div>
-            <p className="font-mono text-[var(--muted-foreground)] font-bold">Authorized Proposed Budget</p>
-            <p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(event.proposedBudget)}</p>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Category</p>
+            <p className="font-medium mt-0.5 font-bold text-[var(--primary)]">{event.category || "Organizational"}</p>
           </div>
           <div>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Setting</p>
+            <p className="font-semibold text-blue-700 dark:text-blue-400 mt-0.5">
+              {event.setting || "On-campus"}
+            </p>
+          </div>
+          <div>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Event Type & Scope</p>
+            <p className="font-medium mt-0.5">{resolvedTypeName}</p>
+          </div>
+          <div>
+            <p className="font-mono text-[var(--muted-foreground)] font-bold">Proposed Allocated Budget</p>
+            <p className="font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(event.proposedBudget)}</p>
+          </div>
+          <div className="sm:col-span-2">
             <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
             <p className="font-mono text-blue-800 dark:text-blue-400 font-bold mt-0.5 flex items-center gap-1">
               ✓ {event.apfUrl ? event.apfUrl.replace(/^.*[\\/]/, '') : "Activity Proposal Form Attached"}
@@ -250,20 +302,20 @@ export default function EventClearanceTab({
           </div>
           {event.setting === "Off-campus" && (
             <div className="sm:col-span-2">
-              <p className="font-mono text-[var(--muted-foreground)] font-bold">Parental Consent Form (PCF)</p>
+              <p className="font-mono text-[var(--muted-foreground)] font-bold">Parental Consent Form (PCF) · Optional</p>
               {event.pcfUrl ? (
                 <a
                   href={resolvePdfUrl(event.pcfUrl, "appendix")}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-mono text-amber-700 dark:text-amber-400 font-bold mt-0.5 inline-flex items-center gap-1 hover:underline"
+                  className="font-mono text-emerald-700 dark:text-emerald-400 font-bold mt-0.5 inline-flex items-center gap-1 hover:underline"
                 >
                   ✓ {event.pcfName || event.pcfUrl.replace(/^.*[\\/]/, '')}
                   <ExternalLink size={11} />
                 </a>
               ) : (
-                <p className="font-mono text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
-                  ⚠ Parental Consent Form (PCF) Required for Off-campus events
+                <p className="font-mono text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                  None Attached (Optional)
                 </p>
               )}
             </div>
@@ -357,25 +409,52 @@ export default function EventClearanceTab({
 
           <div className="space-y-3">
             {relevantSignatories.map((sig) => {
+              const isRejected = sig.status === "Rejected";
               const isRevision = sig.status === "Revision Requested";
               const isResolved = sig.status === "Resolved";
               const isApproval = sig.status === "Approved" || sig.status === "Endorsed";
-              const sigUser = users.find((u) => u.id === sig.userId);
-              const signatoryName = sigUser
+              const isSds = sig.role === "sds";
+              const isCmo = sig.role === "cmo";
+              const sigUser = (isSds || isCmo) ? undefined : users.find((u) => u.id === sig.userId);
+              const signatoryName = isSds
+                ? "Student Development & Services (SDS)"
+                : isCmo
+                ? "Crisis Management Office (CMO)"
+                : sigUser
                 ? `${sigUser.firstName} ${sigUser.middleName ? sigUser.middleName.charAt(0) + '. ' : ''}${sigUser.lastName}${sigUser.suffix ? ', ' + sigUser.suffix : ''}`
                 : sig.role === "dean"
                 ? resolvedSig.deanName
                 : sig.role === "adviser"
                 ? resolvedSig.adviserName
                 : resolvedSig.officerName;
-              const roleTitle = sig.role === "dean" ? "College Dean, CITE" : sig.role === "adviser" ? `Faculty Adviser, ${resolvedOrgCode}` : "Student Officer";
-              const titlePrefix = sig.role === "dean" ? "College Dean's" : sig.role === "adviser" ? "Adviser's" : "Signatory";
+              const roleTitle =
+                sig.role === "dean"
+                  ? "College Dean, CITE"
+                  : sig.role === "sds"
+                  ? "Student Affairs & Clearance Compliance"
+                  : sig.role === "cmo"
+                  ? "Crisis Management & Institutional Safety"
+                  : sig.role === "adviser"
+                  ? `Faculty Adviser, ${resolvedOrgCode}`
+                  : "Student Officer";
+              const titlePrefix =
+                sig.role === "dean"
+                  ? "College Dean's"
+                  : sig.role === "sds"
+                  ? "SDS"
+                  : sig.role === "cmo"
+                  ? "CMO"
+                  : sig.role === "adviser"
+                  ? "Adviser's"
+                  : "Signatory";
 
               return (
                 <div
                   key={sig.id}
                   className={`p-4 rounded-xl border transition ${
-                    isRevision
+                    isRejected
+                      ? "bg-rose-50/80 border-rose-300 text-rose-950 shadow-xs"
+                      : isRevision
                       ? "bg-amber-50/80 border-amber-300 text-amber-950 shadow-xs"
                       : isResolved
                       ? "bg-blue-50/60 border-blue-200 text-blue-950"
@@ -385,7 +464,11 @@ export default function EventClearanceTab({
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-xs">
-                        {isApproval ? `${titlePrefix} Endorsement Remarks` : `${titlePrefix} Feedback`}
+                        {isRejected
+                          ? `${titlePrefix} Rejection Feedback`
+                          : isApproval
+                          ? `${titlePrefix} Endorsement Remarks`
+                          : `${titlePrefix} Feedback`}
                       </span>
                       <span className="text-[10px] text-[var(--muted-foreground)] font-mono">
                         {sig.signedAt || sig.createdAt ? formatDateTime(sig.signedAt || sig.createdAt!) : ""}
@@ -393,6 +476,11 @@ export default function EventClearanceTab({
                     </div>
 
                     {/* Status Chip / Badge */}
+                    {isRejected && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-rose-200/90 text-rose-900 px-2 py-0.5 rounded-full border border-rose-400">
+                        <XCircle size={10} /> Rejected
+                      </span>
+                    )}
                     {isRevision && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-amber-200/90 text-amber-900 px-2 py-0.5 rounded-full border border-amber-400">
                         <Clock size={10} /> Pending

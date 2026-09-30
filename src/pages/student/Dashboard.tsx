@@ -242,7 +242,7 @@ export default function StudentDashboard() {
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Classification</th>
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Date</th>
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Budget</th>
-                <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Status</th>
+                <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)] whitespace-nowrap min-w-[130px]">Status</th>
                 <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)] min-w-[280px]">Signatory Progression</th>
               </tr>
             </thead>
@@ -252,10 +252,10 @@ export default function StudentDashboard() {
                   <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
                   <td className="px-5 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200 whitespace-nowrap">
                         {e.category || "Organizational"}
                       </span>
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full whitespace-nowrap ${
                         e.setting === "Off-campus"
                           ? "bg-blue-50 text-blue-800 border border-blue-200"
                           : "bg-amber-50 text-amber-800 border border-amber-200"
@@ -264,10 +264,10 @@ export default function StudentDashboard() {
                       </span>
                     </div>
                   </td>
-                  <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
-                  <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
-                  <td className="px-5 py-4">
-                    <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
+                  <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)] whitespace-nowrap">{formatDate(e.dateStart)}</td>
+                  <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)] whitespace-nowrap">{formatCurrency(e.proposedBudget)}</td>
+                  <td className="px-5 py-4 whitespace-nowrap">
+                    <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap inline-block ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
                   </td>
                   <td className="px-5 py-4">
                     <SignatoryProgress status={e.status} setting={e.setting} />

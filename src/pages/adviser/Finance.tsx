@@ -26,7 +26,7 @@ import { getInitiativeSourceBadgeClass } from "../student/Finance";
 const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#ef4444", "#10b981", "#f97316"];
 
 function isEventFinanceUnlocked(status: string, setting?: string): boolean {
-  if (status === "Completed" || status === "Closed" || status === "Approved") return true;
+  if (status === "Completed" || status === "Closed") return true;
   if (setting === "Off-campus") {
     return status === "CMO Authorized";
   }
@@ -362,7 +362,7 @@ export default function AdviserFinance() {
                   </CardHeader>
                   <CardBody className="flex-1 flex flex-col justify-center p-4">
                     {chartData.length === 0 ? (
-                      <EmptyState title="No approved events" description="Approved events will populate this chart." />
+                      <EmptyState title="No authorized events" description="Authorized events will populate this chart." />
                     ) : (
                       <ResponsiveContainer width="100%" height={210}>
                         <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
@@ -517,7 +517,7 @@ export default function AdviserFinance() {
                           <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex items-center justify-center transition-all group-hover:bg-blue-100 group-hover:border-blue-300 group-hover:text-blue-950 shadow-2xs">
                             <ChevronDown size={16} className={`transition-transform duration-200 ${approvedExpanded ? "rotate-0" : "-rotate-90"}`} />
                           </div>
-                          <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition">Approved & Active Events</h2>
+                          <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition">Authorized & Active Events</h2>
                           <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
                             {approvedGroup.length}
                           </span>

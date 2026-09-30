@@ -54,7 +54,8 @@ export default function DeanPendingApproval() {
     const officerName = sig.officerName;
     const adviserName = sig.adviserName;
 
-    const targetApprovedEvent: Event = { ...viewEvent, status: "Approved" };
+    const freshSdsToken = `token_sds_${Date.now()}`;
+    const targetApprovedEvent: Event = { ...viewEvent, status: "Approved", sdsActionToken: freshSdsToken };
 
     // 1. Generate genuine vector Clearance PDF and upload to Supabase Storage (Persistent Archive)
     try {
@@ -92,6 +93,7 @@ export default function DeanPendingApproval() {
         adviserName,
         deanName,
         feedback: trimmed || undefined,
+        actionToken: freshSdsToken,
       });
 
       if (emailResult.success) {
@@ -105,7 +107,7 @@ export default function DeanPendingApproval() {
     }
 
     // 3. Update Database & Local App State
-    setEventStatus(viewEvent.id, "Approved", trimmed || undefined, currentUser?.id);
+    setEventStatus(viewEvent.id, "Approved", trimmed || undefined, currentUser?.id, { sdsActionToken: freshSdsToken });
     setIsApproving(false);
     toast.success("Proposal Approved", `'${viewEvent.name}' approved.${emailStatusMessage}`, {
       action: {
@@ -454,7 +456,7 @@ export default function DeanPendingApproval() {
                           </a>
                         </div>
                       ) : (
-                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                        <p className="text-sm text-[var(--muted-foreground)]">None Attached (Optional)</p>
                       )}
                     </div>
                   )}

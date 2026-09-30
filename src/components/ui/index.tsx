@@ -202,50 +202,50 @@ export function DateTimePicker({
   }
 
   function handleHourChange(val: string) {
-    const clean = val.replace(/\D/g, "").slice(0, 2);
+    let clean = val.replace(/\D/g, "");
+    if (clean.length > 2) {
+      clean = clean.slice(-2);
+    }
+
     setInputHour(clean);
+
     if (clean) {
-      const num = parseInt(clean, 10);
-      if (num >= 1 && num <= 12) {
+      let num = parseInt(clean, 10);
+      if (!isNaN(num) && num >= 1) {
+        if (num > 12) num = 12;
         setTimePart(num, currentMinutes, currentPeriod);
-        if (clean.length === 2 || num >= 2) {
-          minuteInputRef.current?.focus();
-          minuteInputRef.current?.select();
-        }
-      } else if (num > 12) {
-        setInputHour("12");
-        setTimePart(12, currentMinutes, currentPeriod);
-        minuteInputRef.current?.focus();
-        minuteInputRef.current?.select();
       }
     }
   }
 
   function handleHourBlur() {
     let num = parseInt(inputHour, 10);
-    if (isNaN(num) || num < 1) num = 12;
+    if (isNaN(num) || num < 1) num = currentHours12 || 12;
     if (num > 12) num = 12;
     setInputHour(String(num).padStart(2, "0"));
     setTimePart(num, currentMinutes, currentPeriod);
   }
 
   function handleMinuteChange(val: string) {
-    const clean = val.replace(/\D/g, "").slice(0, 2);
+    let clean = val.replace(/\D/g, "");
+    if (clean.length > 2) {
+      clean = clean.slice(-2);
+    }
+
     setInputMinute(clean);
+
     if (clean) {
-      const num = parseInt(clean, 10);
-      if (num >= 0 && num <= 59) {
+      let num = parseInt(clean, 10);
+      if (!isNaN(num) && num >= 0) {
+        if (num > 59) num = 59;
         setTimePart(currentHours12, num, currentPeriod);
-      } else if (num > 59) {
-        setInputMinute("59");
-        setTimePart(currentHours12, 59, currentPeriod);
       }
     }
   }
 
   function handleMinuteBlur() {
     let num = parseInt(inputMinute, 10);
-    if (isNaN(num) || num < 0) num = 0;
+    if (isNaN(num) || num < 0) num = currentMinutes || 0;
     if (num > 59) num = 59;
     setInputMinute(String(num).padStart(2, "0"));
     setTimePart(currentHours12, num, currentPeriod);
@@ -373,6 +373,7 @@ export function DateTimePicker({
                   inputMode="numeric"
                   maxLength={2}
                   value={inputHour}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
                   onFocus={(e) => {
                     isHourFocused.current = true;
                     e.target.select();
@@ -417,6 +418,7 @@ export function DateTimePicker({
                   inputMode="numeric"
                   maxLength={2}
                   value={inputMinute}
+                  onClick={(e) => (e.target as HTMLInputElement).select()}
                   onFocus={(e) => {
                     isMinuteFocused.current = true;
                     e.target.select();
@@ -508,6 +510,247 @@ export function DateTimePicker({
       )}
       </div>
 
+      {error && <p className="text-xs text-red-500 font-medium mt-0.5">{error}</p>}
+    </div>
+  );
+}
+
+// --- Custom DatePicker with MM/DD/YYYY Format (Date Only) ---
+export interface DatePickerProps {
+  label?: string;
+  error?: string;
+  value: string; // "YYYY-MM-DD"
+  onChange: (val: string) => void;
+  min?: string;
+  max?: string;
+  className?: string;
+  placeholder?: string;
+}
+
+export function DatePicker({
+  label,
+  error,
+  value,
+  onChange,
+  min,
+  max,
+  className = "",
+  placeholder = "MM/DD/YYYY",
+}: DatePickerProps) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Parse YYYY-MM-DD value safely
+  function parseDateString(val?: string): Date | null {
+    if (!val) return null;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+      const [y, m, d] = val.split("-").map(Number);
+      const dt = new Date(y, m - 1, d);
+      return isNaN(dt.getTime()) ? null : dt;
+    }
+    const dt = new Date(val);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const parsedDate = parseDateString(value);
+  const isValidDate = parsedDate !== null;
+  const minDate = min ? parseDateString(min) : null;
+  const maxDate = max ? parseDateString(max) : null;
+
+  const [viewDate, setViewDate] = useState<Date>(
+    isValidDate ? parsedDate : (minDate || new Date())
+  );
+
+  useEffect(() => {
+    if (isValidDate) {
+      setViewDate(parsedDate);
+    }
+  }, [value]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [open]);
+
+  const formattedDisplay = isValidDate
+    ? `${String(parsedDate.getMonth() + 1).padStart(2, "0")}/${String(parsedDate.getDate()).padStart(2, "0")}/${parsedDate.getFullYear()}`
+    : "";
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  const days: { day: number; isCurrentMonth: boolean; dateObj: Date }[] = [];
+
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const d = prevMonthDays - i;
+    days.push({ day: d, isCurrentMonth: false, dateObj: new Date(year, month - 1, d) });
+  }
+  for (let i = 1; i <= totalDaysInMonth; i++) {
+    days.push({ day: i, isCurrentMonth: true, dateObj: new Date(year, month, i) });
+  }
+  const remaining = 42 - days.length;
+  for (let i = 1; i <= remaining; i++) {
+    days.push({ day: i, isCurrentMonth: false, dateObj: new Date(year, month + 1, i) });
+  }
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  function handleSelectDate(d: Date) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    onChange(`${y}-${m}-${day}`);
+    setOpen(false);
+  }
+
+  return (
+    <div className={`flex flex-col gap-1 ${className}`} ref={containerRef}>
+      {label && <label className="text-xs font-medium text-[var(--foreground)]">{label}</label>}
+
+      <div className="relative flex items-center">
+        <input
+          type="text"
+          readOnly
+          value={formattedDisplay}
+          placeholder={placeholder}
+          onClick={() => setOpen((o) => !o)}
+          className={`w-full pl-3.5 pr-10 py-2 text-sm font-mono border rounded-xl bg-white text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer transition shadow-2xs ${
+            error ? "border-red-400 focus:ring-red-200" : "border-[var(--border)] hover:border-[var(--primary)]/50"
+          }`}
+        />
+
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="absolute right-3 text-[var(--muted-foreground)] hover:text-[var(--primary)] transition cursor-pointer p-0.5"
+          title="Pick date (MM/DD/YYYY)"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        </button>
+
+        {open && (
+          <div className="absolute top-full left-0 mt-1.5 z-50 bg-white border border-[var(--border)] rounded-2xl shadow-2xl p-4 w-76 max-w-[90vw] animate-in fade-in zoom-in-95 duration-150 select-none">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+              <button
+                type="button"
+                onClick={() => setViewDate(new Date(year, month - 1, 1))}
+                className="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--foreground)] transition cursor-pointer"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
+
+              <span className="font-bold text-xs font-mono text-[var(--foreground)]">
+                {monthNames[month]} {year}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setViewDate(new Date(year, month + 1, 1))}
+                className="p-1.5 rounded-lg hover:bg-[var(--muted)] text-[var(--foreground)] transition cursor-pointer"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
+            </div>
+
+            {/* Weekdays */}
+            <div className="grid grid-cols-7 gap-1 pt-2 pb-1 text-center text-[10px] font-mono font-bold text-[var(--muted-foreground)]">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-1 text-xs font-mono">
+              {days.map((item, idx) => {
+                const isSelected =
+                  isValidDate &&
+                  item.dateObj.getFullYear() === parsedDate.getFullYear() &&
+                  item.dateObj.getMonth() === parsedDate.getMonth() &&
+                  item.dateObj.getDate() === parsedDate.getDate();
+
+                const isToday =
+                  new Date().toDateString() === item.dateObj.toDateString();
+
+                const isPastMin =
+                  minDate &&
+                  new Date(item.dateObj.getFullYear(), item.dateObj.getMonth(), item.dateObj.getDate()) <
+                    new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+
+                const isPastMax =
+                  maxDate &&
+                  new Date(item.dateObj.getFullYear(), item.dateObj.getMonth(), item.dateObj.getDate()) >
+                    new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+
+                const isDisabled = isPastMin || isPastMax;
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={!!isDisabled}
+                    onClick={() => handleSelectDate(item.dateObj)}
+                    className={`h-7 w-7 mx-auto flex items-center justify-center rounded-lg transition text-xs ${
+                      isDisabled
+                        ? "text-slate-300 cursor-not-allowed"
+                        : isSelected
+                        ? "bg-[var(--primary)] text-white font-bold shadow-2xs"
+                        : isToday
+                        ? "border border-[var(--primary)] text-[var(--primary)] font-bold hover:bg-[var(--primary)]/10"
+                        : item.isCurrentMonth
+                        ? "text-[var(--foreground)] hover:bg-[var(--muted)]"
+                        : "text-[var(--muted-foreground)]/50 hover:bg-[var(--muted)]/30"
+                    }`}
+                  >
+                    {item.day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Quick Actions Footer */}
+            <div className="pt-3 mt-3 border-t border-[var(--border)] flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={() => {
+                  const now = new Date();
+                  handleSelectDate(now);
+                }}
+                className="font-mono font-bold text-[var(--primary)] hover:underline cursor-pointer"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+                className="font-mono text-[var(--muted-foreground)] hover:text-[var(--foreground)] cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
       {error && <p className="text-xs text-red-500 font-medium mt-0.5">{error}</p>}
     </div>
   );

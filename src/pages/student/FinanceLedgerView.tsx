@@ -300,6 +300,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
   async function handleCompleteLiquidation() {
     const revNum = parseFloat(revenue);
     const hasRev = !isNaN(revNum) && revNum > 0;
+    const finalRevenue = hasRev ? revNum : activeEvent!.revenue;
     const remarksArr = activeEvent!.remarks ? [...activeEvent!.remarks] : [];
     remarksArr.push(
       `Liquidation completed on ${formatDate(new Date().toISOString())}${
@@ -310,10 +311,19 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     const activeLiquidator = liquidatorName;
     const orgName = org?.name || org?.code || sig?.organizationName || "Organization";
 
+    const updatedEventObj: Event = {
+      ...activeEvent!,
+      status: "Closed",
+      remarks: remarksArr,
+      revenue: finalRevenue,
+      liquidatedBy: activeLiquidator,
+      liquidatedAt: new Date().toISOString(),
+    };
+
     // Generate & upload official liquidation statement to Supabase Storage
     try {
       const liquidationDocName = `Liquidation_Report_${activeEvent!.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
-      const pdfBlob = generateLiquidationPdfBlob(activeEvent!, eventTxns, {
+      const pdfBlob = generateLiquidationPdfBlob(updatedEventObj, eventTxns, {
         organizationName: orgName,
         officerName: activeLiquidator,
         adviserName,
@@ -338,7 +348,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
     updateEvent(activeEvent!.id, {
       status: "Closed",
       remarks: remarksArr,
-      revenue: hasRev ? revNum : activeEvent!.revenue,
+      revenue: finalRevenue,
       liquidatedBy: activeLiquidator,
       liquidatedAt: new Date().toISOString(),
     });
@@ -366,39 +376,19 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
 
   async function handleTriggerOpenPdf() {
     if (!activeEvent) return;
-    const orgName = org?.name || org?.code || "Student Organization";
+    const orgName = org?.name || org?.code || sig?.organizationName || "Student Organization";
     const fileName = `Liquidation_Report_${activeEvent.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
     try {
-      const orgIdentifier = activeEvent.organizationId || org?.id;
-      const eventIdentifier = activeEvent.id;
-      const storagePath = buildAttachmentPath(orgIdentifier, eventIdentifier, "Liquidation", fileName);
-      const publicUrl = getPublicStorageUrl(STORAGE_BUCKETS.ATTACHMENTS, storagePath);
-
-      let opened = false;
-      if (publicUrl) {
-        try {
-          const resp = await fetch(publicUrl, { method: "HEAD" });
-          if (resp.ok) {
-            window.open(publicUrl, "_blank", "noopener,noreferrer");
-            opened = true;
-          }
-        } catch {
-          // Fallback to blob in new tab
-        }
-      }
-
-      if (!opened) {
-        const pdfBlob = generateLiquidationPdfBlob(activeEvent, eventTxns, {
-          organizationName: orgName,
-          officerName: liquidatorName,
-          adviserName,
-          deanName,
-          categories: expenditureCategories,
-        });
-        openPdfBlobInNewTab(pdfBlob, fileName);
-      }
-
+      // Always generate live PDF with full fidelity so all revenue & reconciliation metrics match the modal
+      const pdfBlob = generateLiquidationPdfBlob(activeEvent, eventTxns, {
+        organizationName: orgName,
+        officerName: liquidatorName,
+        adviserName,
+        deanName,
+        categories: expenditureCategories,
+      });
+      openPdfBlobInNewTab(pdfBlob, fileName);
       toast.success("Liquidation Report Opened", `'${activeEvent.name}' PDF document opened in a new tab.`);
     } catch (err: any) {
       console.error("Liquidation open error:", err);

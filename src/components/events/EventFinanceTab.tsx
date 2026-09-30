@@ -5,7 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { Button } from "../ui";
 import {
   Wallet, CreditCard, Coins, FileSpreadsheet, ArrowRight, FileText,
-  CheckCircle, Clock, Scale
+  CheckCircle, XCircle, Clock, Scale
 } from "lucide-react";
 import {
   formatCurrency, formatDate, Event, resolveEventSignatories
@@ -30,8 +30,14 @@ export default function EventFinanceTab({
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
+  const isUnlocked =
+    event.status === "Completed" ||
+    event.status === "Closed" ||
+    (event.setting === "Off-campus"
+      ? event.status === "CMO Authorized"
+      : (event.status === "SDS Authorized" || event.status === "CMO Authorized"));
   const isClosed = event.status === "Closed";
+  const isRejected = event.status === "Rejected";
 
   const eventTxns = transactions.filter((t) => t.eventId === event.id && !t.deleted);
   const eventSpent = eventTxns.reduce((s, t) => s + t.amount, 0);
@@ -64,11 +70,49 @@ export default function EventFinanceTab({
   };
 
   const handlePrintLiquidation = () => {
-    printLiquidationDocument(event, eventTxns, resolvedOrgName, liquidatorName, adviserName, deanName);
+    printLiquidationDocument(event, eventTxns, {
+      organizationName: resolvedOrgName,
+      officerName: liquidatorName,
+      adviserName,
+      deanName,
+      categories: expenditureCategories,
+    });
     toast.success("Liquidation Statement Prepared", "Official document dispatched for print/PDF export.");
   };
 
-  if (!isApproved) {
+  if (isRejected) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="bg-rose-50/80 border border-rose-200/90 rounded-2xl p-4 flex items-start gap-3 text-rose-950">
+          <XCircle size={18} className="text-rose-600 flex-shrink-0 mt-0.5" />
+          <div className="text-xs space-y-0.5">
+            <p className="font-bold text-rose-950">Proposal Rejected — Finance Ledger Revoked</p>
+            <p className="text-rose-800/90 leading-relaxed">
+              This event proposal was rejected during institutional clearance review. The allocated proposed budget was revoked and financial disbursements are disabled.
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 text-sm space-y-3 shadow-2xs">
+          <p className="font-bold text-[var(--foreground)] text-xs font-mono uppercase tracking-wider">
+            Proposed Budget Allocation
+          </p>
+          <div className="p-4 bg-rose-50/40 rounded-xl border border-rose-200 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-mono text-[var(--muted-foreground)]">Proposed Allocation</p>
+              <p className="text-lg font-mono font-bold text-rose-600 line-through opacity-80 mt-0.5">{formatCurrency(event.proposedBudget)}</p>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md bg-rose-100 text-rose-800 border border-rose-300 flex items-center gap-1">
+              <XCircle size={10} /> Allocation Revoked
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isUnlocked) {
+    const requiredAuthOffice = event.setting === "Off-campus" ? "Crisis Management Office (CMO)" : "Student Development & Services (SDS)";
     return (
       <div className="flex flex-col gap-4">
         <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-amber-900">
@@ -76,7 +120,7 @@ export default function EventFinanceTab({
           <div className="text-xs space-y-0.5">
             <p className="font-bold text-amber-950">Finance Ledger Inactive</p>
             <p className="text-amber-800/90 leading-relaxed">
-              Disbursement ledger, itemized transaction vouchers, and budget liquidation activate automatically once the event proposal receives executive Dean approval.
+              Disbursement ledger, itemized transaction vouchers, and budget liquidation activate automatically once the event proposal receives institutional clearance authorization from {requiredAuthOffice}.
             </p>
           </div>
         </div>
@@ -91,7 +135,7 @@ export default function EventFinanceTab({
               <p className="text-lg font-mono font-bold text-[var(--primary)] mt-0.5">{formatCurrency(event.proposedBudget)}</p>
             </div>
             <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
-              Pending Approval
+              Pending Authorization
             </span>
           </div>
         </div>

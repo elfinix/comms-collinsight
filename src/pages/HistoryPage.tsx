@@ -50,12 +50,55 @@ export default function HistoryPage() {
   const role = currentUser?.role || "student";
   const userOrgId = currentUser?.organizationId;
 
+  // Tailored Action Filter Tabs based on Role
+  const availableActionFilters = useMemo(() => {
+    if (role === "dean") {
+      return [
+        { id: "ALL" as ActionFilterType, label: "All" },
+        { id: "APPROVE" as ActionFilterType, label: "Executive Approvals" },
+        { id: "REVISION" as ActionFilterType, label: "Revision Requests" },
+      ];
+    }
+    return ACTION_FILTERS;
+  }, [role]);
+
   // Filter audit records based on Role (RBAC)
   const scopedEntries = useMemo(() => {
     return auditTrail.filter((entry) => {
-      // For Dean: History of Dean's own executive actions
+      // For Dean: Strictly Dean's own executive actions (Executive Approvals, Dean Revision Requests, Dean Rejections)
       if (role === "dean") {
-        return entry.userId === currentUser?.id || entry.actorRole === "dean";
+        const isSdsOrCmo =
+          entry.actorRole === "sds" ||
+          entry.actorRole === "cmo" ||
+          entry.userId === "sds-external-token" ||
+          entry.userId === "cmo-external-token" ||
+          entry.action.toLowerCase().includes("sds") ||
+          entry.action.toLowerCase().includes("cmo") ||
+          entry.details?.toLowerCase().includes("student development") ||
+          entry.details?.toLowerCase().includes("crisis management") ||
+          entry.details?.toLowerCase().includes("by sds") ||
+          entry.details?.toLowerCase().includes("by cmo");
+
+        const isStudentOrAdviser =
+          entry.actorRole === "student" ||
+          entry.actorRole === "adviser" ||
+          entry.action.toLowerCase().includes("submit") ||
+          entry.action.toLowerCase().includes("modified") ||
+          entry.action.toLowerCase().includes("creat") ||
+          entry.action.toLowerCase().includes("delete") ||
+          entry.action.toLowerCase().includes("endors") ||
+          entry.details?.toLowerCase().includes("faculty adviser") ||
+          entry.details?.toLowerCase().includes("to adviser");
+
+        if (isStudentOrAdviser || isSdsOrCmo) return false;
+
+        const isDeanRole = entry.actorRole === "dean";
+        const isDeanExecutiveAction =
+          entry.action.toLowerCase().includes("executive") ||
+          entry.action.toLowerCase().includes("dean") ||
+          entry.details?.toLowerCase().includes("college dean");
+
+        return isDeanRole || isDeanExecutiveAction || entry.userId === currentUser?.id;
       }
 
       // For Student and Adviser: Organization's events history
@@ -128,16 +171,18 @@ export default function HistoryPage() {
         matchesAction = act.includes("approve") || act.includes("endors") || act.includes("executive");
       } else if (actionFilter === "AUTHORIZED") {
         matchesAction =
-          act.includes("authorized") ||
-          act.includes("clearance") ||
-          entry.statusTo === "SDS Authorized" ||
-          entry.statusTo === "CMO Authorized" ||
-          entry.actorRole === "sds" ||
-          entry.actorRole === "cmo";
+          (act.includes("authorized") ||
+            act.includes("clearance") ||
+            entry.statusTo === "SDS Authorized" ||
+            entry.statusTo === "CMO Authorized") &&
+          !act.includes("reject") &&
+          !act.includes("revision") &&
+          entry.statusTo !== "Rejected" &&
+          entry.statusTo !== "Pending Revision";
       } else if (actionFilter === "REVISION") {
-        matchesAction = act.includes("revision") || act.includes("change");
+        matchesAction = act.includes("revision") || act.includes("change") || entry.statusTo === "Pending Revision";
       } else if (actionFilter === "SUBMIT") {
-        matchesAction = act.includes("submit") || act.includes("for review");
+        matchesAction = act.includes("submit") || act.includes("for review") || entry.statusTo === "For Review";
       } else if (actionFilter === "CREATE") {
         matchesAction = act.includes("creat");
       } else if (actionFilter === "MODIFIED") {
@@ -145,7 +190,15 @@ export default function HistoryPage() {
       } else if (actionFilter === "FINANCE") {
         matchesAction = act.includes("disburs") || act.includes("expense") || act.includes("transaction");
       } else if (actionFilter === "CLOSURE") {
-        matchesAction = act.includes("completed") || act.includes("closed") || act.includes("closure") || act.includes("liquidation");
+        matchesAction = Boolean(
+          act.includes("completed") ||
+          act.includes("closed") ||
+          act.includes("closure") ||
+          act.includes("liquidation") ||
+          act.includes("reject") ||
+          entry.statusTo === "Rejected" ||
+          (evt && evt.status === "Rejected" && act.includes("reject"))
+        );
       }
 
       // Date Range filtering
@@ -317,7 +370,7 @@ export default function HistoryPage() {
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted-foreground)] mr-1 flex items-center gap-1 flex-shrink-0">
               <Filter size={11} /> Filter:
             </span>
-            {ACTION_FILTERS.map((f) => {
+            {availableActionFilters.map((f) => {
               const active = actionFilter === f.id;
               return (
                 <button
@@ -369,9 +422,71 @@ export default function HistoryPage() {
             <div className="relative pl-7 space-y-6 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-[2px] before:bg-[var(--border)]">
               {visibleEntries.map((entry) => {
                 const evt = getAssociatedEvent(entry);
-                const user = users.find((u) => u.id === entry.userId);
-                const userName = user ? `${user.firstName} ${user.lastName}` : entry.userId;
-                const userRole = user?.role || entry.actorRole || "student";
+                const isStudentAction =
+                  entry.actorRole === "student" ||
+                  entry.action.toLowerCase().includes("submit") ||
+                  entry.action.toLowerCase().includes("modified") ||
+                  entry.action.toLowerCase().includes("creat") ||
+                  entry.action.toLowerCase().includes("delete");
+
+                const isDeanAction =
+                  entry.actorRole === "dean" ||
+                  entry.action.toLowerCase().includes("executive") ||
+                  entry.details?.toLowerCase().includes("by college dean");
+
+                const isAdviserAction =
+                  entry.actorRole === "adviser" ||
+                  entry.action.toLowerCase().includes("endors") ||
+                  entry.action.toLowerCase().includes("approved & forwarded") ||
+                  entry.details?.toLowerCase().includes("by faculty adviser");
+
+                const isSds =
+                  entry.actorRole === "sds" ||
+                  entry.userId === "sds-external-token" ||
+                  entry.action === "SDS Authorized" ||
+                  (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
+                  (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
+
+                const isCmo =
+                  entry.actorRole === "cmo" ||
+                  entry.userId === "cmo-external-token" ||
+                  entry.action === "CMO Authorized" ||
+                  (entry.action === "Requested Revision" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))) ||
+                  (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO")));
+
+                let user = (isSds || isCmo) ? undefined : (users.find((u) => u.id === entry.userId) || users.find((u) => u.email === entry.userId));
+
+                if (isStudentAction && user && user.role !== "student") {
+                  user = undefined;
+                }
+                if (isDeanAction && user && user.role !== "dean") {
+                  user = undefined;
+                }
+                if (isAdviserAction && user && user.role !== "adviser") {
+                  user = undefined;
+                }
+
+                const resolvedUser = user || ((isSds || isCmo) ? undefined : (
+                  isDeanAction
+                    ? users.find((u) => u.role === "dean")
+                    : isAdviserAction
+                    ? (evt ? users.find((u) => u.organizationId === evt.organizationId && u.role === "adviser") : users.find((u) => u.role === "adviser"))
+                    : isStudentAction && evt
+                    ? users.find((u) => u.id === evt.createdBy || (u.organizationId === evt.organizationId && u.role === "student"))
+                    : users.find((u) => u.role === "student")
+                ));
+
+                const userRole = isSds ? "sds" : isCmo ? "cmo" : isStudentAction ? "student" : isDeanAction ? "dean" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
+
+                const userName = isSds
+                  ? "Student Development & Services"
+                  : isCmo
+                  ? "Crisis Management Office"
+                  : resolvedUser
+                  ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim()
+                  : entry.userId && !entry.userId.includes("-0000-") && !entry.userId.startsWith("id-") && !entry.userId.includes("external-token")
+                  ? entry.userId
+                  : formatUserRole(userRole);
 
                 const isApprove = entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors");
                 const isRevision = entry.action.toLowerCase().includes("revision") || entry.action.toLowerCase().includes("change");
@@ -530,9 +645,71 @@ export default function HistoryPage() {
                 ) : (
                   visibleEntries.map((entry) => {
                     const evt = getAssociatedEvent(entry);
-                    const user = users.find((u) => u.id === entry.userId);
-                    const userName = user ? `${user.firstName} ${user.lastName}` : entry.userId;
-                    const userRole = user?.role || entry.actorRole || "student";
+                    const isStudentAction =
+                      entry.actorRole === "student" ||
+                      entry.action.toLowerCase().includes("submit") ||
+                      entry.action.toLowerCase().includes("modified") ||
+                      entry.action.toLowerCase().includes("creat") ||
+                      entry.action.toLowerCase().includes("delete");
+
+                    const isDeanAction =
+                      entry.actorRole === "dean" ||
+                      entry.action.toLowerCase().includes("executive") ||
+                      entry.details?.toLowerCase().includes("by college dean");
+
+                    const isAdviserAction =
+                      entry.actorRole === "adviser" ||
+                      entry.action.toLowerCase().includes("endors") ||
+                      entry.action.toLowerCase().includes("approved & forwarded") ||
+                      entry.details?.toLowerCase().includes("by faculty adviser");
+
+                    const isSds =
+                      entry.actorRole === "sds" ||
+                      entry.userId === "sds-external-token" ||
+                      entry.action === "SDS Authorized" ||
+                      (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
+                      (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
+
+                    const isCmo =
+                      entry.actorRole === "cmo" ||
+                      entry.userId === "cmo-external-token" ||
+                      entry.action === "CMO Authorized" ||
+                      (entry.action === "Requested Revision" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))) ||
+                      (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO")));
+
+                    let user = (isSds || isCmo) ? undefined : (users.find((u) => u.id === entry.userId) || users.find((u) => u.email === entry.userId));
+
+                    if (isStudentAction && user && user.role !== "student") {
+                      user = undefined;
+                    }
+                    if (isDeanAction && user && user.role !== "dean") {
+                      user = undefined;
+                    }
+                    if (isAdviserAction && user && user.role !== "adviser") {
+                      user = undefined;
+                    }
+
+                    const resolvedUser = user || ((isSds || isCmo) ? undefined : (
+                      isDeanAction
+                        ? users.find((u) => u.role === "dean")
+                        : isAdviserAction
+                        ? (evt ? users.find((u) => u.organizationId === evt.organizationId && u.role === "adviser") : users.find((u) => u.role === "adviser"))
+                        : isStudentAction && evt
+                        ? users.find((u) => u.id === evt.createdBy || (u.organizationId === evt.organizationId && u.role === "student"))
+                        : users.find((u) => u.role === "student")
+                    ));
+
+                    const userRole = isSds ? "sds" : isCmo ? "cmo" : isStudentAction ? "student" : isDeanAction ? "dean" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
+
+                    const userName = isSds
+                      ? "Student Development & Services"
+                      : isCmo
+                      ? "Crisis Management Office"
+                      : resolvedUser
+                      ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim()
+                      : entry.userId && !entry.userId.includes("-0000-") && !entry.userId.startsWith("id-") && !entry.userId.includes("external-token")
+                      ? entry.userId
+                      : formatUserRole(userRole);
 
                     return (
                       <tr key={entry.id} className="hover:bg-[var(--muted)]/40 transition-colors">
@@ -755,7 +932,7 @@ export default function HistoryPage() {
                           </a>
                         </div>
                       ) : (
-                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                        <p className="text-sm text-[var(--muted-foreground)]">None Attached (Optional)</p>
                       )}
                     </div>
                   )}

@@ -127,19 +127,19 @@ export default function DeanDashboard() {
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Event Title</th>
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Organization</th>
                   <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Date</th>
-                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Proposed Budget</th>
-                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Status</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)] whitespace-nowrap">Proposed Budget</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-mono font-bold uppercase tracking-wider text-[var(--muted-foreground)] whitespace-nowrap min-w-[130px]">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
                 {pending.map((e) => (
                   <tr key={e.id} className="hover:bg-[var(--muted)]/30 transition">
                     <td className="px-5 py-4 font-bold text-[var(--foreground)]">{e.name}</td>
-                    <td className="px-5 py-4 text-xs font-semibold text-[var(--primary)]">{organizations.find((o) => o.id === e.organizationId)?.name}</td>
-                    <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)]">{formatDate(e.dateStart)}</td>
-                    <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)]">{formatCurrency(e.proposedBudget)}</td>
-                    <td className="px-5 py-4">
-                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
+                    <td className="px-5 py-4 text-xs font-semibold text-[var(--primary)] whitespace-nowrap">{organizations.find((o) => o.id === e.organizationId)?.name}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-[var(--foreground)] whitespace-nowrap">{formatDate(e.dateStart)}</td>
+                    <td className="px-5 py-4 font-mono text-xs font-bold text-[var(--primary)] whitespace-nowrap">{formatCurrency(e.proposedBudget)}</td>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`text-xs font-mono px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap inline-block ${getStatusBadgeClass(e.status, e.setting)}`}>{e.status}</span>
                     </td>
                   </tr>
                 ))}

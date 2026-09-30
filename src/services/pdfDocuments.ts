@@ -191,8 +191,8 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   }
 
   // ── 3. EVENT IDENTIFICATION GRID (BALANCED PADDING) ────────────
-  const gridY = 55;
-  const gridH = 42;
+  const gridY = 53;
+  const gridH = 54;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.3);
@@ -200,28 +200,38 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
 
   const midX = margin + contentWidth / 2;
 
-  // Left Column
+  // Left Column - Row 1: Event Name
   doc.setFont("helvetica", "bold");
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
   doc.text("EVENT PROPOSAL NAME", margin + 4, gridY + 5.5);
   doc.setFontSize(9);
   doc.setTextColor(15, 23, 42);
-  doc.text(event.name, margin + 4, gridY + 11);
+  doc.text(event.name, margin + 4, gridY + 10.5);
 
+  // Left Column - Row 2: Organizing Body
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("ORGANIZING BODY", margin + 4, gridY + 19);
+  doc.text("ORGANIZING BODY", margin + 4, gridY + 18);
   doc.setFontSize(9);
   doc.setTextColor(30, 64, 175); // Blue 800
-  doc.text(orgName, margin + 4, gridY + 24.5);
+  doc.text(orgName, margin + 4, gridY + 23);
 
+  // Left Column - Row 3: Event Category
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("EVENT TYPE & SCOPE", margin + 4, gridY + 32.5);
+  doc.text("EVENT CATEGORY", margin + 4, gridY + 30.5);
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(typeName, margin + 4, gridY + 38);
+  doc.text(event.category || "Organizational", margin + 4, gridY + 35.5);
+
+  // Left Column - Row 4: Event Type & Scope
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text("EVENT TYPE & SCOPE", margin + 4, gridY + 43);
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(typeName, margin + 4, gridY + 48);
 
   // Right Column: Date & Time Calculation
   let dateFormatted = "—";
@@ -258,27 +268,38 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     }
   }
 
+  // Right Column - Row 1: Event Schedule
   doc.setFont("helvetica", "bold");
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
   doc.text("EVENT SCHEDULE", midX + 4, gridY + 5.5);
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(dateFormatted, midX + 4, gridY + 11);
+  doc.text(dateFormatted, midX + 4, gridY + 10.5);
 
+  // Right Column - Row 2: Venue / Location
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("VENUE / PLATFORM LOCATION", midX + 4, gridY + 19);
+  doc.text("VENUE / PLATFORM LOCATION", midX + 4, gridY + 18);
   doc.setFontSize(8.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(event.location || "LCUP Main Campus / Designated Venue", midX + 4, gridY + 24.5);
+  doc.text(event.location || "LCUP Main Campus / Designated Venue", midX + 4, gridY + 23);
 
+  // Right Column - Row 3: Setting
   doc.setFontSize(6.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("PROPOSED ALLOCATED BUDGET", midX + 4, gridY + 32.5);
+  doc.text("SETTING", midX + 4, gridY + 30.5);
+  doc.setFontSize(8.5);
+  doc.setTextColor(15, 23, 42);
+  doc.text(event.setting || "On-campus", midX + 4, gridY + 35.5);
+
+  // Right Column - Row 4: Proposed Allocated Budget
+  doc.setFontSize(6.5);
+  doc.setTextColor(100, 116, 139);
+  doc.text("PROPOSED ALLOCATED BUDGET", midX + 4, gridY + 43);
   doc.setFontSize(9);
   doc.setTextColor(234, 88, 12); // Orange
-  doc.text(formatPdfCurrency(event.proposedBudget), midX + 4, gridY + 38);
+  doc.text(formatPdfCurrency(event.proposedBudget), midX + 4, gridY + 48);
 
   // ── 4. SCOPE & OBJECTIVES SUMMARY (GENEROUS SPACING & LINE HEIGHT) ─
   const descHeaderY = gridY + gridH + 8;

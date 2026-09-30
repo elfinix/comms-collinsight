@@ -11,6 +11,7 @@ import {
   Button,
   Dialog,
   Input,
+  DatePicker,
   Textarea,
   Select,
   EmptyState,
@@ -63,7 +64,7 @@ const INITIATIVE_SOURCES: { value: InitiativeSource; label: string; icon?: React
 ];
 
 function isEventFinanceUnlocked(status: string, setting?: string): boolean {
-  if (status === "Completed" || status === "Closed" || status === "Approved") return true;
+  if (status === "Completed" || status === "Closed") return true;
   if (setting === "Off-campus") {
     return status === "CMO Authorized";
   }
@@ -295,11 +296,6 @@ export default function StudentFinance() {
           <p className="text-sm text-[var(--muted-foreground)] mt-1">Dual-budget overview, event ledgers, and revenue initiatives.</p>
         </div>
         <div className="flex items-center gap-2">
-          {activeSubTab === "initiatives" && (
-            <Button onClick={() => setShowAddInitiative(true)}>
-              <Plus size={16} /> Add Initiative
-            </Button>
-          )}
           <RefreshButton />
         </div>
       </div>
@@ -481,7 +477,7 @@ export default function StudentFinance() {
                   </CardHeader>
                   <CardBody className="flex-1 flex flex-col justify-center p-4">
                     {chartData.length === 0 ? (
-                      <EmptyState title="No approved events" description="Approved events will populate this chart." />
+                      <EmptyState title="No authorized events" description="Authorized events will populate this chart." />
                     ) : (
                       <ResponsiveContainer width="100%" height={210}>
                         <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
@@ -636,7 +632,7 @@ export default function StudentFinance() {
                           <div className="w-7 h-7 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 flex items-center justify-center transition-all group-hover:bg-blue-100 group-hover:border-blue-300 group-hover:text-blue-950 shadow-2xs">
                             <ChevronDown size={16} className={`transition-transform duration-200 ${approvedExpanded ? "rotate-0" : "-rotate-90"}`} />
                           </div>
-                          <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition">Approved & Active Events</h2>
+                          <h2 className="text-base font-bold text-[var(--foreground)] group-hover:text-[var(--primary)] transition">Authorized & Active Events</h2>
                           <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-200">
                             {approvedGroup.length}
                           </span>
@@ -1065,15 +1061,11 @@ export default function StudentFinance() {
               options={INITIATIVE_SOURCES}
             />
 
-            <div>
-              <label className="text-xs font-medium text-[var(--foreground)] block mb-1.5">Date Recorded *</label>
-              <input
-                type="date"
-                value={initDate}
-                onChange={(e) => setInitDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
-              />
-            </div>
+            <DatePicker
+              label="Date Recorded *"
+              value={initDate}
+              onChange={setInitDate}
+            />
           </div>
 
           <div>
@@ -1128,15 +1120,11 @@ export default function StudentFinance() {
               options={INITIATIVE_SOURCES}
             />
 
-            <div>
-              <label className="text-xs font-medium text-[var(--foreground)] block mb-1.5">Date Recorded *</label>
-              <input
-                type="date"
-                value={editInitDate}
-                onChange={(e) => setEditInitDate(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] shadow-2xs"
-              />
-            </div>
+            <DatePicker
+              label="Date Recorded *"
+              value={editInitDate}
+              onChange={setEditInitDate}
+            />
           </div>
 
           <div>

@@ -385,10 +385,12 @@ export const supabaseApi = {
   // Event Signatories API (Feedback & Approvals Iteration Bridge)
   // --------------------------------------------------------------------------
   async createEventSignatory(sig: EventSignatory) {
+    const isTokenOrInvalid = !sig.userId || !sig.userId.includes("-0000-");
+    const dbUserId = isTokenOrInvalid ? "e1000000-0000-0000-0000-000000000001" : sig.userId;
     const dbPayload = {
       id: sig.id,
       event_id: sig.eventId,
-      user_id: sig.userId,
+      user_id: dbUserId,
       role: sig.role,
       status: sig.status,
       feedback: sig.feedback || null,
@@ -604,9 +606,11 @@ export const supabaseApi = {
   // Audit Trail API
   // --------------------------------------------------------------------------
   async createAuditEntry(entry: AuditEntry) {
+    const isTokenOrInvalid = !entry.userId || !entry.userId.includes("-0000-");
+    const dbUserId = isTokenOrInvalid ? "e1000000-0000-0000-0000-000000000001" : entry.userId;
     const dbPayload = {
       id: entry.id,
-      user_id: entry.userId,
+      user_id: dbUserId,
       action: entry.action,
       details: entry.details,
       timestamp: entry.timestamp,

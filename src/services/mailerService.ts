@@ -126,7 +126,7 @@ export function generateClearanceEmailHtml(params: {
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
     }
     .header {
-      background: linear-gradient(135deg, #0a1128 0%, #1e3a8a 60%, #ea580c 100%);
+      background: linear-gradient(135deg, #060c1e 0%, #0f1d40 50%, #1e3a8a 100%);
       padding: 32px 28px;
       text-align: left;
       color: #ffffff;
@@ -155,22 +155,22 @@ export function generateClearanceEmailHtml(params: {
     .header p {
       margin: 0;
       font-size: 13px;
-      color: #fed7aa;
+      color: #93c5fd;
       font-weight: 500;
     }
     .content {
       padding: 28px;
     }
     .status-card {
-      background-color: #ecfdf5;
-      border: 1px solid #a7f3d0;
+      background-color: #fff7ed;
+      border: 1px solid #fed7aa;
       border-radius: 12px;
       padding: 16px 20px;
       margin-bottom: 24px;
     }
     .status-pill {
       display: inline-block;
-      background-color: #059669;
+      background-color: #ea580c;
       color: #ffffff;
       font-size: 11px;
       font-weight: 800;
@@ -178,17 +178,17 @@ export function generateClearanceEmailHtml(params: {
       border-radius: 6px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
     .status-title {
       font-size: 14px;
       font-weight: 700;
-      color: #065f46;
+      color: #9a3412;
       margin: 0;
     }
     .status-desc {
       font-size: 12px;
-      color: #047857;
+      color: #c2410c;
       margin: 2px 0 0 0;
     }
     .section-title {
@@ -384,7 +384,7 @@ export function generateClearanceEmailHtml(params: {
           </tr>
           <tr>
             <td class="meta-label">Category & Setting</td>
-            <td class="meta-value"><strong>${event.category || "Organizational"}</strong> · <span style="color: ${event.setting === "Off-campus" ? "#ea580c" : "#059669"}; font-weight: bold;">${event.setting || "On-campus"}</span></td>
+            <td class="meta-value"><span style="font-weight: normal; color: #1e293b;">${event.category || "Organizational"}</span> · <span style="color: ${event.setting === "Off-campus" ? "#ea580c" : "#059669"}; font-weight: 700;">${event.setting || "On-campus"}</span></td>
           </tr>
           <tr>
             <td class="meta-label">Event Mode</td>

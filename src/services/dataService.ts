@@ -851,6 +851,8 @@ export function formatUserRole(role?: string): string {
       return "Dean";
     case "sds":
       return "SDS";
+    case "cmo":
+      return "CMO";
     case "admin":
       return "Admin";
     default:

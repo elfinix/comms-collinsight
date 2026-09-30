@@ -102,6 +102,7 @@ export default function StudentEvents() {
     transactions,
     defaultView,
     eventSignatories,
+    auditTrail,
     resolvePendingSignatories,
     isLoading,
   } = useApp();
@@ -116,18 +117,69 @@ export default function StudentEvents() {
 
   // Helper to extract the active (most recent unresolved) revision request feedback
   const getActiveRevisionFeedback = (eventId: string) => {
+    const targetEvt = events.find((e) => e.id === eventId);
     const sigs = (eventSignatories || [])
       .filter((s) => s.eventId === eventId && s.status === "Revision Requested" && s.feedback && s.feedback.trim().length > 0)
       .sort((a, b) => new Date(b.signedAt || b.createdAt || 0).getTime() - new Date(a.signedAt || a.createdAt || 0).getTime());
     if (sigs.length > 0) {
       const latest = sigs[0];
       return {
-        title: latest.role === "dean" ? "College Dean's Feedback" : "Adviser's Feedback",
+        title:
+          latest.role === "dean"
+            ? "College Dean's Feedback"
+            : latest.role === "sds"
+            ? "Student Development & Services (SDS) Feedback"
+            : latest.role === "cmo"
+            ? "Crisis Management Office (CMO) Feedback"
+            : "Adviser's Feedback",
         feedback: latest.feedback!,
         role: latest.role,
         date: latest.signedAt || latest.createdAt,
       };
     }
+
+    // Fallback to audit trail
+    const auditRev = (auditTrail || [])
+      .filter((a) => a.eventId === eventId && a.action === "Requested Revision" && a.remarks && a.remarks.trim().length > 0)
+      .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())[0];
+    if (auditRev) {
+      const isDean = auditRev.actorRole === "dean" || (auditRev.details && auditRev.details.toLowerCase().includes("dean"));
+      const isSds = auditRev.actorRole === "sds" || (auditRev.details && auditRev.details.toLowerCase().includes("sds"));
+      const isCmo = auditRev.actorRole === "cmo" || (auditRev.details && auditRev.details.toLowerCase().includes("cmo"));
+      return {
+        title: isDean
+          ? "College Dean's Feedback"
+          : isSds
+          ? "Student Development & Services (SDS) Feedback"
+          : isCmo
+          ? "Crisis Management Office (CMO) Feedback"
+          : "Adviser's Feedback",
+        feedback: auditRev.remarks!,
+        role: auditRev.actorRole || (isDean ? "dean" : isSds ? "sds" : isCmo ? "cmo" : "adviser"),
+        date: auditRev.timestamp,
+      };
+    }
+
+    // Fallback to event fields if status is Pending Revision
+    if (targetEvt && targetEvt.status === "Pending Revision") {
+      if (targetEvt.cmoFeedback) {
+        return {
+          title: "Crisis Management Office (CMO) Feedback",
+          feedback: targetEvt.cmoFeedback,
+          role: "cmo" as const,
+          date: targetEvt.createdAt,
+        };
+      }
+      if (targetEvt.sdsFeedback) {
+        return {
+          title: "Student Development & Services (SDS) Feedback",
+          feedback: targetEvt.sdsFeedback,
+          role: "sds" as const,
+          date: targetEvt.createdAt,
+        };
+      }
+    }
+
     return null;
   };
 
@@ -1111,45 +1163,47 @@ export default function StudentEvents() {
 
                 {/* PCF Upload Section (Optional for Off-campus) */}
                 {draft.setting === "Off-campus" && (
-                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${draft.pcfUrl ? "border-emerald-300 bg-emerald-50/30" : "border-slate-300 bg-slate-50/40 hover:border-slate-400"}`}>
-                    <UploadCloud size={36} className={`mx-auto mb-2.5 ${draft.pcfUrl ? "text-emerald-600" : "text-slate-500"}`} />
+                  <div className="border-2 border-dashed border-[var(--border)] rounded-2xl p-6 text-center bg-[var(--card)] hover:border-[var(--primary)]/40 transition">
+                    <UploadCloud size={36} className="mx-auto text-[var(--muted-foreground)] mb-2.5" />
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <p className="font-bold text-sm text-[var(--foreground)]">Upload PCF (Parental Consent Form)</p>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
-                        For Off-Campus
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        Optional
                       </span>
                     </div>
                     <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG up to 5MB)</p>
 
-                    {draft.pcfUrl ? (
-                      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
-                        <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-                        <span className="font-bold truncate max-w-[260px]">{draft.pcfUrl.replace(/^.*[\\/]/, "")}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setDraft((d) => ({ ...d, pcfUrl: "", pcfName: "" }));
-                            setPcfFile(null);
-                            if (pcfInputRef.current) pcfInputRef.current.value = "";
-                          }}
-                          className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
-                          title="Remove file"
-                        >
-                          <X size={14} />
-                        </button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => pcfInputRef.current?.click()}
+                      className="bg-white shadow-2xs font-bold text-xs"
+                    >
+                      <Plus size={14} /> Choose PCF Document
+                    </Button>
+
+                    {draft.pcfUrl && (
+                      <div className="mt-4 flex flex-wrap justify-center gap-2">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
+                          <FileText size={13} className="text-[var(--primary)]" />
+                          <span className="truncate max-w-[200px]">{draft.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDraft((d) => ({ ...d, pcfUrl: "", pcfName: "" }));
+                              setPcfFile(null);
+                              if (pcfInputRef.current) pcfInputRef.current.value = "";
+                            }}
+                            className="text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition cursor-pointer ml-1 flex items-center justify-center"
+                            title="Remove file"
+                          >
+                            <X size={13} />
+                          </button>
+                        </span>
                       </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => pcfInputRef.current?.click()}
-                        className="bg-white shadow-2xs font-bold text-xs text-amber-900 border-amber-300 hover:bg-amber-50"
-                      >
-                        <UploadCloud size={14} /> Choose PCF Document
-                      </Button>
                     )}
                   </div>
                 )}
@@ -1543,45 +1597,47 @@ export default function StudentEvents() {
 
                   {/* PCF Upload Section (Optional for Off-campus) */}
                   {editEvent.setting === "Off-campus" && (
-                    <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${editEvent.pcfUrl ? "border-emerald-300 bg-emerald-50/30" : "border-slate-300 bg-slate-50/40 hover:border-slate-400"}`}>
-                      <UploadCloud size={36} className={`mx-auto mb-2.5 ${editEvent.pcfUrl ? "text-emerald-600" : "text-slate-500"}`} />
+                    <div className="border-2 border-dashed border-[var(--border)] rounded-2xl p-6 text-center bg-[var(--card)] hover:border-[var(--primary)]/40 transition">
+                      <UploadCloud size={36} className="mx-auto text-[var(--muted-foreground)] mb-2.5" />
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <p className="font-bold text-sm text-[var(--foreground)]">Upload PCF (Parental Consent Form)</p>
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300">
-                          For Off-Campus
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                          Optional
                         </span>
                       </div>
                       <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG up to 5MB)</p>
 
-                      {editEvent.pcfUrl ? (
-                        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
-                          <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-                          <span className="font-bold truncate max-w-[260px]">{editEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setEditEvent((d) => (d ? { ...d, pcfUrl: "", pcfName: "" } : null));
-                              setEditPcfFile(null);
-                              if (editPcfInputRef.current) editPcfInputRef.current.value = "";
-                            }}
-                            className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
-                            title="Remove file"
-                          >
-                            <X size={14} />
-                          </button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => editPcfInputRef.current?.click()}
+                        className="bg-white shadow-2xs font-bold text-xs"
+                      >
+                        <Plus size={14} /> Choose PCF Document
+                      </Button>
+
+                      {editEvent.pcfUrl && (
+                        <div className="mt-4 flex flex-wrap justify-center gap-2">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
+                            <FileText size={13} className="text-[var(--primary)]" />
+                            <span className="truncate max-w-[200px]">{editEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditEvent((d) => (d ? { ...d, pcfUrl: "", pcfName: "" } : null));
+                                setEditPcfFile(null);
+                                if (editPcfInputRef.current) editPcfInputRef.current.value = "";
+                              }}
+                              className="text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 p-1 rounded-md transition cursor-pointer ml-1 flex items-center justify-center"
+                              title="Remove file"
+                            >
+                              <X size={13} />
+                            </button>
+                          </span>
                         </div>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => editPcfInputRef.current?.click()}
-                          className="bg-white shadow-2xs font-bold text-xs text-amber-900 border-amber-300 hover:bg-amber-50"
-                        >
-                          <UploadCloud size={14} /> Choose PCF Document
-                        </Button>
                       )}
                     </div>
                   )}
@@ -1838,7 +1894,7 @@ export default function StudentEvents() {
                           </a>
                         </div>
                       ) : (
-                        <p className="text-sm text-[var(--muted-foreground)]">No PCF uploaded yet for this off-campus event.</p>
+                        <p className="text-sm text-[var(--muted-foreground)]">None Attached (Optional)</p>
                       )}
                     </div>
                   )}
