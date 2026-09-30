@@ -14,8 +14,8 @@ import {
   SkeletonEventCard,
   SkeletonTable,
 } from "../../components/ui";
-import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories } from "../../services/dataService";
+import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, FileSpreadsheet, LayoutGrid, List } from "lucide-react";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories, isExcelFile } from "../../services/dataService";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
 import { dispatchClearanceEmail } from "../../services/mailerService";
@@ -422,7 +422,11 @@ export default function DeanPendingApproval() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
                     {viewEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        {isExcelFile(viewEvent.apfUrl) ? (
+                          <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                        ) : (
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        )}
                         <a
                           href={resolvePdfUrl(viewEvent.apfUrl, "apf")}
                           target="_blank"
@@ -444,7 +448,11 @@ export default function DeanPendingApproval() {
                       </p>
                       {viewEvent.pcfUrl ? (
                         <div className="flex items-center gap-2">
-                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          {isExcelFile(viewEvent.pcfUrl) ? (
+                            <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                          ) : (
+                            <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          )}
                           <a
                             href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
                             target="_blank"
@@ -466,7 +474,11 @@ export default function DeanPendingApproval() {
                       <ul className="text-sm space-y-1.5">
                         {viewEvent.appendices.map((a, i) => (
                           <li key={i} className="flex items-center gap-2">
-                            <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            {isExcelFile(a) ? (
+                              <FileSpreadsheet size={14} className="text-emerald-600 flex-shrink-0" />
+                            ) : (
+                              <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            )}
                             <a
                               href={resolvePdfUrl(a, "appendix")}
                               target="_blank"

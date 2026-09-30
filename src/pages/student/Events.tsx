@@ -23,13 +23,13 @@ import {
 } from "../../components/ui";
 import {
   Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
-  ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, ExternalLink, ArrowRight, MessageSquareQuote,
+  ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, FileSpreadsheet, ExternalLink, ArrowRight, MessageSquareQuote,
   Wallet, CreditCard, Coins, X, Loader2, Clock, MapPin, Video,
   Users, GraduationCap, Building2, Compass
 } from "lucide-react";
 import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, getStatusBadgeClass, eventTypes, expenditureCategories,
-  Event, EventStatus, resolvePdfUrl, formatCardSchedule, isWebUrl, toWebUrl
+  Event, EventStatus, resolvePdfUrl, formatCardSchedule, isWebUrl, toWebUrl, isExcelFile
 } from "../../services/dataService";
 import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -1076,7 +1076,7 @@ export default function StudentEvents() {
                   type="file"
                   ref={apfInputRef}
                   className="hidden"
-                  accept=".pdf,.doc,.docx"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -1089,7 +1089,7 @@ export default function StudentEvents() {
                   type="file"
                   ref={pcfInputRef}
                   className="hidden"
-                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -1103,7 +1103,7 @@ export default function StudentEvents() {
                   ref={appendicesInputRef}
                   className="hidden"
                   multiple
-                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                  accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv"
                   onChange={(e) => {
                     const files = e.target.files;
                     if (files && files.length > 0) {
@@ -1127,11 +1127,15 @@ export default function StudentEvents() {
                       Required
                     </span>
                   </div>
-                  <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, DOC, or DOCX document up to 10MB</p>
+                  <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, Word (.docx), or Excel (.xlsx, .xls) document up to 10MB</p>
 
                   {draft.apfUrl ? (
                     <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
-                      <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                      {isExcelFile(draft.apfUrl) ? (
+                        <FileSpreadsheet size={15} className="text-emerald-600 flex-shrink-0" />
+                      ) : (
+                        <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                      )}
                       <span className="font-bold truncate max-w-[260px]">{draft.apfUrl.replace(/^.*[\\/]/, "")}</span>
                       <button
                         type="button"
@@ -1171,7 +1175,7 @@ export default function StudentEvents() {
                         Optional
                       </span>
                     </div>
-                    <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG up to 5MB)</p>
+                    <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, Images, Word, Excel up to 5MB)</p>
 
                     <Button
                       type="button"
@@ -1186,7 +1190,11 @@ export default function StudentEvents() {
                     {draft.pcfUrl && (
                       <div className="mt-4 flex flex-wrap justify-center gap-2">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
-                          <FileText size={13} className="text-[var(--primary)]" />
+                          {isExcelFile(draft.pcfUrl) ? (
+                            <FileSpreadsheet size={13} className="text-emerald-600" />
+                          ) : (
+                            <FileText size={13} className="text-[var(--primary)]" />
+                          )}
                           <span className="truncate max-w-[200px]">{draft.pcfUrl.replace(/^.*[\\/]/, "")}</span>
                           <button
                             type="button"
@@ -1218,7 +1226,7 @@ export default function StudentEvents() {
                     </span>
                   </div>
                   <p className="text-xs text-[var(--muted-foreground)] mb-3">
-                    Supplementary documents (program matrix, poster drafts, speaker profiles, budget quotations)
+                    Supplementary documents (program matrix, budget breakdown sheets .xlsx/.csv, speaker profiles)
                   </p>
 
                   <Button
@@ -1235,7 +1243,11 @@ export default function StudentEvents() {
                     <div className="mt-4 flex flex-wrap justify-center gap-2">
                       {draft.appendices.map((file, idx) => (
                         <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
-                          <FileText size={13} className="text-[var(--primary)]" />
+                          {isExcelFile(file) ? (
+                            <FileSpreadsheet size={13} className="text-emerald-600" />
+                          ) : (
+                            <FileText size={13} className="text-[var(--primary)]" />
+                          )}
                           <span className="truncate max-w-[200px]">{file.replace(/^.*[\\/]/, "")}</span>
                           <button
                             type="button"
@@ -1513,7 +1525,7 @@ export default function StudentEvents() {
                     type="file"
                     ref={editApfInputRef}
                     className="hidden"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -1526,7 +1538,7 @@ export default function StudentEvents() {
                     type="file"
                     ref={editPcfInputRef}
                     className="hidden"
-                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
@@ -1540,7 +1552,7 @@ export default function StudentEvents() {
                     ref={editAppendicesInputRef}
                     className="hidden"
                     multiple
-                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                    accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.csv"
                     onChange={(e) => {
                       const files = e.target.files;
                       if (files && files.length > 0) {
@@ -1561,11 +1573,15 @@ export default function StudentEvents() {
                         Required
                       </span>
                     </div>
-                    <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, DOC, or DOCX document up to 10MB</p>
+                    <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, Word (DOC/DOCX), or Excel (XLS/XLSX) document up to 10MB</p>
 
                     {editEvent.apfUrl ? (
                       <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
-                        <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                        {isExcelFile(editEvent.apfUrl) ? (
+                          <FileSpreadsheet size={15} className="text-emerald-600 flex-shrink-0" />
+                        ) : (
+                          <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                        )}
                         <span className="font-bold truncate max-w-[260px]">{editEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
                         <button
                           type="button"
@@ -1605,7 +1621,7 @@ export default function StudentEvents() {
                           Optional
                         </span>
                       </div>
-                      <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG up to 5MB)</p>
+                      <p className="text-xs text-[var(--muted-foreground)] mb-3">Parental waiver / signed consent forms (PDF, PNG, JPG, Word, Excel up to 10MB)</p>
 
                       <Button
                         type="button"
@@ -1620,7 +1636,11 @@ export default function StudentEvents() {
                       {editEvent.pcfUrl && (
                         <div className="mt-4 flex flex-wrap justify-center gap-2">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
-                            <FileText size={13} className="text-[var(--primary)]" />
+                            {isExcelFile(editEvent.pcfUrl) ? (
+                              <FileSpreadsheet size={13} className="text-emerald-600 flex-shrink-0" />
+                            ) : (
+                              <FileText size={13} className="text-[var(--primary)] flex-shrink-0" />
+                            )}
                             <span className="truncate max-w-[200px]">{editEvent.pcfUrl.replace(/^.*[\\/]/, "")}</span>
                             <button
                               type="button"
@@ -1652,7 +1672,7 @@ export default function StudentEvents() {
                       </span>
                     </div>
                     <p className="text-xs text-[var(--muted-foreground)] mb-3">
-                      Supplementary documents (program matrix, poster drafts, speaker profiles, budget quotations)
+                      Supplementary documents (PDF, Word, Excel sheets, CSV, images up to 10MB each)
                     </p>
 
                     <Button
@@ -1669,7 +1689,11 @@ export default function StudentEvents() {
                       <div className="mt-4 flex flex-wrap justify-center gap-2">
                         {editEvent.appendices.map((file, idx) => (
                           <span key={idx} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white text-xs font-mono text-[var(--foreground)] border border-[var(--border)] shadow-2xs">
-                            <FileText size={13} className="text-[var(--primary)]" />
+                            {isExcelFile(file) ? (
+                              <FileSpreadsheet size={13} className="text-emerald-600 flex-shrink-0" />
+                            ) : (
+                              <FileText size={13} className="text-[var(--primary)] flex-shrink-0" />
+                            )}
                             <span className="truncate max-w-[200px]">{file.replace(/^.*[\\/]/, "")}</span>
                             <button
                               type="button"
@@ -1860,7 +1884,11 @@ export default function StudentEvents() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
                     {viewEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        {isExcelFile(viewEvent.apfUrl) ? (
+                          <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                        ) : (
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        )}
                         <a
                           href={resolvePdfUrl(viewEvent.apfUrl, "apf")}
                           target="_blank"
@@ -1882,7 +1910,11 @@ export default function StudentEvents() {
                       <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">PCF (Parental Consent Form) · For Off-campus Events</p>
                       {viewEvent.pcfUrl ? (
                         <div className="flex items-center gap-2">
-                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          {isExcelFile(viewEvent.pcfUrl) ? (
+                            <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                          ) : (
+                            <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          )}
                           <a
                             href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
                             target="_blank"
@@ -1905,7 +1937,11 @@ export default function StudentEvents() {
                       <ul className="text-sm space-y-1.5">
                         {viewEvent.appendices.map((a, i) => (
                           <li key={i} className="flex items-center gap-2">
-                            <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            {isExcelFile(a) ? (
+                              <FileSpreadsheet size={14} className="text-emerald-600 flex-shrink-0" />
+                            ) : (
+                              <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            )}
                             <a
                               href={resolvePdfUrl(a, "appendix")}
                               target="_blank"

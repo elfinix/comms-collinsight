@@ -804,6 +804,24 @@ export function resolvePdfUrl(
   return SAMPLE_FIXTURES[fallbackType] || SAMPLE_FIXTURES.apf;
 }
 
+export function isExcelFile(filename?: string): boolean {
+  if (!filename) return false;
+  const lower = filename.toLowerCase();
+  return lower.endsWith(".xlsx") || lower.endsWith(".xls") || lower.endsWith(".csv");
+}
+
+export function isWordFile(filename?: string): boolean {
+  if (!filename) return false;
+  const lower = filename.toLowerCase();
+  return lower.endsWith(".docx") || lower.endsWith(".doc");
+}
+
+export function isImageFile(filename?: string): boolean {
+  if (!filename) return false;
+  const lower = filename.toLowerCase();
+  return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".webp");
+}
+
 export function getActionBadgeClass(action: string): string {
   const act = action.toLowerCase();
   if (act.includes("executive approval") || act.includes("executive approved")) {

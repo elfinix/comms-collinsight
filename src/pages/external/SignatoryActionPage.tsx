@@ -37,6 +37,7 @@ import {
   resolveEventSignatories,
   isWebUrl,
   toWebUrl,
+  isExcelFile,
 } from "../../services/dataService";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { dispatchCmoClearanceEmail } from "../../services/mailerService";
@@ -416,12 +417,12 @@ export default function SignatoryActionPage({ forcedRole }: SignatoryActionPageP
               {event.apfUrl && (
                 <div className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                      APF
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${isExcelFile(event.apfUrl) ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
+                      {isExcelFile(event.apfUrl) ? <FileSpreadsheet size={15} /> : "APF"}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-900 truncate">Activity Proposal Form</p>
-                      <p className="text-[11px] text-slate-500 truncate">Official APF Submission</p>
+                      <p className="text-[11px] text-slate-500 truncate">{event.apfUrl.replace(/^.*[\\/]/, "")}</p>
                     </div>
                   </div>
                   <a href={resolvePdfUrl(event.apfUrl, "apf")} target="_blank" rel="noopener noreferrer">
@@ -436,12 +437,12 @@ export default function SignatoryActionPage({ forcedRole }: SignatoryActionPageP
               {isOffCampus && (
                 <div className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                      PCF
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${isExcelFile(event.pcfUrl) ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-amber-50 text-amber-700 border border-amber-200"}`}>
+                      {isExcelFile(event.pcfUrl) ? <FileSpreadsheet size={15} /> : "PCF"}
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-900 truncate">Parental Consent Form (PCF)</p>
-                      <p className="text-[11px] text-slate-500 truncate">Required Off-Campus Form</p>
+                      <p className="text-[11px] text-slate-500 truncate">{event.pcfName || event.pcfUrl?.replace(/^.*[\\/]/, "") || "Required Off-Campus Form"}</p>
                     </div>
                   </div>
                   {event.pcfUrl ? (
@@ -458,7 +459,7 @@ export default function SignatoryActionPage({ forcedRole }: SignatoryActionPageP
 
               {/* Appendices */}
               {event.appendices && event.appendices.map((appUrl, idx) => {
-                const isXls = appUrl.toLowerCase().includes(".xls") || appUrl.toLowerCase().includes(".csv");
+                const isXls = isExcelFile(appUrl);
                 return (
                   <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3.5 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors">
                     <div className="flex items-center gap-2.5 min-w-0">

@@ -5,13 +5,13 @@ import { useApp } from "../context/AppContext";
 import { Card, Dialog, Tabs, SignatoryProgress, Button, RefreshButton, SkeletonTable, Skeleton, SkeletonToolbox } from "../components/ui";
 import {
   History, Search, Filter, Clock, CheckCircle, RotateCcw,
-  FileText, ArrowRight, Eye, Calendar, ExternalLink, Video, MapPin,
+  FileText, FileSpreadsheet, ArrowRight, Eye, Calendar, ExternalLink, Video, MapPin,
   Shield, User, ArrowUpDown, ChevronDown, ChevronRight, Table, ListTree,
   ArrowUpNarrowWide, ArrowDownWideNarrow, Trash2, Edit2, DollarSign
 } from "lucide-react";
 import {
   formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, getEventTypeById,
-  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass, formatUserRole
+  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass, formatUserRole, isExcelFile
 } from "../services/dataService";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../components/events/EventClearanceTab";
@@ -898,7 +898,11 @@ export default function HistoryPage() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
                     {selectedEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        {isExcelFile(selectedEvent.apfUrl) ? (
+                          <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                        ) : (
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        )}
                         <a
                           href={resolvePdfUrl(selectedEvent.apfUrl, "apf")}
                           target="_blank"
@@ -922,7 +926,11 @@ export default function HistoryPage() {
                       </p>
                       {selectedEvent.pcfUrl ? (
                         <div className="flex items-center gap-2">
-                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          {isExcelFile(selectedEvent.pcfUrl) ? (
+                            <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                          ) : (
+                            <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          )}
                           <a
                             href={resolvePdfUrl(selectedEvent.pcfUrl, "pcf")}
                             target="_blank"
@@ -946,7 +954,11 @@ export default function HistoryPage() {
                       <ul className="text-sm space-y-1.5">
                         {selectedEvent.appendices.map((a, i) => (
                           <li key={i} className="flex items-center gap-2">
-                            <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            {isExcelFile(a) ? (
+                              <FileSpreadsheet size={14} className="text-emerald-600 flex-shrink-0" />
+                            ) : (
+                              <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            )}
                             <a
                               href={resolvePdfUrl(a, "appendix")}
                               target="_blank"

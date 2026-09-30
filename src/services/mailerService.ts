@@ -561,14 +561,30 @@ export async function dispatchClearanceEmail(params: SendClearanceEmailParams): 
           const appendixBase64 = await urlToBase64(resolvedUrl);
           if (appendixBase64) {
             const rawFilename = appendixUrl.replace(/^.*[\\/]/, "");
-            const filename = rawFilename.toLowerCase().endsWith(".pdf")
-              ? `Appendix_${idx + 1}_${rawFilename}`
-              : `Appendix_${idx + 1}_${rawFilename}.pdf`;
+            const lower = rawFilename.toLowerCase();
+            let contentType = "application/pdf";
+            if (lower.endsWith(".xlsx")) {
+              contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            } else if (lower.endsWith(".xls")) {
+              contentType = "application/vnd.ms-excel";
+            } else if (lower.endsWith(".csv")) {
+              contentType = "text/csv";
+            } else if (lower.endsWith(".docx")) {
+              contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            } else if (lower.endsWith(".doc")) {
+              contentType = "application/msword";
+            } else if (lower.endsWith(".png")) {
+              contentType = "image/png";
+            } else if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) {
+              contentType = "image/jpeg";
+            }
+
+            const filename = `Appendix_${idx + 1}_${rawFilename}`;
 
             return {
               filename,
               contentBase64: appendixBase64,
-              contentType: "application/pdf",
+              contentType,
             };
           }
           return null;

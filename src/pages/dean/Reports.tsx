@@ -21,11 +21,11 @@ import {
 import {
   FileDown, CalendarDays, CalendarCheck, Clock, CheckCheck, Wallet, CreditCard, Coins,
   Search, Filter, ArrowUpDown, ChevronDown, ArrowUpNarrowWide, ArrowDownWideNarrow,
-  Building2, FileText, ExternalLink
+  Building2, FileText, FileSpreadsheet, ExternalLink
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors, getStatusBadgeClass, getEventTypeById,
-  Event, EventStatus, EventSetting, isWebUrl, toWebUrl, resolvePdfUrl
+  Event, EventStatus, EventSetting, isWebUrl, toWebUrl, resolvePdfUrl, isExcelFile
 } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
@@ -1005,7 +1005,11 @@ export default function DeanReports() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
                     {viewEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        {isExcelFile(viewEvent.apfUrl) ? (
+                          <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                        ) : (
+                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                        )}
                         <a
                           href={resolvePdfUrl(viewEvent.apfUrl, "apf")}
                           target="_blank"
@@ -1029,7 +1033,11 @@ export default function DeanReports() {
                       </p>
                       {viewEvent.pcfUrl ? (
                         <div className="flex items-center gap-2">
-                          <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          {isExcelFile(viewEvent.pcfUrl) ? (
+                            <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
+                          ) : (
+                            <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
+                          )}
                           <a
                             href={resolvePdfUrl(viewEvent.pcfUrl, "pcf")}
                             target="_blank"
@@ -1052,7 +1060,11 @@ export default function DeanReports() {
                       <ul className="text-sm space-y-1.5">
                         {viewEvent.appendices.map((a, i) => (
                           <li key={i} className="flex items-center gap-2">
-                            <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            {isExcelFile(a) ? (
+                              <FileSpreadsheet size={14} className="text-emerald-600 flex-shrink-0" />
+                            ) : (
+                              <FileText size={14} className="text-[var(--primary)] flex-shrink-0" />
+                            )}
                             <a
                               href={resolvePdfUrl(a, "appendix")}
                               target="_blank"
