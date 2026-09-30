@@ -3,8 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth, getDefaultDashboardPath } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Input, PasswordInput, Button } from "../components/ui";
-import { Landmark, ArrowLeft, AlertCircle, Loader2, ArrowRight, LogOut, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Landmark, ArrowLeft, AlertCircle, Loader2, ArrowRight, LogOut, CheckCircle2, ShieldCheck, KeyRound } from "lucide-react";
 import { users as fallbackUsers, formatUserRole } from "../services/dataService";
+import ForgotPasswordModal from "../components/auth/ForgotPasswordModal";
 
 export default function LoginPage() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
@@ -16,6 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [redirectProgress, setRedirectProgress] = useState(15);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const allUsers = liveUsers.length > 0 ? liveUsers : fallbackUsers;
 
@@ -181,17 +183,38 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
-              <PasswordInput
-                label="Password"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium text-[var(--foreground)]">Password</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-xs text-[var(--primary)] hover:underline font-semibold transition cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <PasswordInput
+                  placeholder="••••••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
               <Button type="submit" size="lg" className="w-full justify-center mt-2 shadow-sm cursor-pointer" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
             </form>
+
+            <ForgotPasswordModal
+              open={showForgotPassword}
+              onClose={() => setShowForgotPassword(false)}
+              initialEmail={email}
+              onSuccess={(resetEmail) => {
+                setEmail(resetEmail);
+                setPassword("");
+              }}
+            />
           </div>
         </div>
         <p className="text-center text-blue-100/80 text-xs mt-4 font-mono">© {new Date().getFullYear()} COLLinSight · CITE · LCUP</p>

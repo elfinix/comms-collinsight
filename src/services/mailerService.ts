@@ -637,3 +637,248 @@ export async function dispatchSdsClearanceEmail(params: SendClearanceEmailParams
 export async function dispatchCmoClearanceEmail(params: SendClearanceEmailParams) {
   return dispatchClearanceEmail({ ...params, signatoryRole: "cmo" });
 }
+
+export interface SendOtpEmailParams {
+  to: string;
+  userName: string;
+  otpCode: string;
+  userRole?: string;
+  expiresInMinutes?: number;
+}
+
+/**
+ * Generates branded HTML email template for 6-digit Password Reset OTP
+ */
+export function generateOtpEmailHtml(params: {
+  to: string;
+  userName: string;
+  otpCode: string;
+  expiresInMinutes?: number;
+}): string {
+  const { userName, otpCode, expiresInMinutes = 10 } = params;
+  const requestDate = new Date().toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Reset Verification Code - COLLinSight</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #0f172a;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrapper {
+      width: 100%;
+      background-color: #f8fafc;
+      padding: 36px 16px;
+    }
+    .container {
+      max-width: 560px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    }
+    .header {
+      background: linear-gradient(135deg, #060c1e 0%, #0f1d40 50%, #1e3a8a 100%);
+      padding: 32px 28px;
+      text-align: left;
+      color: #ffffff;
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(234, 88, 12, 0.25);
+      border: 1px solid rgba(251, 146, 60, 0.5);
+      color: #fed7aa;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .header h1 {
+      margin: 0 0 6px 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+    }
+    .header p {
+      margin: 0;
+      font-size: 13px;
+      color: #93c5fd;
+      font-weight: 500;
+    }
+    .content {
+      padding: 32px 28px;
+    }
+    .greeting {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 24px;
+    }
+    .otp-card {
+      background: #fff7ed;
+      border: 2px dashed #ea580c;
+      border-radius: 16px;
+      padding: 28px 20px;
+      text-align: center;
+      margin: 28px 0;
+    }
+    .otp-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #9a3412;
+      margin-bottom: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .otp-code {
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: 10px;
+      color: #ea580c;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      margin: 0;
+      padding-left: 10px;
+    }
+    .otp-timer {
+      font-size: 12px;
+      color: #9a3412;
+      margin-top: 10px;
+      font-weight: 600;
+    }
+    .security-notice {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 24px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #64748b;
+    }
+    .security-notice strong {
+      color: #0f172a;
+    }
+    .footer {
+      background-color: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      padding: 24px 28px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .footer-brand {
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-badge">Institutional Security Verification</div>
+        <h1>Password Reset Request</h1>
+        <p>College of Information Technology &amp; Engineering · LCUP</p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="content">
+        <p class="greeting">
+          Hello <strong>${userName}</strong>,<br><br>
+          We received a request to reset the password for your COLLinSight institutional account. Use the 6-digit verification code below to securely verify your identity and set a new password:
+        </p>
+
+        <!-- OTP Code Card -->
+        <div class="otp-card">
+          <div class="otp-label">One-Time Verification Code (OTP)</div>
+          <div class="otp-code">${otpCode}</div>
+          <div class="otp-timer">⏱ Valid for ${expiresInMinutes} minutes (Requested: ${requestDate})</div>
+        </div>
+
+        <p style="font-size: 13px; color: #475569; line-height: 1.6; margin-bottom: 0;">
+          Enter this code in the password reset window on your login screen. Do <strong>not</strong> share this code with anyone.
+        </p>
+
+        <!-- Security Warning -->
+        <div class="security-notice">
+          <strong>Didn't request this code?</strong><br>
+          If you did not initiate this request, you can safely ignore this email. Your current password will remain unchanged and your account is secure.
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <div class="footer-brand">COLLinSight — Event Clearance &amp; Financial Intelligence</div>
+        <p style="margin: 0; color: #94a3b8; font-size: 11px;">
+          La Consolacion University Philippines · College of Information Technology &amp; Engineering<br>
+          Automated security dispatch · Please do not reply directly to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/**
+ * Dispatches a password reset OTP verification email
+ */
+export async function dispatchOtpEmail(params: SendOtpEmailParams) {
+  const { to, userName, otpCode, expiresInMinutes = 10 } = params;
+  const html = generateOtpEmailHtml({ to, userName, otpCode, expiresInMinutes });
+  const subject = `[COLLinSight Security] ${otpCode} is your Password Reset Verification Code`;
+
+  try {
+    const response = await fetch("/api/send-clearance-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to,
+        subject,
+        html,
+      }),
+    });
+
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+      console.warn("[Mailer] OTP email dispatch warning:", result);
+      return { success: false, error: result.error || "Email dispatch failed." };
+    }
+
+    console.log("[Mailer] Successfully dispatched OTP email:", result);
+    return {
+      success: true,
+      to: result.to,
+      messageId: result.messageId,
+    };
+  } catch (err: any) {
+    console.error("[Mailer] Unexpected error during OTP email dispatch:", err);
+    return { success: false, error: err.message || "Failed to dispatch OTP email." };
+  }
+}
+
