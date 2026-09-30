@@ -9,6 +9,7 @@ import { formatCurrency, formatDateTime, formatDate } from "../../services/dataS
 import { uploadGeneratedReport, getPublicStorageUrl } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { getLcupLogoDataUrl, drawPdfHeaderLogo } from "../../services/pdfDocuments";
 
 export default function AdminReports() {
   const { users, events, auditTrail, organizations, departments, exportedReports, addExportedReport, isLoading } = useApp();
@@ -55,30 +56,28 @@ export default function AdminReports() {
       const pageWidth = 210;
       const margin = 14;
       const contentWidth = pageWidth - margin * 2; 
+      // Load LCUP Official Logo
+      const logoDataUrl = await getLcupLogoDataUrl();
+
       // ── 1. HEADER SECTION ───────────────────────────────────────────
-      // LCUP Logo Square (Dark Navy)
-      doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
-      doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(8.5);
-      doc.setFont("helvetica", "bold");
-      doc.text("LCUP", margin + 1.6, 19);
+      // LCUP Official Logo Seal
+      drawPdfHeaderLogo(doc, margin, 11, 14, logoDataUrl);
 
       // University & Department Titles
       doc.setTextColor(15, 23, 42); // #0f172a
       doc.setFontSize(10.5);
       doc.setFont("helvetica", "bold");
-      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
+      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
 
       doc.setTextColor(71, 85, 105);
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "normal");
-      doc.text("College of Information Technology & Engineering", margin + 14, 20);
+      doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
 
       doc.setTextColor(234, 88, 12); // #ea580c
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
-      doc.text("System Usage & Activity Analytics Report", margin + 14, 24);
+      doc.text("System Usage & Activity Analytics Report", margin + 17, 23.5);
 
       const badgeText = "SYSTEM USAGE REPORT";
       doc.setFont("helvetica", "bold");

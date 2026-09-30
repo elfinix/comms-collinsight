@@ -10,6 +10,7 @@ export interface ClearancePdfOptions {
   deanName?: string;
   categories?: { id: string; name: string }[];
   viewerRole?: "student" | "adviser" | "dean" | "admin";
+  logoDataUrl?: string | null;
 }
 
 export interface LiquidationPdfOptions {
@@ -18,6 +19,73 @@ export interface LiquidationPdfOptions {
   adviserName?: string;
   deanName?: string;
   categories?: { id: string; name: string }[];
+  logoDataUrl?: string | null;
+}
+
+let cachedLogoDataUrl: string | null = null;
+let logoLoadingPromise: Promise<string | null> | null = null;
+
+// Pre-load LCUP seal in browser
+if (typeof window !== "undefined") {
+  getLcupLogoDataUrl().catch(() => {});
+}
+
+/**
+ * Loads and caches the LCUP official seal into a compact, retina-crisp Data URL
+ */
+export async function getLcupLogoDataUrl(): Promise<string | null> {
+  if (cachedLogoDataUrl) return cachedLogoDataUrl;
+  if (!logoLoadingPromise) {
+    logoLoadingPromise = new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = "/images/lcup_logo.png";
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const size = 320;
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(null);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, size, size);
+          cachedLogoDataUrl = canvas.toDataURL("image/png");
+          resolve(cachedLogoDataUrl);
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+    });
+  }
+  return logoLoadingPromise;
+}
+
+/**
+ * Draws the LCUP official seal onto the jsPDF document.
+ * If logoDataUrl is available, it embeds the image cleanly with crisp aspect ratio.
+ * Otherwise, it falls back to the navy vector badge.
+ */
+export function drawPdfHeaderLogo(doc: jsPDF, x: number, y: number, size: number = 14, logoDataUrl?: string | null) {
+  const logo = logoDataUrl || cachedLogoDataUrl;
+  if (logo) {
+    try {
+      doc.addImage(logo, "PNG", x, y, size, size);
+      return;
+    } catch {
+      // Fallback
+    }
+  }
+  // Fallback vector badge
+  doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
+  doc.roundedRect(x, y, size, size, 2, 2, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(size * 0.6);
+  doc.setFont("helvetica", "bold");
+  doc.text("LCUP", x + size * 0.15, y + size * 0.65);
 }
 
 /**
@@ -72,29 +140,24 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const contentWidth = pageWidth - margin * 2; // 182mm
 
   // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Logo Square (Dark Navy)
-  doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
-  doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.text("LCUP", margin + 1.6, 19);
+  // LCUP Official Logo Seal
+  drawPdfHeaderLogo(doc, margin, 11, 14, options?.logoDataUrl);
 
   // University & Department Titles
   doc.setTextColor(15, 23, 42); // #0f172a
   doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
-  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
+  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
 
   doc.setTextColor(71, 85, 105); // #475569
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
-  doc.text("College of Information Technology & Engineering", margin + 14, 20);
+  doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
 
   doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.text("Event Clearance", margin + 14, 24);
+  doc.text("Event Clearance", margin + 17, 23.5);
 
   // Top Right: EVENT CLEARANCE Pill Badge
   const badgeText = "EVENT CLEARANCE CERTIFICATE";
@@ -494,29 +557,24 @@ export function generateLiquidationPdfBlob(
   const contentWidth = pageWidth - margin * 2; // 182mm
 
   // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Logo Square (Dark Navy)
-  doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
-  doc.roundedRect(margin, 12, 11, 11, 2, 2, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.text("LCUP", margin + 1.6, 19);
+  // LCUP Official Logo Seal
+  drawPdfHeaderLogo(doc, margin, 11, 14, options?.logoDataUrl);
 
   // University & Department Titles
   doc.setTextColor(15, 23, 42); // #0f172a
   doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
-  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 14, 16);
+  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
 
   doc.setTextColor(71, 85, 105); // #475569
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
-  doc.text("College of Information Technology & Engineering", margin + 14, 20);
+  doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
 
   doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.text(`${orgName} · Post-Event Financial Liquidation Report`, margin + 14, 24);
+  doc.text(`${orgName} · Post-Event Financial Liquidation Report`, margin + 17, 23.5);
 
   // Top Right: FINANCIAL LIQUIDATION REPORT Pill Badge
   const badgeText = "FINANCIAL LIQUIDATION REPORT";
