@@ -24,7 +24,8 @@ import {
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors, getStatusBadgeClass,
-  getEventTypeById, getCategoryById, Initiative
+  getEventTypeById, getCategoryById, Initiative,
+  DateRangeFilter, DATE_RANGE_LABELS, getDefaultSchoolYears, formatSchoolYear, getCurrentSchoolYear, isDateInReportRange
 } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
@@ -46,60 +47,10 @@ const STATUS_FILTERS = [
   "Closed",
 ];
 
-type DateRangeFilter = "all" | "week" | "month" | "semester";
-
-const DATE_RANGE_LABELS: Record<DateRangeFilter, string> = {
-  all: "All Time",
-  week: "This Week",
-  month: "This Month",
-  semester: "This Semester (6-Month)",
-};
-
 const SETTING_COLORS = {
   "On-campus": "#ea580c",   // Vibrant Orange
   "Off-campus": "#3b82f6",  // Blue
 };
-
-function isDateInRange(dateStr: string, range: DateRangeFilter): boolean {
-  if (range === "all") return true;
-  if (!dateStr) return true;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return true;
-  const now = new Date();
-
-  if (range === "week") {
-    // Current calendar week (Sunday to Saturday)
-    const day = now.getDay();
-    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, 0, 0, 0, 0);
-    const endOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - day), 23, 59, 59, 999);
-    return d >= startOfWeek && d <= endOfWeek;
-  }
-  if (range === "month") {
-    // Strict current calendar month (same year & month)
-    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
-  }
-  if (range === "semester") {
-    // Academic semester window (1st Sem: Aug 1 to Jan 31; 2nd Sem: Feb 1 to Jul 31)
-    const curMonth = now.getMonth();
-    let semStart: Date;
-    let semEnd: Date;
-    if (curMonth >= 7) {
-      // Aug (7) to Jan (0 of next year) -> 1st Semester
-      semStart = new Date(now.getFullYear(), 7, 1, 0, 0, 0, 0);
-      semEnd = new Date(now.getFullYear() + 1, 0, 31, 23, 59, 59, 999);
-    } else if (curMonth === 0) {
-      // Jan (0) belongs to 1st Semester starting Aug of previous year
-      semStart = new Date(now.getFullYear() - 1, 7, 1, 0, 0, 0, 0);
-      semEnd = new Date(now.getFullYear(), 0, 31, 23, 59, 59, 999);
-    } else {
-      // Feb (1) to Jul (6) -> 2nd Semester
-      semStart = new Date(now.getFullYear(), 1, 1, 0, 0, 0, 0);
-      semEnd = new Date(now.getFullYear(), 6, 31, 23, 59, 59, 999);
-    }
-    return d >= semStart && d <= semEnd;
-  }
-  return true;
-}
 
 export default function StudentReports() {
   const { currentUser } = useAuth();
@@ -119,7 +70,10 @@ export default function StudentReports() {
   const org = organizations.find((o) => o.id === orgId);
 
   // Global Date Filter State & Popover Control
+  const defaultSY = getDefaultSchoolYears();
   const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
+  const [syStartYear, setSyStartYear] = useState<number | string>(defaultSY.startYear);
+  const [syEndYear, setSyEndYear] = useState<number | string>(defaultSY.endYear);
   const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -146,8 +100,8 @@ export default function StudentReports() {
   }, [events, orgId]);
 
   const orgEvents = useMemo(() => {
-    return rawOrgEvents.filter((e) => isDateInRange(e.dateStart, dateRange));
-  }, [rawOrgEvents, dateRange]);
+    return rawOrgEvents.filter((e) => isDateInReportRange(e.dateStart, dateRange, syStartYear, syEndYear));
+  }, [rawOrgEvents, dateRange, syStartYear, syEndYear]);
 
   const filteredEvents = useMemo(() => {
     return orgEvents
@@ -170,9 +124,9 @@ export default function StudentReports() {
   // Filtered Initiatives for this Organization
   const orgInitiatives = useMemo(() => {
     return (initiatives || [])
-      .filter((i) => i.organizationId === orgId && !i.deleted && isDateInRange(i.date, dateRange))
+      .filter((i) => i.organizationId === orgId && !i.deleted && isDateInReportRange(i.date, dateRange, syStartYear, syEndYear))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [initiatives, orgId, dateRange]);
+  }, [initiatives, orgId, dateRange, syStartYear, syEndYear]);
 
   const approvedEvents = useMemo(() => {
     return orgEvents.filter((e) =>
@@ -265,7 +219,10 @@ export default function StudentReports() {
     const orgCode = org?.code || "CITE-ORG";
     const docRef = `REP-${orgCode.toUpperCase()}-${Date.now().toString().slice(-6)}`;
     const generatedDate = formatDateTime(new Date().toISOString());
-    const filterLabel = DATE_RANGE_LABELS[dateRange];
+    const filterLabel =
+      dateRange === "school_year"
+        ? `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`
+        : DATE_RANGE_LABELS[dateRange];
 
     try {
       const doc = new jsPDF({
@@ -1000,7 +957,13 @@ export default function StudentReports() {
               <span>Filter</span>
               {dateRange !== "all" && (
                 <span className="text-[10px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-full">
-                  {dateRange === "week" ? "Week" : dateRange === "month" ? "Month" : "6-Mo"}
+                  {dateRange === "week"
+                    ? "Week"
+                    : dateRange === "month"
+                    ? "Month"
+                    : dateRange === "semester"
+                    ? "6-Mo"
+                    : `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`}
                 </span>
               )}
               <ChevronDown size={14} className={`transition-transform duration-200 ${filterPopoverOpen ? "rotate-180" : ""}`} />
@@ -1008,7 +971,7 @@ export default function StudentReports() {
 
             {/* Filter Dropdown Popover */}
             {filterPopoverOpen && (
-              <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)]">
                   <span className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider">Date Window Filter</span>
                   <span className="text-[10px] font-mono text-[var(--muted-foreground)]">Global</span>
@@ -1017,21 +980,77 @@ export default function StudentReports() {
                   {(Object.keys(DATE_RANGE_LABELS) as DateRangeFilter[]).map((rangeKey) => {
                     const isSelected = dateRange === rangeKey;
                     return (
-                      <button
-                        key={rangeKey}
-                        onClick={() => {
-                          setDateRange(rangeKey);
-                          setFilterPopoverOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl font-medium transition cursor-pointer ${
-                          isSelected
-                            ? "bg-[var(--primary)] text-white font-semibold"
-                            : "text-[var(--foreground)] hover:bg-[var(--muted)]"
-                        }`}
-                      >
-                        <span>{DATE_RANGE_LABELS[rangeKey]}</span>
-                        {isSelected && <Check size={14} />}
-                      </button>
+                      <div key={rangeKey} className="space-y-1.5">
+                        <button
+                          onClick={() => {
+                            setDateRange(rangeKey);
+                            if (rangeKey !== "school_year") {
+                              setFilterPopoverOpen(false);
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl font-medium transition cursor-pointer ${
+                            isSelected
+                              ? "bg-[var(--primary)] text-white font-semibold"
+                              : "text-[var(--foreground)] hover:bg-[var(--muted)]"
+                          }`}
+                        >
+                          <span>{DATE_RANGE_LABELS[rangeKey]}</span>
+                          {isSelected && <Check size={14} />}
+                        </button>
+
+                        {/* School Year two fields (Start and End) shown when School Year filter is selected */}
+                        {rangeKey === "school_year" && isSelected && (
+                          <div className="p-2.5 bg-[var(--muted)]/50 rounded-xl border border-[var(--border)] mt-1 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-mono font-bold text-[var(--foreground)] uppercase">
+                                Academic Year (S.Y.)
+                              </label>
+                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Jun – Mar</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1">
+                                <span className="block text-[9px] text-[var(--muted-foreground)] font-semibold mb-0.5">Start</span>
+                                <input
+                                  type="number"
+                                  value={syStartYear}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSyStartYear(val);
+                                    if (val && !isNaN(Number(val)) && Number(val) > 1900) {
+                                      setSyEndYear(Number(val) + 1);
+                                    }
+                                  }}
+                                  placeholder="2025"
+                                  className="w-full text-xs font-mono font-semibold px-2 py-1.5 rounded-lg border border-[var(--border)] bg-white text-[var(--foreground)] focus:outline-hidden focus:ring-1 focus:ring-[var(--primary)] text-center"
+                                />
+                              </div>
+                              <span className="text-sm font-bold text-[var(--muted-foreground)] pt-3">–</span>
+                              <div className="flex-1">
+                                <span className="block text-[9px] text-[var(--muted-foreground)] font-semibold mb-0.5">End</span>
+                                <input
+                                  type="number"
+                                  value={syEndYear}
+                                  onChange={(e) => setSyEndYear(e.target.value)}
+                                  placeholder="2026"
+                                  className="w-full text-xs font-mono font-semibold px-2 py-1.5 rounded-lg border border-[var(--border)] bg-white text-[var(--foreground)] focus:outline-hidden focus:ring-1 focus:ring-[var(--primary)] text-center"
+                                />
+                              </div>
+                              <div className="pt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => setFilterPopoverOpen(false)}
+                                  className="text-xs px-2.5 py-1.5 h-auto flex-shrink-0"
+                                >
+                                  Apply
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-[var(--muted-foreground)] leading-tight">
+                              Covers June 1, {syStartYear || "YYYY"} through March 31, {syEndYear || "YYYY+1"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1071,7 +1090,13 @@ export default function StudentReports() {
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 text-xs font-medium w-fit">
               <Filter size={13} className="text-orange-600" />
               <span>
-                Filtering by <strong>{DATE_RANGE_LABELS[dateRange]}</strong> · {orgEvents.length} events, {orgInitiatives.length} initiatives
+                Filtering by{" "}
+                <strong>
+                  {dateRange === "school_year"
+                    ? `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`
+                    : DATE_RANGE_LABELS[dateRange]}
+                </strong>{" "}
+                · {orgEvents.length} events, {orgInitiatives.length} initiatives
               </span>
               <button
                 onClick={() => setDateRange("all")}

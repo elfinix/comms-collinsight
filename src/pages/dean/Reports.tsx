@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import {
@@ -21,11 +21,12 @@ import {
 import {
   FileDown, CalendarDays, CalendarCheck, Clock, CheckCheck, Wallet, CreditCard, Coins,
   Search, Filter, ArrowUpDown, ChevronDown, ArrowUpNarrowWide, ArrowDownWideNarrow,
-  Building2, FileText, FileSpreadsheet, ExternalLink
+  Building2, FileText, FileSpreadsheet, ExternalLink, Check
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, statusColors, getStatusBadgeClass, getEventTypeById,
-  Event, EventStatus, EventSetting, isWebUrl, toWebUrl, resolvePdfUrl, isExcelFile
+  Event, EventStatus, EventSetting, isWebUrl, toWebUrl, resolvePdfUrl, isExcelFile,
+  DateRangeFilter, DATE_RANGE_LABELS, getDefaultSchoolYears, formatSchoolYear, getCurrentSchoolYear, isDateInReportRange
 } from "../../services/dataService";
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
@@ -57,6 +58,25 @@ export default function DeanReports() {
   const { toast } = useToast();
   const [tab, setTab] = useState<"events" | "finance">("events");
 
+  // Global Date Filter State & Popover Control
+  const defaultSY = getDefaultSchoolYears();
+  const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
+  const [syStartYear, setSyStartYear] = useState<number | string>(defaultSY.startYear);
+  const [syEndYear, setSyEndYear] = useState<number | string>(defaultSY.endYear);
+  const [filterPopoverOpen, setFilterPopoverOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  // Close filter popover on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+        setFilterPopoverOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // Filtering & Sorting State for Events Table
   const [searchQuery, setSearchQuery] = useState("");
   const [orgFilter, setOrgFilter] = useState("All");
@@ -76,10 +96,21 @@ export default function DeanReports() {
     { id: "finance", label: "Finance" },
   ];
 
-  const allEvents = events;
-  const approved = events.filter((e) => ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
-  const pendingEvents = events.filter((e) => ["For Review", "For Approval"].includes(e.status));
-  const closedEvents = events.filter((e) => e.status === "Closed");
+  const allEvents = useMemo(() => {
+    return events.filter((e) => !e.deleted && isDateInReportRange(e.dateStart, dateRange, syStartYear, syEndYear));
+  }, [events, dateRange, syStartYear, syEndYear]);
+
+  const approved = useMemo(() => {
+    return allEvents.filter((e) => ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
+  }, [allEvents]);
+
+  const pendingEvents = useMemo(() => {
+    return allEvents.filter((e) => ["For Review", "For Approval"].includes(e.status));
+  }, [allEvents]);
+
+  const closedEvents = useMemo(() => {
+    return allEvents.filter((e) => e.status === "Closed");
+  }, [allEvents]);
 
   const totalBudget = organizations.reduce((s, o) => s + o.allocatedBudget, 0);
   const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
@@ -196,8 +227,12 @@ export default function DeanReports() {
       doc.setFont("helvetica", "bold");
       doc.text("Office of the College Dean · Cross-Organizational Directorate Report", margin + 17, 23.5);
 
-      // Top Right: DIRECTORATE REPORT Pill Badge
-      const badgeText = "DIRECTORATE REPORT";
+      // Top Right: DIRECTORATE REPORT Pill Badge + Filter Window
+      const filterLabel =
+        dateRange === "school_year"
+          ? `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`
+          : DATE_RANGE_LABELS[dateRange];
+      const badgeText = dateRange !== "all" ? `DIRECTORATE REPORT · ${filterLabel.toUpperCase()}` : "DIRECTORATE REPORT";
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       const badgeW = doc.getTextWidth(badgeText) + 6;
@@ -475,6 +510,118 @@ export default function DeanReports() {
           <p className="text-sm text-[var(--muted-foreground)] mt-1">System-wide analytics and financial audit records for all CITE organizations.</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Global Filter Popover Button */}
+          <div className="relative" ref={filterRef}>
+            <Button
+              variant={dateRange !== "all" ? "primary" : "outline"}
+              onClick={() => setFilterPopoverOpen((prev) => !prev)}
+              className="gap-2 shadow-2xs relative"
+            >
+              <Filter size={15} />
+              <span>Filter</span>
+              {dateRange !== "all" && (
+                <span className="text-[10px] font-bold bg-white/20 text-white px-1.5 py-0.5 rounded-full">
+                  {dateRange === "week"
+                    ? "Week"
+                    : dateRange === "month"
+                    ? "Month"
+                    : dateRange === "semester"
+                    ? "6-Mo"
+                    : `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`}
+                </span>
+              )}
+              <ChevronDown size={14} className={`transition-transform duration-200 ${filterPopoverOpen ? "rotate-180" : ""}`} />
+            </Button>
+
+            {/* Filter Dropdown Popover */}
+            {filterPopoverOpen && (
+              <div className="absolute right-0 top-full mt-2 w-72 p-3 bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border)]">
+                  <span className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider">Date Window Filter</span>
+                  <span className="text-[10px] font-mono text-[var(--muted-foreground)]">Global</span>
+                </div>
+                <div className="space-y-1">
+                  {(Object.keys(DATE_RANGE_LABELS) as DateRangeFilter[]).map((rangeKey) => {
+                    const isSelected = dateRange === rangeKey;
+                    return (
+                      <div key={rangeKey} className="space-y-1.5">
+                        <button
+                          onClick={() => {
+                            setDateRange(rangeKey);
+                            if (rangeKey !== "school_year") {
+                              setFilterPopoverOpen(false);
+                            }
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-xl font-medium transition cursor-pointer ${
+                            isSelected
+                              ? "bg-[var(--primary)] text-white font-semibold"
+                              : "text-[var(--foreground)] hover:bg-[var(--muted)]"
+                          }`}
+                        >
+                          <span>{DATE_RANGE_LABELS[rangeKey]}</span>
+                          {isSelected && <Check size={14} />}
+                        </button>
+
+                        {/* School Year two fields (Start and End) shown when School Year filter is selected */}
+                        {rangeKey === "school_year" && isSelected && (
+                          <div className="p-2.5 bg-[var(--muted)]/50 rounded-xl border border-[var(--border)] mt-1 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-mono font-bold text-[var(--foreground)] uppercase">
+                                Academic Year (S.Y.)
+                              </label>
+                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Jun – Mar</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex-1">
+                                <span className="block text-[9px] text-[var(--muted-foreground)] font-semibold mb-0.5">Start</span>
+                                <input
+                                  type="number"
+                                  value={syStartYear}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSyStartYear(val);
+                                    if (val && !isNaN(Number(val)) && Number(val) > 1900) {
+                                      setSyEndYear(Number(val) + 1);
+                                    }
+                                  }}
+                                  placeholder="2025"
+                                  className="w-full text-xs font-mono font-semibold px-2 py-1.5 rounded-lg border border-[var(--border)] bg-white text-[var(--foreground)] focus:outline-hidden focus:ring-1 focus:ring-[var(--primary)] text-center"
+                                />
+                              </div>
+                              <span className="text-sm font-bold text-[var(--muted-foreground)] pt-3">–</span>
+                              <div className="flex-1">
+                                <span className="block text-[9px] text-[var(--muted-foreground)] font-semibold mb-0.5">End</span>
+                                <input
+                                  type="number"
+                                  value={syEndYear}
+                                  onChange={(e) => setSyEndYear(e.target.value)}
+                                  placeholder="2026"
+                                  className="w-full text-xs font-mono font-semibold px-2 py-1.5 rounded-lg border border-[var(--border)] bg-white text-[var(--foreground)] focus:outline-hidden focus:ring-1 focus:ring-[var(--primary)] text-center"
+                                />
+                              </div>
+                              <div className="pt-3">
+                                <Button
+                                  size="sm"
+                                  onClick={() => setFilterPopoverOpen(false)}
+                                  className="text-xs px-2.5 py-1.5 h-auto flex-shrink-0"
+                                >
+                                  Apply
+                                </Button>
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-[var(--muted-foreground)] leading-tight">
+                              Covers June 1, {syStartYear || "YYYY"} through March 31, {syEndYear || "YYYY+1"}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button variant="outline" onClick={handleExportPdf} className="gap-2 shadow-2xs">
             <FileDown size={16} /> Export to PDF
           </Button>
@@ -505,6 +652,28 @@ export default function DeanReports() {
           Finance Report
         </button>
       </div>
+
+      {/* Active Filter Indicator Pill (if filtered) */}
+      {dateRange !== "all" && (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-orange-50 border border-orange-200 text-orange-900 text-xs font-medium w-fit">
+          <Filter size={13} className="text-orange-600" />
+          <span>
+            Filtering by{" "}
+            <strong>
+              {dateRange === "school_year"
+                ? `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`
+                : DATE_RANGE_LABELS[dateRange]}
+            </strong>{" "}
+            · {allEvents.length} events
+          </span>
+          <button
+            onClick={() => setDateRange("all")}
+            className="ml-2 text-orange-700 hover:text-orange-950 font-bold underline text-[11px] cursor-pointer"
+          >
+            Reset to All Time
+          </button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-6">

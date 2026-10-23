@@ -915,3 +915,131 @@ export function resolveEventSignatories(
 
 export { printClearanceDocument, printLiquidationDocument } from "./pdfDocuments";
 
+// ============================================================================
+// 10. DATE WINDOW & SCHOOL YEAR FILTERING HELPERS
+// ============================================================================
+
+export type DateRangeFilter = "all" | "week" | "month" | "semester" | "school_year";
+
+export const DATE_RANGE_LABELS: Record<DateRangeFilter, string> = {
+  all: "All Time",
+  week: "This Week",
+  month: "This Month",
+  semester: "This Semester (6-Month)",
+  school_year: "School Year (S.Y.)",
+};
+
+/**
+ * Returns default Start and End year numbers for current academic year.
+ * Academic school year starts in June (month index 5) and ends in March (month index 2) of the next year.
+ */
+export function getDefaultSchoolYears(): { startYear: number; endYear: number } {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0 = Jan, 5 = June
+  if (month >= 5) {
+    return { startYear: year, endYear: year + 1 };
+  } else {
+    return { startYear: year - 1, endYear: year };
+  }
+}
+
+/**
+ * Returns formatted school year label e.g. "2025-2026"
+ */
+export function formatSchoolYear(startYear: number | string, endYear: number | string): string {
+  return `${startYear}-${endYear}`;
+}
+
+/**
+ * Returns the current default School Year (e.g., "2025-2026")
+ */
+export function getCurrentSchoolYear(): string {
+  const { startYear, endYear } = getDefaultSchoolYears();
+  return formatSchoolYear(startYear, endYear);
+}
+
+/**
+ * Builds Date range for a School Year from startYear and endYear:
+ * Start: June 1, startYear 00:00:00
+ * End: March 31, endYear 23:59:59.999
+ */
+export function getSchoolYearDateRange(
+  startYearInput: number | string,
+  endYearInput: number | string
+): { start: Date; end: Date } | null {
+  const sYear = parseInt(String(startYearInput).trim(), 10);
+  let eYear = parseInt(String(endYearInput).trim(), 10);
+
+  if (isNaN(sYear)) return null;
+  if (isNaN(eYear)) {
+    eYear = sYear + 1;
+  }
+
+  // If user only entered 2 digits for end year e.g. "26"
+  if (eYear < 100) {
+    eYear = Math.floor(sYear / 100) * 100 + eYear;
+  }
+
+  const start = new Date(sYear, 5, 1, 0, 0, 0, 0); // June 1, 00:00:00
+  const end = new Date(eYear, 2, 31, 23, 59, 59, 999); // March 31, 23:59:59.999
+  return { start, end };
+}
+
+/**
+ * Universal date filtering for Events, Initiatives, and Transactions
+ */
+export function isDateInReportRange(
+  dateStr?: string,
+  range: DateRangeFilter = "all",
+  syStartYear?: number | string,
+  syEndYear?: number | string
+): boolean {
+  if (range === "all") return true;
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  const now = new Date();
+
+  if (range === "week") {
+    const day = now.getDay();
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day, 0, 0, 0, 0);
+    const endOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (6 - day), 23, 59, 59, 999);
+    return d >= startOfWeek && d <= endOfWeek;
+  }
+
+  if (range === "month") {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+
+  if (range === "semester") {
+    const curMonth = now.getMonth();
+    let semStart: Date;
+    let semEnd: Date;
+    if (curMonth >= 7) {
+      semStart = new Date(now.getFullYear(), 7, 1, 0, 0, 0, 0);
+      semEnd = new Date(now.getFullYear() + 1, 0, 31, 23, 59, 59, 999);
+    } else if (curMonth === 0) {
+      semStart = new Date(now.getFullYear() - 1, 7, 1, 0, 0, 0, 0);
+      semEnd = new Date(now.getFullYear(), 0, 31, 23, 59, 59, 999);
+    } else {
+      semStart = new Date(now.getFullYear(), 1, 1, 0, 0, 0, 0);
+      semEnd = new Date(now.getFullYear(), 6, 31, 23, 59, 59, 999);
+    }
+    return d >= semStart && d <= semEnd;
+  }
+
+  if (range === "school_year") {
+    const defaultYears = getDefaultSchoolYears();
+    const rangeObj = getSchoolYearDateRange(
+      syStartYear ?? defaultYears.startYear,
+      syEndYear ?? defaultYears.endYear
+    );
+    if (!rangeObj) return true;
+    return d >= rangeObj.start && d <= rangeObj.end;
+  }
+
+  return true;
+}
+
+
