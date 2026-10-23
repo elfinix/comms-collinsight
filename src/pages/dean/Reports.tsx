@@ -38,6 +38,15 @@ import EventFinanceTab from "../../components/events/EventFinanceTab";
 
 const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981", "#64748b"];
 
+const PIE_RGB_COLORS: [number, number, number][] = [
+  [234, 88, 12],   // #ea580c (Orange)
+  [59, 130, 246],  // #3b82f6 (Blue)
+  [99, 102, 241],  // #6366f1 (Indigo)
+  [245, 158, 11],  // #f59e0b (Amber)
+  [16, 185, 129],  // #10b981 (Emerald)
+  [100, 116, 139], // #64748b (Slate)
+];
+
 
 const STATUS_FILTERS = [
   "All",
@@ -124,10 +133,20 @@ export default function DeanReports() {
     : "Dr. Marilou C. Villanueva, Ph.D.";
 
   const orgData = organizations.map((org) => {
-    const orgEvents = events.filter((e) => e.organizationId === org.id);
+    const orgEvents = allEvents.filter((e) => e.organizationId === org.id);
     const spent = transactions.filter((t) => orgEvents.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
     return { name: org.code, events: orgEvents.length, spent, budget: org.allocatedBudget };
   });
+
+  // Shared status distribution data for Events tab pie chart (matching UI and PDF)
+  const statusPieData = useMemo(() => {
+    return ["Approved", "For Review", "For Approval", "Completed", "Closed"]
+      .map((s) => ({
+        name: s,
+        value: allEvents.filter((e) => e.status === s).length,
+      }))
+      .filter((d) => d.value > 0);
+  }, [allEvents]);
 
   // Timeline trend data for Finance Report
   const financialTrendData = useMemo(() => {
@@ -190,8 +209,13 @@ export default function DeanReports() {
   }, [allEvents, orgFilter, statusFilter, searchQuery, sortKey, sortDir, transactions]);
 
   async function handleExportPdf() {
-    const docRef = `REP-DEAN-${Date.now().toString().slice(-6)}`;
+    const isEventsTab = tab === "events";
+    const docRef = `REP-DEAN-${isEventsTab ? "EVT" : "FIN"}-${Date.now().toString().slice(-6)}`;
     const generatedDate = formatDateTime(new Date().toISOString());
+    const filterLabel =
+      dateRange === "school_year"
+        ? `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`
+        : DATE_RANGE_LABELS[dateRange];
 
     try {
       const doc = new jsPDF({
@@ -207,256 +231,808 @@ export default function DeanReports() {
       // Load LCUP Official Logo
       const logoDataUrl = await getLcupLogoDataUrl();
 
-      // ── 1. HEADER SECTION ───────────────────────────────────────────
-      // LCUP Official Logo Seal
+      // ── 1. HEADER SECTION (COMMON) ──────────────────────────────────
       drawPdfHeaderLogo(doc, margin, 11, 14, logoDataUrl);
 
-      // University & Department Titles
-      doc.setTextColor(15, 23, 42); // #0f172a
+      doc.setTextColor(15, 23, 42);
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
 
-      doc.setTextColor(71, 85, 105); // #475569
+      doc.setTextColor(71, 85, 105);
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
 
-      doc.setTextColor(234, 88, 12); // #ea580c
+      doc.setTextColor(234, 88, 12);
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
-      doc.text("Office of the College Dean · Cross-Organizational Directorate Report", margin + 17, 23.5);
+      doc.text(
+        isEventsTab
+          ? "Office of the College Dean · Cross-Organizational Directorate Events Report"
+          : "Office of the College Dean · Cross-Organizational Directorate Financial Report",
+        margin + 17,
+        23.5
+      );
 
-      // Top Right: DIRECTORATE REPORT Pill Badge + Filter Window
-      const filterLabel =
-        dateRange === "school_year"
-          ? `S.Y. ${formatSchoolYear(syStartYear, syEndYear)}`
-          : DATE_RANGE_LABELS[dateRange];
-      const badgeText = dateRange !== "all" ? `DIRECTORATE REPORT · ${filterLabel.toUpperCase()}` : "DIRECTORATE REPORT";
+      // Top Right: Badge + Filter Window
+      const badgeText = isEventsTab
+        ? `DIRECTORATE EVENTS REPORT · ${filterLabel.toUpperCase()}`
+        : `DIRECTORATE FINANCE REPORT · ${filterLabel.toUpperCase()}`;
       doc.setFont("helvetica", "bold");
       doc.setFontSize(7.5);
       const badgeW = doc.getTextWidth(badgeText) + 6;
       const badgeX = pageWidth - margin - badgeW;
 
-      doc.setFillColor(255, 237, 213); // #ffedd5
-      doc.setDrawColor(254, 215, 170); // #fed7aa
+      doc.setFillColor(255, 237, 213);
+      doc.setDrawColor(254, 215, 170);
       doc.setLineWidth(0.3);
       doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
 
-      doc.setTextColor(154, 52, 18); // #9a3412
+      doc.setTextColor(154, 52, 18);
       doc.text(badgeText, badgeX + 3, 15.5);
 
-      // Ref and Date below pill badge (Normal Weight)
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.setTextColor(71, 85, 105); // #475569
+      doc.setTextColor(71, 85, 105);
       doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
       doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
 
       // Orange Header Line Divider
-      doc.setDrawColor(234, 88, 12); // #ea580c
+      doc.setDrawColor(234, 88, 12);
       doc.setLineWidth(0.5);
       doc.line(margin, 28, pageWidth - margin, 28);
 
-      // ── 2. KPI SUMMARY METRIC BOXES ────────────────────────────────
-      const kpiY = 32;
-      const kpiH = 12;
-      doc.setFillColor(248, 250, 252); // #f8fafc
-      doc.setDrawColor(226, 232, 240); // #e2e8f0
-      doc.setLineWidth(0.3);
-      doc.roundedRect(margin, kpiY, contentWidth, kpiH, 1.5, 1.5, "FD");
+      // Signatory footer drawer for autoTable
+      const drawPdfFooter = () => {
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.line(margin, pageHeight - 30, pageWidth - margin, pageHeight - 30);
 
-      const colW = contentWidth / 4;
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(100, 116, 139);
+        doc.text("DIRECTORATE REPORT CERTIFIED BY:", margin + 2, pageHeight - 24);
+        doc.setDrawColor(51, 65, 85);
+        doc.setLineWidth(0.3);
+        doc.line(margin + 2, pageHeight - 19, margin + 95, pageHeight - 19);
+        doc.setFontSize(8);
+        doc.setTextColor(15, 23, 42);
+        doc.text(deanName, margin + 2, pageHeight - 15.5);
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(100, 116, 139);
+        doc.text("College Dean, CITE", margin + 2, pageHeight - 12);
 
-      // Col 1: Total Events
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(6.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text("TOTAL PROPOSALS", margin + 4, kpiY + 4.5);
-      doc.setFontSize(9.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${allEvents.length} Events`, margin + 4, kpiY + 9.5);
+        doc.setFontSize(6.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(148, 163, 184);
+        doc.text(
+          `COLLinSight Directorate ${isEventsTab ? "Events Analytics" : "Financial Audit"} · LCUP CITE Executive Ledger`,
+          pageWidth - margin,
+          pageHeight - 12,
+          { align: "right" }
+        );
+      };
 
-      // Col 2: Approved Events
-      doc.setFontSize(6.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text("APPROVED & ACTIVE", margin + colW + 4, kpiY + 4.5);
-      doc.setFontSize(9.5);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`${approved.length} Events`, margin + colW + 4, kpiY + 9.5);
-
-      // Col 3: Total Allocated Budget
-      doc.setFontSize(6.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text("TOTAL ALLOCATION", margin + colW * 2 + 4, kpiY + 4.5);
-      doc.setFontSize(9);
-      doc.setTextColor(15, 23, 42);
-      doc.text(`PHP ${Number(totalBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + colW * 2 + 4, kpiY + 9.5);
-
-      // Col 4: Total Disbursed
-      doc.setFontSize(6.5);
-      doc.setTextColor(100, 116, 139);
-      doc.text("TOTAL DISBURSED", margin + colW * 3 + 4, kpiY + 4.5);
-      doc.setFontSize(9);
-      doc.setTextColor(21, 128, 61);
-      doc.text(`PHP ${Number(totalSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${spentPercentage}%)`, margin + colW * 3 + 4, kpiY + 9.5);
-
-      // ── 3. STATUS BADGE COLOR HELPER ────────────────────────────────
       const getStatusPillColors = (status: string, setting?: string) => {
         const s = status.toLowerCase();
-        if (s.includes("sds")) {
-          if (setting === "Off-campus") {
-            // Lighter soft indigo
-            return { bg: [238, 242, 255], border: [199, 210, 254], text: [67, 56, 202] }; // indigo-50 / indigo-700
-          }
-          // On-campus: standard light indigo bg, dark indigo text
-          return { bg: [224, 231, 255], border: [165, 180, 252], text: [49, 46, 129] }; // indigo-100 / indigo-900
-        }
-        if (s.includes("cmo")) {
-          // Off-campus CMO: standard light indigo bg, dark indigo text
-          return { bg: [224, 231, 255], border: [165, 180, 252], text: [49, 46, 129] }; // indigo-100 / indigo-900
+        if (s.includes("sds") || s.includes("cmo")) {
+          return { bg: [224, 231, 255], border: [165, 180, 252], text: [49, 46, 129] };
         }
         if (s.includes("approv") || s.includes("complet")) {
-          return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] }; // Emerald
+          return { bg: [236, 253, 245], border: [167, 243, 208], text: [4, 120, 87] };
         }
         if (s.includes("review") || s.includes("for app")) {
-          return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] }; // Blue
+          return { bg: [239, 246, 255], border: [191, 219, 254], text: [29, 78, 216] };
         }
         if (s.includes("revis") || s.includes("reject")) {
-          return { bg: [255, 241, 242], border: [254, 205, 211], text: [190, 18, 60] }; // Rose
-        }
-        if (s.includes("closed")) {
-          return { bg: [241, 245, 249], border: [203, 213, 225], text: [71, 85, 105] }; // Slate
+          return { bg: [255, 241, 242], border: [254, 205, 211], text: [190, 18, 60] };
         }
         return { bg: [241, 245, 249], border: [203, 213, 225], text: [71, 85, 105] };
       };
 
-      // ── 4. EVENTS TABLE DATA CONSTRUCTION ───────────────────────────
-      const rawEventRows = filteredEvents.map((e, idx) => {
-        const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
-        const orgCode = organizations.find((o) => o.id === e.organizationId)?.code || "CITE";
-        const typeName = getEventTypeById(e.typeId)?.name || "General";
+      if (isEventsTab) {
+        // ==============================================================
+        // ── TAB A: EVENTS REPORT PDF GENERATION ───────────────────────
+        // ==============================================================
 
-        return {
-          idx: idx + 1,
-          name: e.name,
-          setting: e.setting,
-          orgCode,
-          typeName,
-          date: formatDate(e.dateStart),
-          budget: `PHP ${Number(e.proposedBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          spent: `PHP ${Number(spent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          status: e.status,
-        };
-      });
+        // 1. KPI Metric Boxes (4 columns)
+        const kpiY = 32;
+        const kpiH = 12;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, kpiY, contentWidth, kpiH, 1.5, 1.5, "FD");
 
-      const eventsTableData = rawEventRows.map((r) => [
-        r.idx,
-        r.name,
-        r.orgCode,
-        r.typeName,
-        r.date,
-        r.budget,
-        r.spent,
-        r.status,
-      ]);
+        const colW = contentWidth / 4;
 
-      autoTable(doc, {
-        startY: 48,
-        head: [["#", "Event Proposal Name", "Org", "Event Type", "Event Date", "Allocated", "Disbursed", "Status"]],
-        body: eventsTableData,
-        theme: "plain",
-        styles: {
-          font: "helvetica",
-          fontStyle: "normal",
-          fontSize: 7.5,
-          textColor: [15, 23, 42],
-          cellPadding: { top: 3.5, bottom: 3.5, left: 3, right: 3 },
-          lineWidth: { bottom: 0.15 },
-          lineColor: [226, 232, 240],
-          valign: "middle",
-        },
-        headStyles: {
-          fillColor: [241, 245, 249],
-          textColor: [51, 65, 85],
-          fontSize: 7,
-          fontStyle: "bold",
-          font: "helvetica",
-          lineWidth: { bottom: 0.3 },
-          lineColor: [203, 213, 225],
-        },
-        columnStyles: {
-          0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
-          1: { cellWidth: 81, fontStyle: "bold" },
-          2: { cellWidth: 20, fontStyle: "bold", textColor: [234, 88, 12] },
-          3: { cellWidth: 32 },
-          4: { cellWidth: 28 },
-          5: { cellWidth: 32, halign: "right", fontStyle: "bold" },
-          6: { cellWidth: 32, halign: "right", fontStyle: "bold", textColor: [15, 23, 42] },
-          7: { cellWidth: 35, halign: "center" },
-        },
-        margin: { left: margin, right: margin, bottom: 36 },
-        didDrawCell: (data) => {
-          if (data.section === "body" && data.column.index === 7) {
-            const rowObj = rawEventRows[data.row.index];
-            if (rowObj) {
-              const text = rowObj.status;
-              const colors = getStatusPillColors(text, rowObj.setting);
+        // Total Events
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("TOTAL PROPOSALS", margin + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(15, 23, 42);
+        doc.text(`${allEvents.length} Events`, margin + 4, kpiY + 9.5);
 
-              doc.setFont("helvetica", "bold");
-              doc.setFontSize(6.5);
-              const tw = doc.getTextWidth(text) + 4.5;
-              const pillX = data.cell.x + (data.cell.width - tw) / 2;
-              const pillY = data.cell.y + 2.5;
+        // Approved Events
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("APPROVED EVENTS", margin + colW + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(16, 185, 129);
+        doc.text(`${approved.length} Cleared`, margin + colW + 4, kpiY + 9.5);
 
-              doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
-              doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
-              doc.setLineWidth(0.25);
-              doc.roundedRect(pillX, pillY, tw, 4.8, 1, 1, "FD");
+        // In Signatory Flow
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("IN SIGNATORY FLOW", margin + colW * 2 + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(217, 119, 6);
+        doc.text(`${pendingEvents.length} In Review`, margin + colW * 2 + 4, kpiY + 9.5);
 
-              doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
-              doc.text(text, pillX + 2.2, pillY + 3.4);
+        // Closed / Reconciled
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("CLOSED / RECONCILED", margin + colW * 3 + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(71, 85, 105);
+        doc.text(`${closedEvents.length} Reconciled`, margin + colW * 3 + 4, kpiY + 9.5);
 
-              doc.setFont("helvetica", "normal");
-              doc.setTextColor(15, 23, 42);
-            }
-          }
-        },
-        didDrawPage: () => {
-          const pageHeight = doc.internal.pageSize.getHeight();
+        // 2. Charts Row (2 visual cards)
+        const chartRowY = 48;
+        const chartCardW = (contentWidth - 6) / 2;
+        const chartCardH = 43;
 
-          // Signatories at bottom (Raised up with comfortable 14mm page bottom margin)
-          doc.setDrawColor(226, 232, 240);
-          doc.setLineWidth(0.3);
-          doc.line(margin, pageHeight - 32, pageWidth - margin, pageHeight - 32);
+        // Chart 1: Events per Organization Bar Chart
+        const c1X = margin;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(c1X, chartRowY, chartCardW, chartCardH, 1.5, 1.5, "FD");
 
-          // Left Dean Signature
-          doc.setFontSize(6.5);
-          doc.setFont("helvetica", "bold");
-          doc.setTextColor(100, 116, 139);
-          doc.text("DIRECTORATE REPORT CERTIFIED BY:", margin + 2, pageHeight - 26);
-          doc.setDrawColor(51, 65, 85);
-          doc.setLineWidth(0.3);
-          doc.line(margin + 2, pageHeight - 21, margin + 95, pageHeight - 21);
-          doc.setFontSize(8);
-          doc.setTextColor(15, 23, 42);
-          doc.text(deanName, margin + 2, pageHeight - 17.5);
-          doc.setFontSize(6.5);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(51, 65, 85);
+        doc.text("EVENTS PER ORGANIZATION", c1X + 4, chartRowY + 5.5);
+
+        const plotX1 = c1X + 16;
+        const plotY1 = chartRowY + 10;
+        const plotW1 = chartCardW - 24;
+        const plotH1 = 24;
+
+        const maxEventsCount = Math.max(1, ...orgData.map((o) => o.events));
+        // Horizontal gridline
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        [0, 0.5, 1].forEach((r) => {
+          const gy = plotY1 + plotH1 - r * plotH1;
+          doc.line(plotX1, gy, plotX1 + plotW1, gy);
+          const val = Math.round(r * maxEventsCount);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(100, 116, 139);
-          doc.text("College Dean, CITE", margin + 2, pageHeight - 14);
-
-          // Right Footer Notes
-          doc.setFontSize(6.5);
-          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5);
           doc.setTextColor(148, 163, 184);
-          doc.text("COLLinSight Directorate Analytics · LCUP CITE Executive Ledger", pageWidth - margin, pageHeight - 14, { align: "right" });
-        },
-      });
+          doc.text(String(val), plotX1 - 2, gy + 1.2, { align: "right" });
+        });
+
+        const orgCount = orgData.length || 1;
+        const step1 = plotW1 / orgCount;
+        const barW1 = Math.min(14, step1 * 0.55);
+
+        orgData.forEach((o, i) => {
+          const bx = plotX1 + i * step1 + (step1 - barW1) / 2;
+          const bh = (o.events / maxEventsCount) * plotH1;
+          const by = plotY1 + plotH1 - bh;
+
+          doc.setFillColor(234, 88, 12);
+          doc.roundedRect(bx, by, barW1, Math.max(0.6, bh), 0.8, 0.8, "F");
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(5.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text(String(o.events), bx + barW1 / 2, by - 1, { align: "center" });
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(o.name, bx + barW1 / 2, plotY1 + plotH1 + 4, { align: "center" });
+        });
+
+        // Chart 2: Events by Status Distribution (Solid Pie Chart matching UI)
+        const c2X = margin + chartCardW + 6;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(c2X, chartRowY, chartCardW, chartCardH, 1.5, 1.5, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(51, 65, 85);
+        doc.text("EVENTS BY STATUS DISTRIBUTION", c2X + 4, chartRowY + 5.5);
+
+        const totalPieSum = statusPieData.reduce((acc, d) => acc + d.value, 0);
+
+        if (totalPieSum === 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(148, 163, 184);
+          doc.text("No events in filter window.", c2X + chartCardW / 2, chartRowY + chartCardH / 2, { align: "center" });
+        } else {
+          const cx2 = c2X + 25;
+          const cy2 = chartRowY + 24;
+          const R2 = 13.5;
+
+          let currentAngle = -Math.PI / 2;
+          statusPieData.forEach((s, idx) => {
+            const color = PIE_RGB_COLORS[idx % PIE_RGB_COLORS.length];
+            const pct = s.value / totalPieSum;
+            const sliceAngle = pct * (2 * Math.PI);
+            const endAngle = currentAngle + sliceAngle;
+            const steps = Math.max(16, Math.ceil(sliceAngle * 60));
+
+            doc.setFillColor(color[0], color[1], color[2]);
+            for (let i = 0; i < steps; i++) {
+              const a1 = currentAngle + (i / steps) * sliceAngle;
+              const a2 = currentAngle + ((i + 1) / steps) * sliceAngle;
+              const x1 = cx2 + R2 * Math.cos(a1);
+              const y1 = cy2 + R2 * Math.sin(a1);
+              const x2 = cx2 + R2 * Math.cos(a2);
+              const y2 = cy2 + R2 * Math.sin(a2);
+              doc.triangle(cx2, cy2, x1, y1, x2, y2, "F");
+            }
+            currentAngle = endAngle;
+          });
+
+          // Legend on right side matching UI colors & percentages
+          const legX2 = c2X + 46;
+          const startLegY2 = chartRowY + 12;
+          statusPieData.forEach((s, idx) => {
+            const color = PIE_RGB_COLORS[idx % PIE_RGB_COLORS.length];
+            const ly = startLegY2 + idx * 8.5;
+            const pct = Math.round((s.value / totalPieSum) * 100);
+
+            doc.setFillColor(color[0], color[1], color[2]);
+            doc.circle(legX2 + 2, ly + 2.5, 2, "F");
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(6.5);
+            doc.setTextColor(51, 65, 85);
+            doc.text(s.name, legX2 + 6, ly + 3.2);
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(6.5);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`${s.value} (${pct}%)`, c2X + chartCardW - 4, ly + 3.2, { align: "right" });
+          });
+        }
+
+        // 3. Events Table
+        const rawEventRows = filteredEvents.map((e, idx) => {
+          const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
+          const orgCode = organizations.find((o) => o.id === e.organizationId)?.code || "CITE";
+          const typeName = getEventTypeById(e.typeId)?.name || "General";
+
+          return {
+            idx: idx + 1,
+            name: e.name,
+            setting: e.setting,
+            orgCode,
+            typeName,
+            date: formatDate(e.dateStart),
+            budget: `PHP ${Number(e.proposedBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            spent: `PHP ${Number(spent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            status: e.status,
+          };
+        });
+
+        const eventsTableData: (string | number)[][] = rawEventRows.map((r) => [
+          r.idx,
+          r.name,
+          r.orgCode,
+          r.typeName,
+          r.date,
+          r.budget,
+          r.spent,
+          r.status,
+        ]);
+
+        const totalEvtBudget = filteredEvents.reduce((s, e) => s + (e.proposedBudget || 0), 0);
+        const totalEvtSpent = filteredEvents.reduce((s, e) => {
+          const sp = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((st, t) => st + t.amount, 0);
+          return s + sp;
+        }, 0);
+
+        eventsTableData.push([
+          "",
+          `TOTAL (${filteredEvents.length} Events)`,
+          "",
+          "",
+          "",
+          `PHP ${Number(totalEvtBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `PHP ${Number(totalEvtSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          "SUMMARY",
+        ]);
+
+        autoTable(doc, {
+          startY: 96,
+          head: [["#", "Event Proposal Name", "Org", "Event Type", "Event Date", "Allocated", "Disbursed", "Status"]],
+          body: eventsTableData,
+          theme: "plain",
+          styles: {
+            font: "helvetica",
+            fontStyle: "normal",
+            fontSize: 7.5,
+            textColor: [15, 23, 42],
+            cellPadding: { top: 3.2, bottom: 3.2, left: 3, right: 3 },
+            lineWidth: { bottom: 0.15 },
+            lineColor: [226, 232, 240],
+            valign: "middle",
+          },
+          headStyles: {
+            fillColor: [241, 245, 249],
+            textColor: [51, 65, 85],
+            fontSize: 7,
+            fontStyle: "bold",
+            font: "helvetica",
+            lineWidth: { bottom: 0.3 },
+            lineColor: [203, 213, 225],
+          },
+          columnStyles: {
+            0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
+            1: { cellWidth: 81, fontStyle: "bold" },
+            2: { cellWidth: 20, fontStyle: "bold", textColor: [234, 88, 12] },
+            3: { cellWidth: 32 },
+            4: { cellWidth: 28 },
+            5: { cellWidth: 32, halign: "right", fontStyle: "bold" },
+            6: { cellWidth: 32, halign: "right", fontStyle: "bold", textColor: [15, 23, 42] },
+            7: { cellWidth: 35, halign: "center" },
+          },
+          margin: { left: margin, right: margin, bottom: 34 },
+          didDrawCell: (data) => {
+            if (data.section === "body" && data.column.index === 7 && data.row.index < rawEventRows.length) {
+              const rowObj = rawEventRows[data.row.index];
+              if (rowObj) {
+                const text = rowObj.status;
+                const colors = getStatusPillColors(text, rowObj.setting);
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(6.5);
+                const tw = doc.getTextWidth(text) + 4.5;
+                const pillX = data.cell.x + (data.cell.width - tw) / 2;
+                const pillY = data.cell.y + 2.5;
+
+                doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+                doc.setLineWidth(0.25);
+                doc.roundedRect(pillX, pillY, tw, 4.8, 1, 1, "FD");
+
+                doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                doc.text(text, pillX + 2.2, pillY + 3.4);
+
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(15, 23, 42);
+              }
+            }
+          },
+          didDrawPage: drawPdfFooter,
+        });
+      } else {
+        // ==============================================================
+        // ── TAB B: FINANCE REPORT PDF GENERATION ──────────────────────
+        // ==============================================================
+
+        // 1. KPI Metric Boxes (3 columns)
+        const kpiY = 32;
+        const kpiH = 12;
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, kpiY, contentWidth, kpiH, 1.5, 1.5, "FD");
+
+        const colW = contentWidth / 3;
+
+        // Total Budget Allocation
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("TOTAL BUDGET ALLOCATION", margin + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(30, 64, 175);
+        doc.text(
+          `PHP ${Number(totalBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          margin + 4,
+          kpiY + 9.5
+        );
+
+        // Total Disbursed Expenses
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("TOTAL DISBURSED EXPENSES", margin + colW + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(194, 65, 12);
+        doc.text(
+          `PHP ${Number(totalSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${spentPercentage}%)`,
+          margin + colW + 4,
+          kpiY + 9.5
+        );
+
+        // Remaining Treasury Balance
+        doc.setFontSize(6.5);
+        doc.setTextColor(100, 116, 139);
+        doc.text("REMAINING TREASURY BALANCE", margin + colW * 2 + 4, kpiY + 4.5);
+        doc.setFontSize(9.5);
+        doc.setTextColor(21, 128, 61);
+        doc.text(
+          `PHP ${Number(remainingTreasury || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${unspentPercentage}% Net)`,
+          margin + colW * 2 + 4,
+          kpiY + 9.5
+        );
+
+        // 2. Charts Row (2 visual cards)
+        const chartRowY = 48;
+        const chartCardW = (contentWidth - 6) / 2;
+        const chartCardH = 43;
+
+        // Chart 1: Budget vs. Spending by Organization (Grouped Bar Chart)
+        const c1X = margin;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(c1X, chartRowY, chartCardW, chartCardH, 1.5, 1.5, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(51, 65, 85);
+        doc.text("BUDGET VS. SPENDING BY ORGANIZATION", c1X + 4, chartRowY + 5.5);
+
+        // Legend top right
+        doc.setFillColor(147, 197, 253);
+        doc.circle(c1X + chartCardW - 32, chartRowY + 5, 1.5, "F");
+        doc.setFontSize(5.5);
+        doc.setTextColor(30, 64, 175);
+        doc.text("Budget", c1X + chartCardW - 28, chartRowY + 5.8);
+
+        doc.setFillColor(234, 88, 12);
+        doc.circle(c1X + chartCardW - 15, chartRowY + 5, 1.5, "F");
+        doc.setTextColor(194, 65, 12);
+        doc.text("Spent", c1X + chartCardW - 11, chartRowY + 5.8);
+
+        const plotX1 = c1X + 16;
+        const plotY1 = chartRowY + 10;
+        const plotW1 = chartCardW - 24;
+        const plotH1 = 24;
+
+        const maxOrgFin = Math.max(1000, ...orgData.map((o) => Math.max(o.budget, o.spent)));
+
+        // Horizontal gridlines & Y ticks
+        doc.setDrawColor(241, 245, 249);
+        doc.setLineWidth(0.2);
+        [0, 0.5, 1].forEach((r) => {
+          const gy = plotY1 + plotH1 - r * plotH1;
+          doc.line(plotX1, gy, plotX1 + plotW1, gy);
+          const tickVal = Math.round(r * maxOrgFin);
+          const tickLabel = tickVal >= 1000 ? `${(tickVal / 1000).toFixed(0)}k` : `${tickVal}`;
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5);
+          doc.setTextColor(148, 163, 184);
+          doc.text(tickLabel, plotX1 - 2, gy + 1.2, { align: "right" });
+        });
+
+        const orgCount = orgData.length || 1;
+        const step1 = plotW1 / orgCount;
+        const pairBarW = Math.min(6, (step1 * 0.7) / 2);
+
+        orgData.forEach((o, i) => {
+          const centerX = plotX1 + i * step1 + step1 / 2;
+          const bx = centerX - pairBarW - 0.5;
+          const bh = (o.budget / maxOrgFin) * plotH1;
+          const by = plotY1 + plotH1 - bh;
+
+          const sx = centerX + 0.5;
+          const sh = (o.spent / maxOrgFin) * plotH1;
+          const sy = plotY1 + plotH1 - sh;
+
+          // Budget bar
+          doc.setFillColor(147, 197, 253);
+          doc.roundedRect(bx, by, pairBarW, Math.max(0.5, bh), 0.5, 0.5, "F");
+
+          // Spent bar
+          doc.setFillColor(234, 88, 12);
+          doc.roundedRect(sx, sy, pairBarW, Math.max(0.5, sh), 0.5, 0.5, "F");
+
+          // Org Code label
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(5.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(o.name, centerX, plotY1 + plotH1 + 4, { align: "center" });
+        });
+
+        // Chart 2: Budget vs. Spending Timeline Trend (Line Chart)
+        const c2X = margin + chartCardW + 6;
+        doc.setFillColor(255, 255, 255);
+        doc.setDrawColor(226, 232, 240);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(c2X, chartRowY, chartCardW, chartCardH, 1.5, 1.5, "FD");
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(51, 65, 85);
+        doc.text("BUDGET VS. SPENDING TIMELINE TREND", c2X + 4, chartRowY + 5.5);
+
+        // Legend top right
+        doc.setFillColor(59, 130, 246);
+        doc.circle(c2X + chartCardW - 35, chartRowY + 5, 1.5, "F");
+        doc.setFontSize(5.5);
+        doc.setTextColor(30, 64, 175);
+        doc.text("Budget", c2X + chartCardW - 31, chartRowY + 5.8);
+
+        doc.setFillColor(234, 88, 12);
+        doc.circle(c2X + chartCardW - 16, chartRowY + 5, 1.5, "F");
+        doc.setTextColor(194, 65, 12);
+        doc.text("Spent", c2X + chartCardW - 12, chartRowY + 5.8);
+
+        if (financialTrendData.length === 0) {
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7);
+          doc.setTextColor(148, 163, 184);
+          doc.text("No approved event expenditures in filter period.", c2X + chartCardW / 2, chartRowY + chartCardH / 2, { align: "center" });
+        } else {
+          const plotX2 = c2X + 16;
+          const plotY2 = chartRowY + 10;
+          const plotW2 = chartCardW - 22;
+          const plotH2 = 24;
+
+          const maxTrend = Math.max(1000, ...financialTrendData.map((d) => Math.max(d.budget, d.spent)));
+
+          // Gridlines
+          doc.setDrawColor(241, 245, 249);
+          doc.setLineWidth(0.2);
+          [0, 0.5, 1].forEach((r) => {
+            const gy = plotY2 + plotH2 - r * plotH2;
+            doc.line(plotX2, gy, plotX2 + plotW2, gy);
+            const tickVal = Math.round(r * maxTrend);
+            const tickLabel = tickVal >= 1000 ? `${(tickVal / 1000).toFixed(0)}k` : `${tickVal}`;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(5);
+            doc.setTextColor(148, 163, 184);
+            doc.text(tickLabel, plotX2 - 2, gy + 1.2, { align: "right" });
+          });
+
+          const step2 = financialTrendData.length > 1 ? plotW2 / (financialTrendData.length - 1) : plotW2 / 2;
+          const budgetPts: { x: number; y: number }[] = [];
+          const spentPts: { x: number; y: number }[] = [];
+
+          financialTrendData.forEach((d, i) => {
+            const px = financialTrendData.length === 1 ? plotX2 + plotW2 / 2 : plotX2 + i * step2;
+            const pyB = plotY2 + plotH2 - (d.budget / maxTrend) * plotH2;
+            const pyS = plotY2 + plotH2 - (d.spent / maxTrend) * plotH2;
+
+            budgetPts.push({ x: px, y: pyB });
+            spentPts.push({ x: px, y: pyS });
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(4.5);
+            doc.setTextColor(100, 116, 139);
+            const shortName = d.name.length > 9 ? d.name.substring(0, 8) + "…" : d.name;
+            doc.text(shortName, px, plotY2 + plotH2 + 4, { align: "center" });
+          });
+
+          // Draw Budget line (Blue)
+          doc.setDrawColor(59, 130, 246);
+          doc.setLineWidth(0.4);
+          for (let i = 0; i < budgetPts.length - 1; i++) {
+            doc.line(budgetPts[i].x, budgetPts[i].y, budgetPts[i + 1].x, budgetPts[i + 1].y);
+          }
+          budgetPts.forEach((pt) => {
+            doc.setFillColor(59, 130, 246);
+            doc.circle(pt.x, pt.y, 1, "F");
+          });
+
+          // Draw Spent line (Orange)
+          doc.setDrawColor(234, 88, 12);
+          doc.setLineWidth(0.4);
+          for (let i = 0; i < spentPts.length - 1; i++) {
+            doc.line(spentPts[i].x, spentPts[i].y, spentPts[i + 1].x, spentPts[i + 1].y);
+          }
+          spentPts.forEach((pt) => {
+            doc.setFillColor(234, 88, 12);
+            doc.circle(pt.x, pt.y, 1, "F");
+          });
+        }
+
+        // 3. Finance Table 1: Cross-Organizational Allocation & Disbursement Breakdown
+        const orgSummaryRows: (string | number)[][] = organizations.map((org, idx) => {
+          const orgEvts = allEvents.filter((e) => e.organizationId === org.id);
+          const spent = transactions
+            .filter((t) => orgEvts.some((e) => e.id === t.eventId) && !t.deleted)
+            .reduce((s, t) => s + t.amount, 0);
+          const budget = org.allocatedBudget || 0;
+          const balance = budget - spent;
+          const utilPct = budget > 0 ? ((spent / budget) * 100).toFixed(1) + "%" : "0.0%";
+
+          return [
+            idx + 1,
+            org.name,
+            org.code,
+            orgEvts.length,
+            `PHP ${Number(budget).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            `PHP ${Number(spent).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            `PHP ${Number(balance).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            utilPct,
+          ];
+        });
+
+        // Totals row
+        orgSummaryRows.push([
+          "",
+          "INSTITUTIONAL TOTAL",
+          "CITE",
+          allEvents.length,
+          `PHP ${Number(totalBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `PHP ${Number(totalSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `PHP ${Number(remainingTreasury || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `${spentPercentage}%`,
+        ]);
+
+        autoTable(doc, {
+          startY: 96,
+          head: [["#", "Organization Name", "Code", "Events", "Allocated Budget", "Total Disbursed", "Remaining Balance", "Utilization"]],
+          body: orgSummaryRows,
+          theme: "plain",
+          styles: {
+            font: "helvetica",
+            fontStyle: "normal",
+            fontSize: 7.5,
+            textColor: [15, 23, 42],
+            cellPadding: { top: 3.2, bottom: 3.2, left: 3, right: 3 },
+            lineWidth: { bottom: 0.15 },
+            lineColor: [226, 232, 240],
+            valign: "middle",
+          },
+          headStyles: {
+            fillColor: [241, 245, 249],
+            textColor: [51, 65, 85],
+            fontSize: 7,
+            fontStyle: "bold",
+            font: "helvetica",
+            lineWidth: { bottom: 0.3 },
+            lineColor: [203, 213, 225],
+          },
+          columnStyles: {
+            0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
+            1: { cellWidth: 84, fontStyle: "bold" },
+            2: { cellWidth: 18, fontStyle: "bold", textColor: [234, 88, 12] },
+            3: { cellWidth: 16, halign: "center" },
+            4: { cellWidth: 38, halign: "right", fontStyle: "bold" },
+            5: { cellWidth: 38, halign: "right", fontStyle: "bold", textColor: [194, 65, 12] },
+            6: { cellWidth: 38, halign: "right", fontStyle: "bold", textColor: [21, 128, 61] },
+            7: { cellWidth: 28, halign: "center", fontStyle: "bold" },
+          },
+          margin: { left: margin, right: margin, bottom: 34 },
+          didDrawPage: drawPdfFooter,
+        });
+
+        // 4. Finance Table 2: Event-Level Financial Audit & Variance Ledger
+        const lastFinalY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : 120;
+        const pageHeight = doc.internal.pageSize.getHeight();
+        let secondTableStartY = lastFinalY + 7;
+
+        // If not enough room on current page, create a new page
+        if (secondTableStartY + 35 > pageHeight - 34) {
+          doc.addPage();
+          secondTableStartY = 20;
+        }
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(8);
+        doc.setTextColor(30, 64, 175);
+        doc.text("EVENT-LEVEL FINANCIAL AUDIT & RECONCILIATION LEDGER", margin, secondTableStartY - 2);
+
+        const eventFinanceRows: (string | number)[][] = filteredEvents.map((e, idx) => {
+          const spent = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((s, t) => s + t.amount, 0);
+          const variance = (e.proposedBudget || 0) - spent;
+          const orgCode = organizations.find((o) => o.id === e.organizationId)?.code || "CITE";
+
+          return [
+            idx + 1,
+            e.name,
+            orgCode,
+            formatDate(e.dateStart),
+            `PHP ${Number(e.proposedBudget || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            `PHP ${Number(spent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            `${variance >= 0 ? "+" : ""}PHP ${Number(variance).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            e.status,
+          ];
+        });
+
+        const sumProposed = filteredEvents.reduce((s, e) => s + (e.proposedBudget || 0), 0);
+        const sumSpent = filteredEvents.reduce((s, e) => {
+          const sp = transactions.filter((t) => t.eventId === e.id && !t.deleted).reduce((st, t) => st + t.amount, 0);
+          return s + sp;
+        }, 0);
+        const sumVariance = sumProposed - sumSpent;
+
+        eventFinanceRows.push([
+          "",
+          `TOTAL DISBURSEMENTS (${filteredEvents.length} Events)`,
+          "",
+          "",
+          `PHP ${Number(sumProposed || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `PHP ${Number(sumSpent || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `${sumVariance >= 0 ? "+" : ""}PHP ${Number(sumVariance || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          "RECONCILED",
+        ]);
+
+        autoTable(doc, {
+          startY: secondTableStartY,
+          head: [["#", "Event Name", "Org", "Date", "Proposed Budget", "Disbursed Spent", "Net Variance", "Status"]],
+          body: eventFinanceRows,
+          theme: "plain",
+          styles: {
+            font: "helvetica",
+            fontStyle: "normal",
+            fontSize: 7.5,
+            textColor: [15, 23, 42],
+            cellPadding: { top: 3.2, bottom: 3.2, left: 3, right: 3 },
+            lineWidth: { bottom: 0.15 },
+            lineColor: [226, 232, 240],
+            valign: "middle",
+          },
+          headStyles: {
+            fillColor: [241, 245, 249],
+            textColor: [51, 65, 85],
+            fontSize: 7,
+            fontStyle: "bold",
+            font: "helvetica",
+            lineWidth: { bottom: 0.3 },
+            lineColor: [203, 213, 225],
+          },
+          columnStyles: {
+            0: { cellWidth: 9, halign: "center", font: "helvetica", textColor: [100, 116, 139] },
+            1: { cellWidth: 81, fontStyle: "bold" },
+            2: { cellWidth: 18, fontStyle: "bold", textColor: [234, 88, 12] },
+            3: { cellWidth: 26 },
+            4: { cellWidth: 35, halign: "right", fontStyle: "bold" },
+            5: { cellWidth: 35, halign: "right", fontStyle: "bold", textColor: [194, 65, 12] },
+            6: { cellWidth: 35, halign: "right", fontStyle: "bold", textColor: [21, 128, 61] },
+            7: { cellWidth: 30, halign: "center" },
+          },
+          margin: { left: margin, right: margin, bottom: 34 },
+          didDrawCell: (data) => {
+            if (data.section === "body" && data.column.index === 7 && data.row.index < eventFinanceRows.length - 1) {
+              const rowObj = filteredEvents[data.row.index];
+              if (rowObj) {
+                const text = rowObj.status;
+                const colors = getStatusPillColors(text, rowObj.setting);
+
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(6.5);
+                const tw = doc.getTextWidth(text) + 4.5;
+                const pillX = data.cell.x + (data.cell.width - tw) / 2;
+                const pillY = data.cell.y + 2.5;
+
+                doc.setFillColor(colors.bg[0], colors.bg[1], colors.bg[2]);
+                doc.setDrawColor(colors.border[0], colors.border[1], colors.border[2]);
+                doc.setLineWidth(0.25);
+                doc.roundedRect(pillX, pillY, tw, 4.8, 1, 1, "FD");
+
+                doc.setTextColor(colors.text[0], colors.text[1], colors.text[2]);
+                doc.text(text, pillX + 2.2, pillY + 3.4);
+
+                doc.setFont("helvetica", "normal");
+                doc.setTextColor(15, 23, 42);
+              }
+            }
+          },
+          didDrawPage: drawPdfFooter,
+        });
+      }
 
       // Output real binary PDF
       const pdfBlob = doc.output("blob");
-      const fileName = `${docRef}_Directorate_Report.pdf`;
+      const fileName = `${docRef}_Directorate_${isEventsTab ? "Events" : "Finance"}_Report.pdf`;
 
       // Upload genuine vector PDF to Supabase Storage
       const selectedOrg = organizations.find((o) => o.id === orgFilter);
@@ -467,20 +1043,24 @@ export default function DeanReports() {
         dateGenerated: new Date(),
         file: pdfBlob,
         fileName,
-      }).then((res) => {
-        addExportedReport({
-          id: crypto.randomUUID(),
-          title: `Executive Directorate Analytics Report (${filteredEvents.length} events)`,
-          docRef,
-          category: "Directorate Summary",
-          organizationName: targetOrgName,
-          generatedBy: deanName,
-          generatedAt: new Date().toISOString(),
-          fileUrl: res.publicUrl,
-          filePath: res.path,
-          format: "PDF",
-        });
-      }).catch((e) => console.warn("Storage archive error:", e));
+      })
+        .then((res) => {
+          addExportedReport({
+            id: crypto.randomUUID(),
+            title: isEventsTab
+              ? `Executive Directorate Events Analytics Report (${filteredEvents.length} events)`
+              : `Executive Directorate Financial Audit Report (${organizations.length} organizations)`,
+            docRef,
+            category: "Directorate Summary",
+            organizationName: targetOrgName,
+            generatedBy: deanName,
+            generatedAt: new Date().toISOString(),
+            fileUrl: res.publicUrl,
+            filePath: res.path,
+            format: "PDF",
+          });
+        })
+        .catch((e) => console.warn("Storage archive error:", e));
 
       // Open valid PDF directly in new tab
       const blobUrl = URL.createObjectURL(pdfBlob);
@@ -494,10 +1074,13 @@ export default function DeanReports() {
         document.body.removeChild(a);
       }
 
-      toast.success("Directorate Report Exported", `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`);
+      toast.success(
+        `${isEventsTab ? "Events" : "Finance"} Report Exported`,
+        `PDF (${(pdfBlob.size / 1024).toFixed(1)} KB) compiled and archived.`
+      );
     } catch (err: any) {
       console.error("PDF generation failed:", err);
-      toast.error("Export Failed", "Could not compile Directorate Report.");
+      toast.error("Export Failed", `Could not compile ${isEventsTab ? "Events" : "Finance"} Report.`);
     }
   }
 
@@ -569,7 +1152,7 @@ export default function DeanReports() {
                               <label className="text-[10px] font-mono font-bold text-[var(--foreground)] uppercase">
                                 Academic Year (S.Y.)
                               </label>
-                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Jun – Mar</span>
+                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Aug – May</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="flex-1">
@@ -610,7 +1193,7 @@ export default function DeanReports() {
                               </div>
                             </div>
                             <p className="text-[10px] text-[var(--muted-foreground)] leading-tight">
-                              Covers June 1, {syStartYear || "YYYY"} through March 31, {syEndYear || "YYYY+1"}
+                              Covers August 1, {syStartYear || "YYYY"} through May 31, {syEndYear || "YYYY+1"}
                             </p>
                           </div>
                         )}
@@ -623,7 +1206,7 @@ export default function DeanReports() {
           </div>
 
           <Button variant="outline" onClick={handleExportPdf} className="gap-2 shadow-2xs">
-            <FileDown size={16} /> Export to PDF
+            <FileDown size={16} /> Export {tab === "events" ? "Events" : "Finance"} PDF
           </Button>
           <RefreshButton />
         </div>
@@ -759,10 +1342,7 @@ export default function DeanReports() {
                 <ResponsiveContainer width="100%" height={210}>
                   <PieChart>
                     <Pie
-                      data={["Approved", "For Review", "For Approval", "Completed", "Closed"].map((s) => ({
-                        name: s,
-                        value: allEvents.filter((e) => e.status === s).length,
-                      })).filter((d) => d.value > 0)}
+                      data={statusPieData}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
@@ -770,7 +1350,7 @@ export default function DeanReports() {
                       outerRadius={75}
                       label={({ name, percent }) => `${name} ${percent !== undefined ? (percent * 100).toFixed(0) : 0}%`}
                     >
-                      {allEvents.slice(0, 6).map((_, i) => (
+                      {statusPieData.map((_, i) => (
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>

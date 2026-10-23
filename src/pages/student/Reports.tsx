@@ -1005,7 +1005,7 @@ export default function StudentReports() {
                               <label className="text-[10px] font-mono font-bold text-[var(--foreground)] uppercase">
                                 Academic Year (S.Y.)
                               </label>
-                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Jun – Mar</span>
+                              <span className="text-[9px] font-mono text-[var(--muted-foreground)]">Aug – May</span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <div className="flex-1">
@@ -1046,7 +1046,7 @@ export default function StudentReports() {
                               </div>
                             </div>
                             <p className="text-[10px] text-[var(--muted-foreground)] leading-tight">
-                              Covers June 1, {syStartYear || "YYYY"} through March 31, {syEndYear || "YYYY+1"}
+                              Covers August 1, {syStartYear || "YYYY"} through May 31, {syEndYear || "YYYY+1"}
                             </p>
                           </div>
                         )}

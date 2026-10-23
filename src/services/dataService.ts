@@ -931,13 +931,13 @@ export const DATE_RANGE_LABELS: Record<DateRangeFilter, string> = {
 
 /**
  * Returns default Start and End year numbers for current academic year.
- * Academic school year starts in June (month index 5) and ends in March (month index 2) of the next year.
+ * Academic school year starts in August (month index 7) and ends in May (month index 4) of the next year.
  */
 export function getDefaultSchoolYears(): { startYear: number; endYear: number } {
   const now = new Date();
   const year = now.getFullYear();
-  const month = now.getMonth(); // 0 = Jan, 5 = June
-  if (month >= 5) {
+  const month = now.getMonth(); // 0 = Jan, 4 = May, 7 = August
+  if (month >= 7) {
     return { startYear: year, endYear: year + 1 };
   } else {
     return { startYear: year - 1, endYear: year };
@@ -961,8 +961,8 @@ export function getCurrentSchoolYear(): string {
 
 /**
  * Builds Date range for a School Year from startYear and endYear:
- * Start: June 1, startYear 00:00:00
- * End: March 31, endYear 23:59:59.999
+ * Start: August 1, startYear 00:00:00
+ * End: May 31, endYear 23:59:59.999
  */
 export function getSchoolYearDateRange(
   startYearInput: number | string,
@@ -981,8 +981,8 @@ export function getSchoolYearDateRange(
     eYear = Math.floor(sYear / 100) * 100 + eYear;
   }
 
-  const start = new Date(sYear, 5, 1, 0, 0, 0, 0); // June 1, 00:00:00
-  const end = new Date(eYear, 2, 31, 23, 59, 59, 999); // March 31, 23:59:59.999
+  const start = new Date(sYear, 7, 1, 0, 0, 0, 0); // August 1, 00:00:00
+  const end = new Date(eYear, 4, 31, 23, 59, 59, 999); // May 31, 23:59:59.999
   return { start, end };
 }
 
