@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ArrowRight, Users, Menu, X, Landmark, LayoutDashboard } from "lucide-react";
+import { ArrowRight, Users, Menu, X, LayoutDashboard } from "lucide-react";
 import { useAuth, getDefaultDashboardPath } from "../../context/AuthContext";
 
 interface PublicNavProps {
@@ -55,9 +55,7 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" onClick={() => window.scrollTo(0, 0)} className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white shadow-sm">
-              <Landmark size={16} strokeWidth={2} />
-            </div>
+            <img src="/images/cite_logo.png" alt="CITE Logo" className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-xs" />
             <span className={`font-bold text-base ${solid ? "text-[var(--foreground)]" : "text-white"}`}>
               COLLinSight
             </span>
@@ -116,9 +114,7 @@ export default function PublicNav({ transparent = false, hideOrgCta = false }: P
           <div className="relative ml-auto w-72 bg-[var(--card)] h-full shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
               <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 bg-[var(--primary)] rounded-md flex items-center justify-center text-white">
-                  <Landmark size={14} strokeWidth={2} />
-                </div>
+                <img src="/images/cite_logo.png" alt="CITE Logo" className="w-7 h-7 object-contain flex-shrink-0 drop-shadow-xs" />
                 <span className="font-bold text-[var(--foreground)]">COLLinSight</span>
               </div>
               <button onClick={() => setMobileOpen(false)} className="text-[var(--muted-foreground)]"><X size={18} /></button>

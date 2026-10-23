@@ -31,7 +31,7 @@ import {
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { getLcupLogoDataUrl, drawPdfHeaderLogo } from "../../services/pdfDocuments";
+import { getLcupLogoDataUrl, getCiteLogoDataUrl, getImageUrlDataUrl, drawPdfHeader } from "../../services/pdfDocuments";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
@@ -228,60 +228,34 @@ export default function DeanReports() {
       const margin = 14;
       const contentWidth = pageWidth - margin * 2; // 269mm
 
-      // Load LCUP Official Logo
-      const logoDataUrl = await getLcupLogoDataUrl();
+      // Load Official Logos (LCUP, CITE, and Organization)
+      const selectedOrg = organizations.find((o) => o.id === orgFilter);
+      const [lcupLogoDataUrl, citeLogoDataUrl, orgLogoDataUrl] = await Promise.all([
+        getLcupLogoDataUrl(),
+        getCiteLogoDataUrl(),
+        getImageUrlDataUrl(selectedOrg?.logoUrl),
+      ]);
 
-      // ── 1. HEADER SECTION (COMMON) ──────────────────────────────────
-      drawPdfHeaderLogo(doc, margin, 11, 14, logoDataUrl);
-
-      doc.setTextColor(15, 23, 42);
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
-
-      doc.setTextColor(71, 85, 105);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
-
-      doc.setTextColor(234, 88, 12);
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.text(
-        isEventsTab
-          ? "Office of the College Dean · Cross-Organizational Directorate Events Report"
-          : "Office of the College Dean · Cross-Organizational Directorate Financial Report",
-        margin + 17,
-        23.5
-      );
-
-      // Top Right: Badge + Filter Window
+      // ── 1. HEADER SECTION (TRIPLE LOGOS + HEADER LEFT + HEADER RIGHT) ──
       const badgeText = isEventsTab
         ? `DIRECTORATE EVENTS REPORT · ${filterLabel.toUpperCase()}`
         : `DIRECTORATE FINANCE REPORT · ${filterLabel.toUpperCase()}`;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      const badgeW = doc.getTextWidth(badgeText) + 6;
-      const badgeX = pageWidth - margin - badgeW;
 
-      doc.setFillColor(255, 237, 213);
-      doc.setDrawColor(254, 215, 170);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
-
-      doc.setTextColor(154, 52, 18);
-      doc.text(badgeText, badgeX + 3, 15.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(71, 85, 105);
-      doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
-      doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
-
-      // Orange Header Line Divider
-      doc.setDrawColor(234, 88, 12);
-      doc.setLineWidth(0.5);
-      doc.line(margin, 28, pageWidth - margin, 28);
+      drawPdfHeader({
+        doc,
+        pageWidth,
+        margin,
+        lcupLogoDataUrl,
+        citeLogoDataUrl,
+        orgLogoDataUrl,
+        orgCode: selectedOrg?.code || (orgFilter !== "All" ? orgFilter : "CITE"),
+        subtitle: isEventsTab
+          ? "Office of the College Dean · Cross-Organizational Directorate Events Report"
+          : "Office of the College Dean · Cross-Organizational Directorate Financial Report",
+        badgeText,
+        docRef,
+        generatedDate,
+      });
 
       // Signatory footer drawer for autoTable
       const drawPdfFooter = () => {
@@ -339,7 +313,7 @@ export default function DeanReports() {
         // ==============================================================
 
         // 1. KPI Metric Boxes (4 columns)
-        const kpiY = 32;
+        const kpiY = 43;
         const kpiH = 12;
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(226, 232, 240);
@@ -382,9 +356,9 @@ export default function DeanReports() {
         doc.text(`${closedEvents.length} Reconciled`, margin + colW * 3 + 4, kpiY + 9.5);
 
         // 2. Charts Row (2 visual cards)
-        const chartRowY = 48;
+        const chartRowY = 59;
         const chartCardW = (contentWidth - 6) / 2;
-        const chartCardH = 43;
+        const chartCardH = 40;
 
         // Chart 1: Events per Organization Bar Chart
         const c1X = margin;
@@ -556,7 +530,7 @@ export default function DeanReports() {
         ]);
 
         autoTable(doc, {
-          startY: 96,
+          startY: 104,
           head: [["#", "Event Proposal Name", "Org", "Event Type", "Event Date", "Allocated", "Disbursed", "Status"]],
           body: eventsTableData,
           theme: "plain",
@@ -624,7 +598,7 @@ export default function DeanReports() {
         // ==============================================================
 
         // 1. KPI Metric Boxes (3 columns)
-        const kpiY = 32;
+        const kpiY = 43;
         const kpiH = 12;
         doc.setFillColor(248, 250, 252);
         doc.setDrawColor(226, 232, 240);
@@ -671,9 +645,9 @@ export default function DeanReports() {
         );
 
         // 2. Charts Row (2 visual cards)
-        const chartRowY = 48;
+        const chartRowY = 59;
         const chartCardW = (contentWidth - 6) / 2;
-        const chartCardH = 43;
+        const chartCardH = 40;
 
         // Chart 1: Budget vs. Spending by Organization (Grouped Bar Chart)
         const c1X = margin;
@@ -877,7 +851,7 @@ export default function DeanReports() {
         ]);
 
         autoTable(doc, {
-          startY: 96,
+          startY: 104,
           head: [["#", "Organization Name", "Code", "Events", "Allocated Budget", "Total Disbursed", "Remaining Balance", "Utilization"]],
           body: orgSummaryRows,
           theme: "plain",
@@ -1035,7 +1009,6 @@ export default function DeanReports() {
       const fileName = `${docRef}_Directorate_${isEventsTab ? "Events" : "Finance"}_Report.pdf`;
 
       // Upload genuine vector PDF to Supabase Storage
-      const selectedOrg = organizations.find((o) => o.id === orgFilter);
       const targetOrgName = selectedOrg ? selectedOrg.name : "Administration";
 
       uploadGeneratedReport({

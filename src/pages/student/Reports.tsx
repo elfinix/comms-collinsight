@@ -30,7 +30,12 @@ import {
 import { uploadGeneratedReport } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { getLcupLogoDataUrl, drawPdfHeaderLogo } from "../../services/pdfDocuments";
+import {
+  getLcupLogoDataUrl,
+  getCiteLogoDataUrl,
+  getImageUrlDataUrl,
+  drawPdfHeader,
+} from "../../services/pdfDocuments";
 import { getInitiativeSourceBadgeClass } from "./Finance";
 
 const STATUS_FILTERS = [
@@ -235,58 +240,31 @@ export default function StudentReports() {
       const margin = 14;
       const contentWidth = pageWidth - margin * 2; // 269mm
 
-      // Load LCUP Official Logo
-      const logoDataUrl = await getLcupLogoDataUrl();
+      // Load all three logos: LCUP, CITE, and Organization Logo (Students / Adviser)
+      const [lcupLogoDataUrl, citeLogoDataUrl, orgLogoDataUrl] = await Promise.all([
+        getLcupLogoDataUrl(),
+        getCiteLogoDataUrl(),
+        getImageUrlDataUrl(org?.logoUrl),
+      ]);
 
-      // ── 1. HEADER SECTION ───────────────────────────────────────────
-      // LCUP Official Logo Seal
-      drawPdfHeaderLogo(doc, margin, 11, 14, logoDataUrl);
-
-      // University & Department Titles
-      doc.setTextColor(15, 23, 42); // #0f172a
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
-
-      doc.setTextColor(71, 85, 105); // #475569
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "normal");
-      doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
-
-      doc.setTextColor(234, 88, 12); // #ea580c
-      doc.setFontSize(8);
-      doc.setFont("helvetica", "bold");
-      doc.text(`${orgName} (${orgCode}) · Institutional Activity & Financial Report`, margin + 17, 23.5);
-
-      // Top Right: ACTIVITY & FINANCE REPORT Pill Badge + Filter Window
-      const badgeText = `ACTIVITY & FINANCE REPORT · ${filterLabel.toUpperCase()}`;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7.5);
-      const badgeW = doc.getTextWidth(badgeText) + 6;
-      const badgeX = pageWidth - margin - badgeW;
-
-      doc.setFillColor(255, 237, 213); // #ffedd5
-      doc.setDrawColor(254, 215, 170); // #fed7aa
-      doc.setLineWidth(0.3);
-      doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
-
-      doc.setTextColor(154, 52, 18); // #9a3412
-      doc.text(badgeText, badgeX + 3, 15.5);
-
-      // Ref and Date below pill badge
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(71, 85, 105); // #475569
-      doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
-      doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
-
-      // Orange Header Line Divider
-      doc.setDrawColor(234, 88, 12); // #ea580c
-      doc.setLineWidth(0.5);
-      doc.line(margin, 28, pageWidth - margin, 28);
+      // ── 1. HEADER SECTION (Standardized 3-Logo Header for Students/Advisers) ──
+      drawPdfHeader({
+        doc,
+        pageWidth,
+        margin,
+        lcupLogoDataUrl,
+        citeLogoDataUrl,
+        orgLogoDataUrl,
+        orgCode,
+        showOrgLogo: true,
+        subtitle: `${orgName} (${orgCode}) · Institutional Activity & Financial Report`,
+        badgeText: `ACTIVITY & FINANCE REPORT · ${filterLabel.toUpperCase()}`,
+        docRef,
+        generatedDate,
+      });
 
       // ── 2. KPI SUMMARY 5 METRIC BOXES ──────────────────────────────
-      const kpiY = 32;
+      const kpiY = 43;
       const kpiH = 12;
       doc.setFillColor(248, 250, 252); // #f8fafc
       doc.setDrawColor(226, 232, 240); // #e2e8f0
@@ -337,9 +315,9 @@ export default function StudentReports() {
       doc.text(`PHP ${remainingBalance.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, margin + kpiColW * 4 + 3, kpiY + 9.5);
 
       // ── 3. VISUAL CHARTS OVERVIEW (VECTOR DRAWINGS) ────────────────
-      const chartRowY = 48;
+      const chartRowY = 59;
       const chartCardW = (contentWidth - 12) / 3; // 3 columns for Donut 1, Donut 2, and Trend Line
-      const chartCardH = 43;
+      const chartCardH = 40;
 
       // ── Chart 1: Spending by Category Donut Chart ──────────────────
       const c1X = margin;
@@ -686,10 +664,10 @@ export default function StudentReports() {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8.5);
       doc.setTextColor(15, 23, 42);
-      doc.text("1. EVENT EXPENDITURE SUMMARY", margin, 99);
+      doc.text("1. EVENT EXPENDITURE SUMMARY", margin, 105);
 
       autoTable(doc, {
-        startY: 103,
+        startY: 109,
         head: [["#", "Event Proposal Name", "Category", "Setting", "Type", "Event Date", "Proposed Budget", "Disbursed", "Variance", "Status"]],
         body: eventsTableData,
         theme: "plain",

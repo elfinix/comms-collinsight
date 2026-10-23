@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth, getDefaultDashboardPath } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Input, PasswordInput, Button } from "../components/ui";
-import { Landmark, ArrowLeft, AlertCircle, Loader2, ArrowRight, LogOut, CheckCircle2, ShieldCheck, KeyRound } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader2, ArrowRight, LogOut, CheckCircle2, ShieldCheck, KeyRound } from "lucide-react";
 import { users as fallbackUsers, formatUserRole } from "../services/dataService";
 import ForgotPasswordModal from "../components/auth/ForgotPasswordModal";
 
@@ -78,8 +78,8 @@ export default function LoginPage() {
             <div className="p-8 text-center flex flex-col items-center">
               {/* Pulsing Icon */}
               <div className="relative mb-5">
-                <div className="w-16 h-16 bg-orange-600/15 rounded-2xl flex items-center justify-center text-[var(--primary)]">
-                  <Landmark size={32} strokeWidth={2.2} />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center p-1">
+                  <img src="/images/cite_logo.png" alt="CITE Logo" className="w-full h-full object-contain" />
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-white ring-4 ring-[var(--card)] shadow-sm">
                   <ShieldCheck size={14} strokeWidth={2.5} />
@@ -155,9 +155,7 @@ export default function LoginPage() {
 
             {/* Logo */}
             <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-[var(--primary)] rounded-xl flex items-center justify-center text-white shadow-sm">
-                <Landmark size={20} strokeWidth={2} />
-              </div>
+              <img src="/images/cite_logo.png" alt="CITE Logo" className="w-10 h-10 object-contain drop-shadow-xs" />
               <div>
                 <p className="font-bold text-[var(--foreground)] text-lg">COLLinSight</p>
                 <p className="text-xs text-[var(--muted-foreground)] font-mono">Login Portal · CITE</p>

@@ -9,7 +9,11 @@ import { formatCurrency, formatDateTime, formatDate } from "../../services/dataS
 import { uploadGeneratedReport, getPublicStorageUrl } from "../../services/storageService";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { getLcupLogoDataUrl, drawPdfHeaderLogo } from "../../services/pdfDocuments";
+import {
+  getLcupLogoDataUrl,
+  getCiteLogoDataUrl,
+  drawPdfHeader,
+} from "../../services/pdfDocuments";
 
 export default function AdminReports() {
   const { users, events, auditTrail, organizations, departments, exportedReports, addExportedReport, isLoading } = useApp();
@@ -56,54 +60,28 @@ export default function AdminReports() {
       const pageWidth = 210;
       const margin = 14;
       const contentWidth = pageWidth - margin * 2; 
-      // Load LCUP Official Logo
-      const logoDataUrl = await getLcupLogoDataUrl();
+      // Load LCUP & CITE Logos (2 logos for Admin)
+      const [lcupLogoDataUrl, citeLogoDataUrl] = await Promise.all([
+        getLcupLogoDataUrl(),
+        getCiteLogoDataUrl(),
+      ]);
 
-      // ── 1. HEADER SECTION ───────────────────────────────────────────
-      // LCUP Official Logo Seal
-      drawPdfHeaderLogo(doc, margin, 11, 14, logoDataUrl);
+      // ── 1. HEADER SECTION (Standardized 2-Logo Header for Admin) ──
+      drawPdfHeader({
+        doc,
+        pageWidth,
+        margin,
+        lcupLogoDataUrl,
+        citeLogoDataUrl,
+        showOrgLogo: false,
+        subtitle: "System Usage & Activity Analytics Report",
+        badgeText: "SYSTEM USAGE REPORT",
+        docRef,
+        generatedDate,
+      });
 
-      // University & Department Titles
-      doc.setTextColor(15, 23, 42); // #0f172a
-      doc.setFontSize(10.5);
-      doc.setFont("helvetica", "bold");
-      doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
-
-      doc.setTextColor(71, 85, 105);
-      doc.setFontSize(7.5);
-      doc.setFont("helvetica", "normal");
-      doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
-
-      doc.setTextColor(234, 88, 12); // #ea580c
-      doc.setFontSize(7.5);
-      doc.setFont("helvetica", "bold");
-      doc.text("System Usage & Activity Analytics Report", margin + 17, 23.5);
-
-      const badgeText = "SYSTEM USAGE REPORT";
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(7);
-      const badgeW = doc.getTextWidth(badgeText) + 5;
-      const badgeX = pageWidth - margin - badgeW;
-
-      doc.setFillColor(255, 237, 213);
-      doc.setDrawColor(254, 215, 170);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
-
-      doc.setTextColor(154, 52, 18);
-      doc.text(badgeText, badgeX + 2.5, 15.5);
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.setTextColor(71, 85, 105);
-      doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
-      doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
-
-      doc.setDrawColor(234, 88, 12);
-      doc.setLineWidth(0.5);
-      doc.line(margin, 28, pageWidth - margin, 28);
-
-      const kpiY = 32;
+      // ── 2. KPI SUMMARY METRIC BOXES ────────────────────────────────
+      const kpiY = 43;
       const kpiH = 12;
       doc.setFillColor(248, 250, 252);
       doc.setDrawColor(226, 232, 240);
@@ -144,10 +122,10 @@ export default function AdminReports() {
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(15, 23, 42);
-      doc.text("WEEKLY SYSTEM ACTIVITY BREAKDOWN", margin, 49);
+      doc.text("WEEKLY SYSTEM ACTIVITY BREAKDOWN", margin, 60);
 
       const dayCardW = (contentWidth - 6 * 2) / 7;
-      const dayY = 52;
+      const dayY = 63;
       const dayH = 10;
       activityByDay.forEach((d, idx) => {
         const x = margin + idx * (dayCardW + 2);
@@ -170,7 +148,7 @@ export default function AdminReports() {
       doc.setFontSize(7.5);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(15, 23, 42);
-      doc.text("USER ACCOUNT DISTRIBUTION BY ROLE", margin, 66);
+      doc.text("USER ACCOUNT DISTRIBUTION BY ROLE", margin, 78);
 
       const roleStats = [
         { label: "STUDENT OFFICERS", count: users.filter((u) => u.role === "student").length },
@@ -180,7 +158,7 @@ export default function AdminReports() {
       ];
 
       const roleCardW = (contentWidth - 3 * 2.5) / 4;
-      const roleY = 69;
+      const roleY = 81;
       const roleH = 11;
       roleStats.forEach((r, idx) => {
         const x = margin + idx * (roleCardW + 2.5);
@@ -220,7 +198,7 @@ export default function AdminReports() {
       });
 
       autoTable(doc, {
-        startY: 84,
+        startY: 96,
         head: [["Code", "Organization Name", "Department", "Allocation", "Assigned Adviser", "Officers", "Events"]],
         body: orgTableData,
         theme: "plain",

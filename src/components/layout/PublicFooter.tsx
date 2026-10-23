@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Landmark, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 export default function PublicFooter() {
   const navigate = useNavigate();
@@ -40,9 +40,7 @@ export default function PublicFooter() {
           {/* Brand */}
           <div>
             <Link to="/" onClick={() => window.scrollTo(0, 0)} className="inline-flex items-center gap-2.5 mb-3 group">
-              <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white group-hover:bg-[var(--accent)] transition">
-                <Landmark size={16} strokeWidth={2} />
-              </div>
+              <img src="/images/cite_logo.png" alt="CITE Logo" className="w-8 h-8 object-contain drop-shadow-xs" />
               <span className="font-bold text-white group-hover:text-orange-200 transition">COLLinSight</span>
             </Link>
             <p className="text-sm text-slate-400 leading-relaxed">

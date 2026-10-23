@@ -281,9 +281,7 @@ export default function SignatoryActionPage({ forcedRole }: SignatoryActionPageP
         {/* ── Top Brand Bar ── */}
         <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center text-white font-black text-lg shadow-sm">
-              C
-            </div>
+            <img src="/images/cite_logo.png" alt="CITE Logo" className="w-10 h-10 object-contain drop-shadow-xs" />
             <div>
               <span className="text-lg font-bold text-slate-900 tracking-tight">COLLinSight</span>
               <span className="text-xs text-orange-600 font-semibold block">Institutional Clearance Portal</span>

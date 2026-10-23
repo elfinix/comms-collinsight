@@ -6,7 +6,7 @@ import { UserAvatar } from "../ui";
 import {
   LayoutDashboard, Calendar, Wallet, BarChart2, Settings, LogOut, Menu, X,
   FileText, Users, Building2, Sliders, ClipboardList, ChevronRight,
-  BookOpen, Shield, Landmark, History, ScrollText,
+  BookOpen, Shield, History, ScrollText,
 } from "lucide-react";
 
 interface NavItem {
@@ -45,9 +45,7 @@ export default function PanelLayout({ children, navItems, panelLabel, orgName }:
       >
         {/* Logo */}
         <div className={`flex items-center gap-3 px-4 py-5 border-b border-[var(--border)] ${collapsed ? "justify-center" : ""}`}>
-          <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-            <Landmark size={16} strokeWidth={2} />
-          </div>
+          <img src="/images/cite_logo.png" alt="CITE Logo" className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-xs" />
           {!collapsed && (
             <div>
               <p className="font-bold text-[var(--foreground)] text-sm leading-none">COLLinSight</p>
@@ -139,9 +137,7 @@ export default function PanelLayout({ children, navItems, panelLabel, orgName }:
           <aside className="relative w-64 bg-[var(--card)] border-r border-[var(--border)] flex flex-col h-full z-50">
             <div className="flex items-center justify-between px-4 py-5 border-b border-[var(--border)]">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-[var(--primary)] rounded-lg flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-                  <Landmark size={16} strokeWidth={2} />
-                </div>
+                <img src="/images/cite_logo.png" alt="CITE Logo" className="w-8 h-8 object-contain flex-shrink-0 drop-shadow-xs" />
                 <div>
                   <p className="font-bold text-[var(--foreground)] text-sm">COLLinSight</p>
                   <p className="text-[10px] text-[var(--muted-foreground)] font-mono">{panelLabel}</p>

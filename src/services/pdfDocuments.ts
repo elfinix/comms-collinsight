@@ -4,6 +4,8 @@ import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCa
 
 export interface ClearancePdfOptions {
   organizationName?: string;
+  organizationCode?: string;
+  organizationLogoUrl?: string | null;
   eventTypeName?: string;
   officerName?: string;
   adviserName?: string;
@@ -11,28 +13,77 @@ export interface ClearancePdfOptions {
   categories?: { id: string; name: string }[];
   viewerRole?: "student" | "adviser" | "dean" | "admin";
   logoDataUrl?: string | null;
+  citeLogoDataUrl?: string | null;
+  orgLogoDataUrl?: string | null;
+  showOrgLogo?: boolean;
 }
 
 export interface LiquidationPdfOptions {
   organizationName?: string;
+  organizationCode?: string;
+  organizationLogoUrl?: string | null;
   officerName?: string;
   adviserName?: string;
   deanName?: string;
   categories?: { id: string; name: string }[];
   logoDataUrl?: string | null;
+  citeLogoDataUrl?: string | null;
+  orgLogoDataUrl?: string | null;
+  showOrgLogo?: boolean;
 }
 
 let cachedLogoDataUrl: string | null = null;
 let logoLoadingPromise: Promise<string | null> | null = null;
 
-// Pre-load LCUP seal in browser
+let cachedCiteLogoDataUrl: string | null = null;
+let citeLogoLoadingPromise: Promise<string | null> | null = null;
+
+const orgLogoCache = new Map<string, string>();
+
+// Pre-load LCUP and CITE official seals in browser
 if (typeof window !== "undefined") {
   getLcupLogoDataUrl().catch(() => {});
+  getCiteLogoDataUrl().catch(() => {});
 }
 
 /**
  * Loads and caches the LCUP official seal into a compact, retina-crisp Data URL
  */
+/**
+ * Helper to render an HTMLImageElement into a crisp square canvas while strictly preserving aspect ratio
+ */
+function drawImageToSquareCanvas(img: HTMLImageElement, size: number = 320): string | null {
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.clearRect(0, 0, size, size);
+
+    const naturalW = img.naturalWidth || img.width || 1;
+    const naturalH = img.naturalHeight || img.height || 1;
+    const aspect = naturalW / naturalH;
+    let drawW = size;
+    let drawH = size;
+    let dx = 0;
+    let dy = 0;
+
+    if (aspect > 1) {
+      drawH = size / aspect;
+      dy = (size - drawH) / 2;
+    } else if (aspect < 1) {
+      drawW = size * aspect;
+      dx = (size - drawW) / 2;
+    }
+
+    ctx.drawImage(img, dx, dy, drawW, drawH);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 export async function getLcupLogoDataUrl(): Promise<string | null> {
   if (cachedLogoDataUrl) return cachedLogoDataUrl;
   if (!logoLoadingPromise) {
@@ -41,22 +92,8 @@ export async function getLcupLogoDataUrl(): Promise<string | null> {
       img.crossOrigin = "anonymous";
       img.src = "/images/lcup_logo.png";
       img.onload = () => {
-        try {
-          const canvas = document.createElement("canvas");
-          const size = 320;
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) {
-            resolve(null);
-            return;
-          }
-          ctx.drawImage(img, 0, 0, size, size);
-          cachedLogoDataUrl = canvas.toDataURL("image/png");
-          resolve(cachedLogoDataUrl);
-        } catch {
-          resolve(null);
-        }
+        cachedLogoDataUrl = drawImageToSquareCanvas(img, 320);
+        resolve(cachedLogoDataUrl);
       };
       img.onerror = () => resolve(null);
     });
@@ -65,9 +102,231 @@ export async function getLcupLogoDataUrl(): Promise<string | null> {
 }
 
 /**
- * Draws the LCUP official seal onto the jsPDF document.
- * If logoDataUrl is available, it embeds the image cleanly with crisp aspect ratio.
- * Otherwise, it falls back to the navy vector badge.
+ * Loads and caches the CITE official seal into a compact, retina-crisp Data URL
+ */
+export async function getCiteLogoDataUrl(): Promise<string | null> {
+  if (cachedCiteLogoDataUrl) return cachedCiteLogoDataUrl;
+  if (!citeLogoLoadingPromise) {
+    citeLogoLoadingPromise = new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = "/images/cite_logo.png";
+      img.onload = () => {
+        cachedCiteLogoDataUrl = drawImageToSquareCanvas(img, 320);
+        resolve(cachedCiteLogoDataUrl);
+      };
+      img.onerror = () => resolve(null);
+    });
+  }
+  return citeLogoLoadingPromise;
+}
+
+/**
+ * Converts an external/cloud image URL (e.g. from Supabase Storage) into a Data URL for jsPDF
+ */
+export async function getImageUrlDataUrl(url?: string | null): Promise<string | null> {
+  if (!url || !url.trim()) return null;
+  const cleanUrl = url.trim();
+  if (cleanUrl.startsWith("data:image/")) return cleanUrl;
+  if (orgLogoCache.has(cleanUrl)) return orgLogoCache.get(cleanUrl)!;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = cleanUrl;
+    img.onload = () => {
+      const dataUrl = drawImageToSquareCanvas(img, 320);
+      if (dataUrl) orgLogoCache.set(cleanUrl, dataUrl);
+      resolve(dataUrl);
+    };
+    img.onerror = () => resolve(null);
+  });
+}
+
+/**
+ * Prepares all three logos in parallel for PDF generation
+ */
+export async function preparePdfLogos(orgLogoUrl?: string | null): Promise<{
+  lcupLogoDataUrl: string | null;
+  citeLogoDataUrl: string | null;
+  orgLogoDataUrl: string | null;
+}> {
+  const [lcupLogoDataUrl, citeLogoDataUrl, orgLogoDataUrl] = await Promise.all([
+    getLcupLogoDataUrl(),
+    getCiteLogoDataUrl(),
+    getImageUrlDataUrl(orgLogoUrl),
+  ]);
+  return { lcupLogoDataUrl, citeLogoDataUrl, orgLogoDataUrl };
+}
+
+export interface PdfHeaderConfig {
+  doc: jsPDF;
+  pageWidth: number;
+  margin: number;
+  lcupLogoDataUrl?: string | null;
+  citeLogoDataUrl?: string | null;
+  orgLogoDataUrl?: string | null;
+  orgCode?: string | null;
+  showOrgLogo?: boolean;
+  subtitle: string;
+  badgeText: string;
+  docRef: string;
+  generatedDate: string;
+}
+
+/**
+ * Draws the standardized header across all system PDFs:
+ *
+ *   For Students / Advisers (3 logos):
+ *     <LCUP Logo>  <CITE Logo>  <Organization Logo>
+ *
+ *   For Dean / Admin (2 logos):
+ *     <LCUP Logo>  <CITE Logo>
+ *
+ *   [header left: University, College, Subtitle]   [header right: Badge, Ref, Generated]
+ *   ─────────────────────────────────────────────────────────────────────────────────────
+ */
+export function drawPdfHeader(config: PdfHeaderConfig): number {
+  const {
+    doc,
+    pageWidth,
+    margin,
+    lcupLogoDataUrl = cachedLogoDataUrl,
+    citeLogoDataUrl = cachedCiteLogoDataUrl,
+    orgLogoDataUrl,
+    orgCode,
+    showOrgLogo = false,
+    subtitle,
+    badgeText,
+    docRef,
+    generatedDate,
+  } = config;
+
+  // 1. Logos centered at the top (3 logos for Students/Advisers, 2 logos for Dean/Admin)
+  const logoSize = 15;
+  const logoGap = 5;
+  const logoCount = showOrgLogo ? 3 : 2;
+  const totalLogosWidth = logoSize * logoCount + logoGap * (logoCount - 1);
+  const startX = (pageWidth - totalLogosWidth) / 2;
+  const logoY = 7;
+
+  // 1.1 LCUP Logo
+  const lcup = lcupLogoDataUrl || cachedLogoDataUrl;
+  if (lcup) {
+    try {
+      doc.addImage(lcup, "PNG", startX, logoY, logoSize, logoSize);
+    } catch {
+      doc.setFillColor(30, 58, 138);
+      doc.circle(startX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.text("LCUP", startX + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
+    }
+  } else {
+    doc.setFillColor(30, 58, 138);
+    doc.circle(startX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.text("LCUP", startX + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
+  }
+
+  // 1.2 CITE Logo
+  const cite = citeLogoDataUrl || cachedCiteLogoDataUrl;
+  if (cite) {
+    try {
+      doc.addImage(cite, "PNG", startX + logoSize + logoGap, logoY, logoSize, logoSize);
+    } catch {
+      doc.setFillColor(234, 88, 12);
+      doc.circle(startX + logoSize + logoGap + logoSize / 2, logoY + logoSize / 2, logoSize / 2, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(7.5);
+      doc.setFont("helvetica", "bold");
+      doc.text("CITE", startX + logoSize + logoGap + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
+    }
+  } else {
+    doc.setFillColor(234, 88, 12);
+    doc.circle(startX + logoSize + logoGap + logoSize / 2, logoY + logoSize / 2, logoSize / 2, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7.5);
+    doc.setFont("helvetica", "bold");
+    doc.text("CITE", startX + logoSize + logoGap + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
+  }
+
+  // 1.3 Organization Logo (Present only for Students and Advisers)
+  if (showOrgLogo) {
+    const orgX = startX + (logoSize + logoGap) * 2;
+    const displayOrgCode = (orgCode?.trim() || "ORG").toUpperCase();
+    const codeFontSize = displayOrgCode.length > 5 ? 5.5 : displayOrgCode.length > 4 ? 6 : 7;
+
+    if (orgLogoDataUrl) {
+      try {
+        doc.addImage(orgLogoDataUrl, "PNG", orgX, logoY, logoSize, logoSize);
+      } catch {
+        doc.setFillColor(30, 58, 138);
+        doc.circle(orgX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, "F");
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(codeFontSize);
+        doc.setFont("helvetica", "bold");
+        doc.text(displayOrgCode, orgX + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
+      }
+    } else {
+      doc.setFillColor(30, 58, 138);
+      doc.circle(orgX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(codeFontSize);
+      doc.setFont("helvetica", "bold");
+      doc.text(displayOrgCode, orgX + logoSize / 2, logoY + logoSize / 2, { align: "center", baseline: "middle" });
+    }
+  }
+
+  // 2. Left Header Titles
+  doc.setTextColor(15, 23, 42); // #0f172a
+  doc.setFontSize(10.5);
+  doc.setFont("helvetica", "bold");
+  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin, 26.5);
+
+  doc.setTextColor(71, 85, 105); // #475569
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "normal");
+  doc.text("College of Information Technology & Engineering", margin, 30.5);
+
+  doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
+  doc.setFontSize(7.5);
+  doc.setFont("helvetica", "bold");
+  doc.text(subtitle, margin, 34.5);
+
+  // 3. Right Header Info (Badge, Ref, Generated Date)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  const badgeW = doc.getTextWidth(badgeText) + 5;
+  const badgeX = pageWidth - margin - badgeW;
+
+  doc.setFillColor(255, 237, 213); // #ffedd5
+  doc.setDrawColor(254, 215, 170); // #fed7aa
+  doc.setLineWidth(0.3);
+  doc.roundedRect(badgeX, 22.5, badgeW, 5.5, 1.2, 1.2, "FD");
+
+  doc.setTextColor(154, 52, 18); // #9a3412
+  doc.text(badgeText, badgeX + 2.5, 26.5);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Ref: ${docRef}`, pageWidth - margin, 31, { align: "right" });
+  doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 35, { align: "right" });
+
+  // 4. Header Divider Line
+  doc.setDrawColor(234, 88, 12); // #ea580c
+  doc.setLineWidth(0.5);
+  doc.line(margin, 38, pageWidth - margin, 38);
+
+  return 38;
+}
+
+/**
+ * Legacy compatibility helper
  */
 export function drawPdfHeaderLogo(doc: jsPDF, x: number, y: number, size: number = 14, logoDataUrl?: string | null) {
   const logo = logoDataUrl || cachedLogoDataUrl;
@@ -79,13 +338,12 @@ export function drawPdfHeaderLogo(doc: jsPDF, x: number, y: number, size: number
       // Fallback
     }
   }
-  // Fallback vector badge
-  doc.setFillColor(30, 58, 138); // #1e3a8a Dark Navy
-  doc.roundedRect(x, y, size, size, 2, 2, "F");
+  doc.setFillColor(30, 58, 138);
+  doc.circle(x + size / 2, y + size / 2, size / 2, "F");
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(size * 0.6);
+  doc.setFontSize(size * 0.45);
   doc.setFont("helvetica", "bold");
-  doc.text("LCUP", x + size * 0.15, y + size * 0.65);
+  doc.text("LCUP", x + size / 2, y + size / 2, { align: "center", baseline: "middle" });
 }
 
 /**
@@ -139,52 +397,23 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   const margin = 14;
   const contentWidth = pageWidth - margin * 2; // 182mm
 
-  // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Official Logo Seal
-  drawPdfHeaderLogo(doc, margin, 11, 14, options?.logoDataUrl);
+  const isOffCampus = (event.setting || "").toLowerCase().includes("off");
 
-  // University & Department Titles
-  doc.setTextColor(15, 23, 42); // #0f172a
-  doc.setFontSize(10.5);
-  doc.setFont("helvetica", "bold");
-  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
-
-  doc.setTextColor(71, 85, 105); // #475569
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
-
-  doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "bold");
-  doc.text("Event Clearance", margin + 17, 23.5);
-
-  // Top Right: EVENT CLEARANCE Pill Badge
-  const badgeText = "EVENT CLEARANCE CERTIFICATE";
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  const badgeW = doc.getTextWidth(badgeText) + 5;
-  const badgeX = pageWidth - margin - badgeW;
-
-  doc.setFillColor(255, 237, 213); // #ffedd5 (Orange 100)
-  doc.setDrawColor(254, 215, 170); // #fed7aa (Orange 200)
-  doc.setLineWidth(0.3);
-  doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
-
-  doc.setTextColor(154, 52, 18); // #9a3412 (Orange 800)
-  doc.text(badgeText, badgeX + 2.5, 15.5);
-
-  // Ref and Date below pill badge (Normal Weight)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105); // #475569
-  doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
-  doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
-
-  // Orange Header Line Divider
-  doc.setDrawColor(234, 88, 12); // #ea580c
-  doc.setLineWidth(0.5);
-  doc.line(margin, 28, pageWidth - margin, 28);
+  // ── 1. HEADER SECTION (TRIPLE LOGOS + HEADER LEFT + HEADER RIGHT) ──
+  drawPdfHeader({
+    doc,
+    pageWidth,
+    margin,
+    lcupLogoDataUrl: options?.logoDataUrl,
+    citeLogoDataUrl: options?.citeLogoDataUrl,
+    orgLogoDataUrl: options?.orgLogoDataUrl || (options?.organizationLogoUrl ? orgLogoCache.get(options.organizationLogoUrl) : null),
+    orgCode: options?.organizationCode,
+    showOrgLogo: options?.showOrgLogo ?? true,
+    subtitle: `${options?.organizationName || "Student Organization"} · Event Pre-Activity Clearance Seal`,
+    badgeText: isOffCampus ? "OFF-CAMPUS CLEARANCE" : "OFFICIAL ACTIVITY CLEARANCE",
+    docRef,
+    generatedDate,
+  });
 
   const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const viewerRole = options?.viewerRole;
@@ -204,7 +433,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   }
 
   // ── 2. EXECUTIVE STATUS BANNER (GENEROUS PADDING) ──────────────
-  const bannerY = 34;
+  const bannerY = 42;
   const bannerH = 15;
   if (showDeanSign) {
     doc.setFillColor(240, 253, 244); // #f0fdf4
@@ -254,7 +483,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   }
 
   // ── 3. EVENT IDENTIFICATION GRID (BALANCED PADDING) ────────────
-  const gridY = 53;
+  const gridY = 61;
   const gridH = 54;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
@@ -556,52 +785,21 @@ export function generateLiquidationPdfBlob(
   const margin = 14;
   const contentWidth = pageWidth - margin * 2; // 182mm
 
-  // ── 1. HEADER SECTION ───────────────────────────────────────────
-  // LCUP Official Logo Seal
-  drawPdfHeaderLogo(doc, margin, 11, 14, options?.logoDataUrl);
-
-  // University & Department Titles
-  doc.setTextColor(15, 23, 42); // #0f172a
-  doc.setFontSize(10.5);
-  doc.setFont("helvetica", "bold");
-  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin + 17, 15.5);
-
-  doc.setTextColor(71, 85, 105); // #475569
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.text("College of Information Technology & Engineering", margin + 17, 19.5);
-
-  doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "bold");
-  doc.text(`${orgName} · Post-Event Financial Liquidation Report`, margin + 17, 23.5);
-
-  // Top Right: FINANCIAL LIQUIDATION REPORT Pill Badge
-  const badgeText = "FINANCIAL LIQUIDATION REPORT";
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  const badgeW = doc.getTextWidth(badgeText) + 5;
-  const badgeX = pageWidth - margin - badgeW;
-
-  doc.setFillColor(255, 237, 213); // #ffedd5
-  doc.setDrawColor(254, 215, 170); // #fed7aa
-  doc.setLineWidth(0.3);
-  doc.roundedRect(badgeX, 11.5, badgeW, 5.5, 1.2, 1.2, "FD");
-
-  doc.setTextColor(154, 52, 18); // #9a3412
-  doc.text(badgeText, badgeX + 2.5, 15.5);
-
-  // Ref and Date below pill badge (Normal Weight)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(71, 85, 105); // #475569
-  doc.text(`Ref: ${docRef}`, pageWidth - margin, 20.5, { align: "right" });
-  doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 24.5, { align: "right" });
-
-  // Orange Header Line Divider
-  doc.setDrawColor(234, 88, 12); // #ea580c
-  doc.setLineWidth(0.5);
-  doc.line(margin, 28, pageWidth - margin, 28);
+  // ── 1. HEADER SECTION (TRIPLE LOGOS + HEADER LEFT + HEADER RIGHT) ──
+  drawPdfHeader({
+    doc,
+    pageWidth,
+    margin,
+    lcupLogoDataUrl: options?.logoDataUrl,
+    citeLogoDataUrl: options?.citeLogoDataUrl,
+    orgLogoDataUrl: options?.orgLogoDataUrl || (options?.organizationLogoUrl ? orgLogoCache.get(options.organizationLogoUrl) : null),
+    orgCode: options?.organizationCode,
+    showOrgLogo: options?.showOrgLogo ?? true,
+    subtitle: `${orgName} · Post-Event Financial Liquidation Report`,
+    badgeText: "FINANCIAL LIQUIDATION REPORT",
+    docRef,
+    generatedDate,
+  });
 
   // ── 2. EVENT IDENTIFICATION & FINANCIAL METRIC BOXES ────────────
   const activeTxns = transactions.filter((t) => !t.deleted);
@@ -612,7 +810,7 @@ export function generateLiquidationPdfBlob(
   const varianceLabel = remaining >= 0 ? "SURPLUS" : "DEFICIT";
 
   // 2-Tier Event Details Box (Full Event Name Un-truncated & Generous Bottom Padding)
-  const kpiY = 32;
+  const kpiY = 42;
   const kpiH = 24;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
@@ -689,10 +887,10 @@ export function generateLiquidationPdfBlob(
     "100% RECONCILED",
   ]);
 
-  let finalTableY = 59;
+  let finalTableY = 69;
 
   autoTable(doc, {
-    startY: 59,
+    startY: 69,
     head: [["#", "Description", "Category", "Amount (PHP)", "Status"]],
     body: txnTableData,
     theme: "plain",
