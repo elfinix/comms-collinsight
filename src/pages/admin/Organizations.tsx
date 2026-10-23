@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useApp } from "../../context/AppContext";
 import { useToast } from "../../context/ToastContext";
 import { Button, Dialog, Input, Select, Card, RefreshButton, SkeletonEventCard, SkeletonToolbox } from "../../components/ui";
-import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, UserCheck, Wallet, Users, Search, Save, X, ArrowUpWideNarrow, ArrowDownWideNarrow, ArrowUpDown, Upload, Loader2 } from "lucide-react";
 import { Organization, formatCurrency } from "../../services/dataService";
+import { uploadOrgLogo } from "../../services/storageService";
 
 export default function AdminOrganizations() {
   const { organizations, departments, users, addOrganization, updateOrganization, deleteOrganization, updateUser, isLoading } = useApp();
@@ -15,6 +16,11 @@ export default function AdminOrganizations() {
   const [showAdd, setShowAdd] = useState(false);
   const [editOrg, setEditOrg] = useState<Organization | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Organization | null>(null);
+
+  const addLogoInputRef = useRef<HTMLInputElement>(null);
+  const editLogoInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
+  const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
 
   const activeDepartments = departments.filter((d) => !d.deleted);
   
@@ -43,8 +49,94 @@ export default function AdminOrganizations() {
     adviserId: "",
     allocatedBudget: "50000",
     logoColor: "#ea580c",
+    logoUrl: "",
     description: "",
   });
+
+  async function handleAddLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Invalid File Type", "Please upload an image file (PNG, JPG, SVG, WEBP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File Too Large", "Maximum logo image size is 5MB.");
+      return;
+    }
+
+    setIsUploadingAddLogo(true);
+    const localUrl = URL.createObjectURL(file);
+    setForm((p) => ({ ...p, logoUrl: localUrl }));
+
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `logo_${Date.now()}.${ext}`;
+    const uploadRes = await uploadOrgLogo({
+      organizationName: form.name || form.code || "new_org",
+      file,
+      fileName,
+    });
+
+    setIsUploadingAddLogo(false);
+
+    if (uploadRes.error) {
+      toast.error("Upload Warning", "Storage upload had an issue; preview is temporarily kept.");
+    } else {
+      const finalUrl = uploadRes.publicUrl || localUrl;
+      setForm((p) => ({ ...p, logoUrl: finalUrl }));
+      toast.success("Logo Uploaded", "Organization logo uploaded to media storage.");
+    }
+  }
+
+  function handleRemoveAddLogo() {
+    setForm((p) => ({ ...p, logoUrl: "" }));
+    if (addLogoInputRef.current) addLogoInputRef.current.value = "";
+  }
+
+  async function handleEditLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !editOrg) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Invalid File Type", "Please upload an image file (PNG, JPG, SVG, WEBP).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File Too Large", "Maximum logo image size is 5MB.");
+      return;
+    }
+
+    setIsUploadingEditLogo(true);
+    const localUrl = URL.createObjectURL(file);
+    setEditOrg((p) => p && { ...p, logoUrl: localUrl, avatar: localUrl });
+
+    const ext = file.name.split(".").pop() || "png";
+    const fileName = `logo_${Date.now()}.${ext}`;
+    const uploadRes = await uploadOrgLogo({
+      organizationId: editOrg.id,
+      organizationName: editOrg.name,
+      file,
+      fileName,
+    });
+
+    setIsUploadingEditLogo(false);
+
+    if (uploadRes.error) {
+      toast.error("Upload Warning", "Storage upload had an issue; preview is temporarily kept.");
+    } else {
+      const finalUrl = uploadRes.publicUrl || localUrl;
+      setEditOrg((p) => p && { ...p, logoUrl: finalUrl, avatar: finalUrl });
+      toast.success("Logo Uploaded", "Organization logo updated in media storage.");
+    }
+  }
+
+  function handleRemoveEditLogo() {
+    setEditOrg((p) => p && { ...p, logoUrl: "", avatar: "" });
+    if (editLogoInputRef.current) editLogoInputRef.current.value = "";
+  }
 
   const filteredOrgs = organizations
     .filter((o) => {
@@ -80,6 +172,8 @@ export default function AdminOrganizations() {
       adviserId: form.adviserId,
       allocatedBudget: parseFloat(form.allocatedBudget) || 0,
       logoColor: form.logoColor,
+      logoUrl: form.logoUrl || undefined,
+      avatar: form.logoUrl || undefined,
       description: form.description.trim(),
     });
 
@@ -97,8 +191,10 @@ export default function AdminOrganizations() {
       adviserId: "",
       allocatedBudget: "50000",
       logoColor: "#ea580c",
+      logoUrl: "",
       description: "",
     });
+    if (addLogoInputRef.current) addLogoInputRef.current.value = "";
     setShowAdd(false);
   }
 
@@ -223,12 +319,20 @@ export default function AdminOrganizations() {
               <div>
                 <div className="flex items-start justify-between gap-3 mb-3">
                   <div className="flex items-start gap-3 min-w-0 flex-1">
-                    <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-extrabold text-sm flex-shrink-0 shadow-xs font-mono mt-0.5"
-                      style={{ backgroundColor: org.logoColor }}
-                    >
-                      {org.code.slice(0, 3)}
-                    </div>
+                    {org.logoUrl ? (
+                      <img
+                        src={org.logoUrl}
+                        alt={org.name}
+                        className="w-11 h-11 rounded-xl object-contain bg-white dark:bg-zinc-800 p-1 flex-shrink-0 border border-[var(--border)] shadow-xs mt-0.5"
+                      />
+                    ) : (
+                      <div
+                        className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-extrabold text-sm flex-shrink-0 shadow-xs font-mono mt-0.5"
+                        style={{ backgroundColor: org.logoColor || "#ea580c" }}
+                      >
+                        {org.code.slice(0, 3)}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <h3 className="font-bold text-[var(--foreground)] text-sm sm:text-base leading-snug break-words">
                         {org.name}
@@ -359,41 +463,59 @@ export default function AdminOrganizations() {
             </div>
             <div className="sm:col-span-12">
               <label className="block text-xs font-mono font-semibold text-[var(--foreground)] mb-2">
-                Brand Logo & Theme Color
+                Organization Logo
               </label>
-              <div className="flex items-center gap-3 p-3 bg-[var(--muted)]/20 border border-[var(--border)] rounded-xl flex-wrap">
-                {/* Custom Color Trigger Swatch */}
-                <div
-                  className="relative w-9 h-9 rounded-xl shadow-xs border border-white/60 ring-2 ring-[var(--border)] flex-shrink-0 cursor-pointer transition hover:scale-105 overflow-hidden"
-                  style={{ backgroundColor: form.logoColor }}
-                >
-                  <input
-                    type="color"
-                    value={form.logoColor}
-                    onChange={(e) => setForm((p) => ({ ...p, logoColor: e.target.value }))}
-                    className="absolute -inset-2 opacity-0 cursor-pointer w-[200%] h-[200%]"
-                  />
+              <div className="flex items-center gap-4 p-4 bg-[var(--muted)]/20 border border-[var(--border)] rounded-xl flex-wrap">
+                <div className="w-16 h-16 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-xs flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {form.logoUrl ? (
+                    <img src={form.logoUrl} alt="Logo preview" className="w-full h-full object-contain p-1" />
+                  ) : (
+                    <Building2 className="text-[var(--muted-foreground)]" size={28} />
+                  )}
                 </div>
 
-                {/* Hex code display */}
-                <span className="font-mono text-xs font-bold text-[var(--foreground)] min-w-[70px]">
-                  {form.logoColor}
-                </span>
-
-                {/* Preset Palette Swatches */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {["#ea580c", "#3b82f6", "#6366f1", "#d97706", "#dc2626", "#059669", "#db2777", "#475569"].map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setForm((p) => ({ ...p, logoColor: c }))}
-                      className={`w-6 h-6 rounded-lg transition-transform hover:scale-110 cursor-pointer border ${
-                        form.logoColor === c ? "ring-2 ring-[var(--primary)] scale-110 shadow-xs" : "border-black/10"
-                      }`}
-                      style={{ backgroundColor: c }}
-                      title={c}
+                <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <input
+                      type="file"
+                      ref={addLogoInputRef}
+                      className="hidden"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                      onChange={handleAddLogoChange}
                     />
-                  ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-8 gap-1.5 font-semibold"
+                      onClick={() => addLogoInputRef.current?.click()}
+                      disabled={isUploadingAddLogo}
+                    >
+                      {isUploadingAddLogo ? (
+                        <>
+                          <Loader2 size={13} className="animate-spin" /> Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={13} /> {form.logoUrl ? "Change Logo" : "Upload Logo"}
+                        </>
+                      )}
+                    </Button>
+                    {form.logoUrl && !isUploadingAddLogo && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 gap-1"
+                        onClick={handleRemoveAddLogo}
+                      >
+                        <X size={13} /> Remove
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[var(--muted-foreground)]">
+                    Upload organization logo image (.png, .jpg, .svg). Persisted in database and stored in the <code className="font-mono text-[var(--foreground)]">media</code> bucket.
+                  </p>
                 </div>
               </div>
             </div>
@@ -474,43 +596,59 @@ export default function AdminOrganizations() {
               </div>
               <div className="sm:col-span-12">
                 <label className="block text-xs font-mono font-semibold text-[var(--foreground)] mb-2">
-                  Brand Logo & Theme Color
+                  Organization Logo
                 </label>
-                <div className="flex items-center gap-3 p-3 bg-[var(--muted)]/20 border border-[var(--border)] rounded-xl flex-wrap">
-                  {/* Custom Color Trigger Swatch */}
-                  <div
-                    className="relative w-9 h-9 rounded-xl shadow-xs border border-white/60 ring-2 ring-[var(--border)] flex-shrink-0 cursor-pointer transition hover:scale-105 overflow-hidden"
-                    style={{ backgroundColor: editOrg.logoColor || "#ea580c" }}
-                  >
-                    <input
-                      type="color"
-                      value={editOrg.logoColor || "#ea580c"}
-                      onChange={(e) => setEditOrg((p) => p && { ...p, logoColor: e.target.value })}
-                      className="absolute -inset-2 opacity-0 cursor-pointer w-[200%] h-[200%]"
-                    />
+                <div className="flex items-center gap-4 p-4 bg-[var(--muted)]/20 border border-[var(--border)] rounded-xl flex-wrap">
+                  <div className="w-16 h-16 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-xs flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {editOrg.logoUrl ? (
+                      <img src={editOrg.logoUrl} alt="Logo preview" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <Building2 className="text-[var(--muted-foreground)]" size={28} />
+                    )}
                   </div>
 
-                  {/* Hex code display */}
-                  <span className="font-mono text-xs font-bold text-[var(--foreground)] min-w-[70px]">
-                    {editOrg.logoColor || "#ea580c"}
-                  </span>
-
-                  {/* Preset Palette Swatches */}
-                  <div className="flex items-center gap-1.5 flex-wrap pl-3 border-l border-[var(--border)]">
-                    {["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#10b981", "#e11d48", "#8b5cf6", "#f97316", "#0f172a"].map((c) => (
-                      <button
-                        type="button"
-                        key={c}
-                        onClick={() => setEditOrg((p) => p && { ...p, logoColor: c })}
-                        className={`w-6 h-6 rounded-lg transition-transform hover:scale-110 cursor-pointer shadow-2xs ${
-                          (editOrg.logoColor || "#ea580c").toLowerCase() === c.toLowerCase()
-                            ? "ring-2 ring-[var(--primary)] ring-offset-1 scale-110 border-2 border-white"
-                            : "border border-black/10"
-                        }`}
-                        style={{ backgroundColor: c }}
-                        title={c}
+                  <div className="flex flex-col gap-1.5 flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        type="file"
+                        ref={editLogoInputRef}
+                        className="hidden"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+                        onChange={handleEditLogoChange}
                       />
-                    ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 gap-1.5 font-semibold"
+                        onClick={() => editLogoInputRef.current?.click()}
+                        disabled={isUploadingEditLogo}
+                      >
+                        {isUploadingEditLogo ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" /> Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload size={13} /> {editOrg.logoUrl ? "Change Logo" : "Upload Logo"}
+                          </>
+                        )}
+                      </Button>
+                      {editOrg.logoUrl && !isUploadingEditLogo && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 gap-1"
+                          onClick={handleRemoveEditLogo}
+                        >
+                          <X size={13} /> Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[var(--muted-foreground)]">
+                      Upload organization logo image (.png, .jpg, .svg). Persisted in database and stored in the <code className="font-mono text-[var(--foreground)]">media</code> bucket.
+                    </p>
                   </div>
                 </div>
               </div>

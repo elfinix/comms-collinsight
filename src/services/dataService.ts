@@ -85,9 +85,10 @@ export interface Organization {
   organizationalBudget?: number;
   memberCount?: number;
   adviserId: string;
-  logoColor: string;
+  logoColor?: string;
   description?: string;
   avatar?: string;
+  logoUrl?: string;
   deleted?: boolean;
 }
 

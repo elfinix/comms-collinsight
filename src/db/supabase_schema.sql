@@ -59,6 +59,7 @@ CREATE TABLE public.organizations (
   logo_color TEXT NOT NULL DEFAULT '#ea580c',
   description TEXT DEFAULT '',
   avatar TEXT,
+  logo_url TEXT,
   deleted BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

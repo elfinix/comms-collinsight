@@ -251,7 +251,11 @@ function CalendarGrid({
                           style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
                           title={`${e.name} (${org?.code ?? ""})`}
                         >
-                          <span className="font-bold opacity-90 mr-1">{org?.code}:</span>
+                          {org?.logoUrl ? (
+                            <img src={org.logoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-contain inline-block mr-1 bg-white/20" />
+                          ) : (
+                            <span className="font-bold opacity-90 mr-1">{org?.code}:</span>
+                          )}
                           {e.name}
                         </button>
                       );
@@ -592,12 +596,20 @@ export default function OrganizationsPage() {
                       {/* Top Org Header Bar */}
                       <div className="p-6 border-b border-[var(--border)] flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--muted)]/30">
                         <div className="flex items-center gap-4">
-                          <div
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-xs flex-shrink-0"
-                            style={{ backgroundColor: org.logoColor }}
-                          >
-                            {org.code?.substring(0, 3)}
-                          </div>
+                          {org.logoUrl ? (
+                            <img
+                              src={org.logoUrl}
+                              alt={org.name}
+                              className="w-14 h-14 rounded-2xl object-contain bg-white dark:bg-zinc-800 p-1.5 shadow-xs border border-[var(--border)] flex-shrink-0"
+                            />
+                          ) : (
+                            <div
+                              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-extrabold text-lg shadow-xs flex-shrink-0 font-mono"
+                              style={{ backgroundColor: org.logoColor || "var(--primary)" }}
+                            >
+                              {org.code?.substring(0, 3)}
+                            </div>
+                          )}
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
                               <h2 className="font-bold text-xl text-[var(--foreground)]">{org.name}</h2>
@@ -1021,12 +1033,20 @@ export default function OrganizationsPage() {
                         {/* Card Footer: Organization pill & Event Type */}
                         <div className="flex items-center justify-between gap-2 pt-3 border-t border-[var(--border)] mt-auto w-full">
                           <div className="flex items-center gap-2 min-w-0">
-                            <div
-                              className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0"
-                              style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
-                            >
-                              {org?.code?.substring(0, 3) ?? "?"}
-                            </div>
+                            {org?.logoUrl ? (
+                              <img
+                                src={org.logoUrl}
+                                alt={org.name}
+                                className="w-5 h-5 rounded object-contain bg-white dark:bg-zinc-800 p-0.5 border border-[var(--border)] flex-shrink-0"
+                              />
+                            ) : (
+                              <div
+                                className="w-5 h-5 rounded flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 font-mono"
+                                style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                              >
+                                {org?.code?.substring(0, 3) ?? "?"}
+                              </div>
+                            )}
                             <span className="text-xs font-semibold text-[var(--foreground)] truncate">
                               {org?.name}
                             </span>
@@ -1055,12 +1075,20 @@ export default function OrganizationsPage() {
                         className="w-full p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left hover:bg-[var(--muted)]/40 transition group cursor-pointer"
                       >
                         <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
-                          <div
-                            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-2xs"
-                            style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
-                          >
-                            {org?.code?.substring(0, 3)}
-                          </div>
+                          {org?.logoUrl ? (
+                            <img
+                              src={org.logoUrl}
+                              alt={org.name}
+                              className="w-12 h-12 rounded-xl object-contain bg-white dark:bg-zinc-800 p-1.5 border border-[var(--border)] flex-shrink-0 shadow-2xs"
+                            />
+                          ) : (
+                            <div
+                              className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-xs flex-shrink-0 shadow-2xs font-mono"
+                              style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                            >
+                              {org?.code?.substring(0, 3)}
+                            </div>
+                          )}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
                               <h3 className="font-bold text-sm sm:text-base text-[var(--foreground)] group-hover:text-[var(--primary)] transition truncate">
@@ -1123,12 +1151,20 @@ export default function OrganizationsPage() {
                 {/* Organization Header Banner */}
                 <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-2xs flex-shrink-0"
-                      style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
-                    >
-                      {org?.code?.substring(0, 3)}
-                    </div>
+                    {org?.logoUrl ? (
+                      <img
+                        src={org.logoUrl}
+                        alt={org.name}
+                        className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-zinc-800 p-1 border border-[var(--border)] flex-shrink-0 shadow-2xs"
+                      />
+                    ) : (
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-2xs flex-shrink-0 font-mono"
+                        style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
+                      >
+                        {org?.code?.substring(0, 3)}
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="font-bold text-sm text-[var(--foreground)] truncate">{org?.name}</p>
                       <p className="text-xs font-mono text-[var(--muted-foreground)] truncate">{dept?.name}</p>

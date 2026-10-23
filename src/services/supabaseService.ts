@@ -41,7 +41,8 @@ export function mapOrganizationFromDb(row: any): Organization {
     adviserId: row.adviser_id || "",
     logoColor: row.logo_color || "#ea580c",
     description: row.description || "",
-    avatar: row.avatar || undefined,
+    avatar: row.logo_url || row.avatar || undefined,
+    logoUrl: row.logo_url || row.avatar || undefined,
     deleted: row.deleted ?? false,
   };
 }
@@ -515,7 +516,8 @@ export const supabaseApi = {
       adviser_id: org.adviserId || null,
       logo_color: org.logoColor || "#ea580c",
       description: org.description || "",
-      avatar: org.avatar || null,
+      avatar: org.logoUrl || org.avatar || null,
+      logo_url: org.logoUrl || org.avatar || null,
       deleted: org.deleted || false,
     };
     return supabase.from("organizations").upsert(dbPayload).select();
@@ -534,6 +536,10 @@ export const supabaseApi = {
     if (updates.logoColor !== undefined) dbPayload.logo_color = updates.logoColor;
     if (updates.description !== undefined) dbPayload.description = updates.description;
     if (updates.avatar !== undefined) dbPayload.avatar = updates.avatar || null;
+    if (updates.logoUrl !== undefined) {
+      dbPayload.logo_url = updates.logoUrl || null;
+      dbPayload.avatar = updates.logoUrl || null;
+    }
     if (updates.deleted !== undefined) dbPayload.deleted = updates.deleted;
 
     return supabase.from("organizations").update(dbPayload).eq("id", id).select();

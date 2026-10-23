@@ -90,6 +90,19 @@ export function buildUserMediaPath(
 }
 
 /**
+ * Builds the cloud storage path for organization logos
+ * Pattern: media / org_{first_8_id_digits} / logo / {fileName}
+ */
+export function buildOrgLogoPath(
+  organizationIdOrName: string | undefined | null,
+  fileName: string
+): string {
+  const orgSegment = toIdSegment("org", organizationIdOrName);
+  const cleanFileName = sanitizeStorageSegment(fileName);
+  return `${orgSegment}/logo/${cleanFileName}`;
+}
+
+/**
  * Builds the cloud storage path for system-generated reports
  * Pattern: reports / org_{first_8_id_digits} / {YYYY-MM-DD} / {fileName}
  */
@@ -227,6 +240,41 @@ export async function uploadUserMedia(params: {
     return { path: data.path, publicUrl, error: null };
   } catch (err: any) {
     console.error("[Storage] Unexpected error during media upload:", err);
+    return { path: "", publicUrl: "", error: err };
+  }
+}
+
+/**
+ * Uploads an organization logo to the `media` bucket
+ */
+export async function uploadOrgLogo(params: {
+  organizationId?: string | null;
+  organizationName?: string | null;
+  file: File | Blob;
+  fileName?: string;
+}): Promise<{ path: string; publicUrl: string; error: Error | null }> {
+  try {
+    const rawName = params.fileName || (params.file instanceof File ? params.file.name : "logo.png");
+    const orgIdentifier = params.organizationId || params.organizationName;
+    const path = buildOrgLogoPath(orgIdentifier, rawName);
+
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKETS.MEDIA)
+      .upload(path, params.file, {
+        upsert: true,
+        cacheControl: "3600",
+        contentType: params.file.type || undefined,
+      });
+
+    if (error) {
+      console.warn(`[Storage] Org logo upload failed for ${path}:`, error.message);
+      return { path: "", publicUrl: "", error: new Error(error.message) };
+    }
+
+    const publicUrl = getPublicStorageUrl(STORAGE_BUCKETS.MEDIA, data.path);
+    return { path: data.path, publicUrl, error: null };
+  } catch (err: any) {
+    console.error("[Storage] Unexpected error during org logo upload:", err);
     return { path: "", publicUrl: "", error: err };
   }
 }

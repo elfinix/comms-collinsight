@@ -62,9 +62,10 @@ export interface Organization {
   departmentId: string;
   allocatedBudget: number;
   adviserId: string;
-  logoColor: string;
+  logoColor?: string;
   description?: string;
   avatar?: string;
+  logoUrl?: string;
   deleted?: boolean;
 }
 
