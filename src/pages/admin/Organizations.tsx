@@ -647,7 +647,7 @@ export default function AdminOrganizations() {
                       )}
                     </div>
                     <p className="text-[11px] text-[var(--muted-foreground)]">
-                      Upload organization logo image (.png, .jpg, .svg). Persisted in database and stored in the <code className="font-mono text-[var(--foreground)]">media</code> bucket.
+                      Upload organization logo image (.png, .jpg, .svg).
                     </p>
                   </div>
                 </div>
