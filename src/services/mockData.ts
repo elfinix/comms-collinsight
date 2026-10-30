@@ -1245,6 +1245,7 @@ export const SAMPLE_FIXTURES = {
 
 export function resolvePdfUrl(url?: string, fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType];
+  if (url.includes("docs.google.com") || url.includes("drive.google.com")) return url;
   if (url.startsWith("/fixtures")) return url;
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 

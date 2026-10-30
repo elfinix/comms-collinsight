@@ -1,5 +1,5 @@
-import { BadgeCheck, Stamp, CheckCircle, XCircle, ExternalLink, Clock, Eye } from "lucide-react";
-import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories, resolvePdfUrl, EventSignatory } from "../../services/dataService";
+import { BadgeCheck, Stamp, CheckCircle, XCircle, ExternalLink, Clock, Eye, Link2 } from "lucide-react";
+import { formatCurrency, formatDateTime, formatEventSchedule, isWebUrl, toWebUrl, Event, resolveEventSignatories, resolvePdfUrl, EventSignatory, isGoogleDocsUrl, formatComplianceDocLabel } from "../../services/dataService";
 import { generateClearancePdfBlob, openPdfBlobInNewTab } from "../../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../../services/storageService";
 import { Button } from "../ui";
@@ -296,9 +296,24 @@ export default function EventClearanceTab({
           </div>
           <div className="sm:col-span-2">
             <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
-            <p className="font-mono text-blue-800 dark:text-blue-400 font-bold mt-0.5 flex items-center gap-1">
-              ✓ {event.apfUrl ? event.apfUrl.replace(/^.*[\\/]/, '') : "Activity Proposal Form Attached"}
-            </p>
+            {event.apfUrl ? (
+              <a
+                href={resolvePdfUrl(event.apfUrl, "apf")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-blue-800 dark:text-blue-400 font-bold mt-0.5 inline-flex items-center gap-1.5 hover:underline flex-wrap"
+              >
+                <span>✓ {formatComplianceDocLabel(event.apfUrl, "Activity Proposal Form Attached")}</span>
+                {isGoogleDocsUrl(event.apfUrl) && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-sans font-normal">
+                    <Link2 size={10} /> Google Doc
+                  </span>
+                )}
+                <ExternalLink size={11} />
+              </a>
+            ) : (
+              <p className="font-mono text-slate-500 font-medium mt-0.5">No APF Attached</p>
+            )}
           </div>
           {event.setting === "Off-campus" && (
             <div className="sm:col-span-2">

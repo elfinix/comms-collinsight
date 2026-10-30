@@ -17,11 +17,11 @@ import {
 import {
   CalendarCheck, CreditCard, CheckCircle, ExternalLink, FileText, FileSpreadsheet, Calendar, MapPin, Video,
   LayoutGrid, List, Search, Filter, ArrowUpDown, ChevronDown, ArrowUpNarrowWide, ArrowDownWideNarrow,
-  Building2, X, RotateCcw
+  Building2, X, RotateCcw, Link2
 } from "lucide-react";
 import {
   formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, getStatusBadgeClass, Event,
-  getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl, isExcelFile
+  getEventTypeById, isWebUrl, toWebUrl, resolvePdfUrl, isExcelFile, isGoogleDocsUrl, formatComplianceDocLabel
 } from "../../services/dataService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
@@ -615,10 +615,19 @@ export default function DeanApprovedEvents() {
               {viewTab === "compliance" && (
                 <div className="flex flex-col gap-4">
                   <div className="bg-[var(--muted)] rounded-xl p-4">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)]">APF (Activity Proposal Form)</p>
+                      {isGoogleDocsUrl(viewEvent.apfUrl) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium">
+                          <Link2 size={12} /> Google Doc
+                        </span>
+                      )}
+                    </div>
                     {viewEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        {isExcelFile(viewEvent.apfUrl) ? (
+                        {isGoogleDocsUrl(viewEvent.apfUrl) ? (
+                          <Link2 size={16} className="text-blue-600 flex-shrink-0" />
+                        ) : isExcelFile(viewEvent.apfUrl) ? (
                           <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
                         ) : (
                           <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
@@ -629,7 +638,7 @@ export default function DeanApprovedEvents() {
                           rel="noopener noreferrer"
                           className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
                         >
-                          <span>{viewEvent.apfUrl.replace(/^.*[\\/]/, '')}</span>
+                          <span>{formatComplianceDocLabel(viewEvent.apfUrl, "Activity Proposal Form (APF)")}</span>
                           <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                         </a>
                       </div>

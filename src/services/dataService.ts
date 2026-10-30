@@ -752,13 +752,33 @@ export function getStatusBadgeClass(status: EventStatus, setting?: EventSetting)
 export function isWebUrl(str?: string): boolean {
   if (!str) return false;
   const t = str.trim();
-  return /^(https?:\/\/|www\.)/i.test(t) || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/i.test(t) || t.includes("zoom.us") || t.includes("meet.google.com") || t.includes("teams.microsoft.com");
+  return /^(https?:\/\/|www\.)/i.test(t) || /^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\/.*)?$/i.test(t) || t.includes("zoom.us") || t.includes("meet.google.com") || t.includes("teams.microsoft.com") || t.includes("docs.google.com") || t.includes("drive.google.com");
 }
 
 export function toWebUrl(str: string): string {
   const t = str.trim();
   if (/^https?:\/\//i.test(t)) return t;
   return `https://${t}`;
+}
+
+export function isGoogleDocsUrl(url?: string): boolean {
+  if (!url) return false;
+  const t = url.toLowerCase();
+  return t.includes("docs.google.com") || t.includes("drive.google.com");
+}
+
+export function formatComplianceDocLabel(url?: string, defaultLabel: string = "Attached Document"): string {
+  if (!url) return defaultLabel;
+  if (isGoogleDocsUrl(url)) {
+    if (url.includes("/document/")) return "Google Doc: Activity Proposal Form (APF)";
+    if (url.includes("/spreadsheets/")) return "Google Sheet";
+    if (url.includes("/presentation/")) return "Google Slides";
+    return "Google Drive Document";
+  }
+  if (isWebUrl(url) && (url.startsWith("http://") || url.startsWith("https://"))) {
+    return "Online Document Link";
+  }
+  return url.replace(/^.*[\\/]/, "");
 }
 
 export const SAMPLE_FIXTURES = {
@@ -775,6 +795,7 @@ export function resolvePdfUrl(
   fallbackType: "apf" | "pcf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"
 ): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType] || SAMPLE_FIXTURES.apf;
+  if (isGoogleDocsUrl(url)) return toWebUrl(url);
   if (url.startsWith("/fixtures")) return url;
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 

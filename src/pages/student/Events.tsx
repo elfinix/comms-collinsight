@@ -22,14 +22,14 @@ import {
   SkeletonToolbox,
 } from "../../components/ui";
 import {
-  Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, UploadCloud,
+  Plus, Search, Grid, List, Filter, Trash2, Eye, Edit2, Send, AlertCircle, CheckCircle, CheckCircle2, UploadCloud,
   ArrowUpDown, ChevronDown, ArrowDownWideNarrow, ArrowUpNarrowWide, FileText, FileSpreadsheet, ExternalLink, ArrowRight, MessageSquareQuote,
   Wallet, CreditCard, Coins, X, Loader2, Clock, MapPin, Video,
-  Users, GraduationCap, Building2, Compass
+  Users, GraduationCap, Building2, Compass, Link2, Info
 } from "lucide-react";
 import {
   getEventTypeById, getCategoryById, formatCurrency, formatDate, formatDateTime, formatEventSchedule, statusColors, getStatusBadgeClass, eventTypes, expenditureCategories,
-  Event, EventStatus, resolvePdfUrl, formatCardSchedule, isWebUrl, toWebUrl, isExcelFile
+  Event, EventStatus, resolvePdfUrl, formatCardSchedule, isWebUrl, toWebUrl, isExcelFile, isGoogleDocsUrl, formatComplianceDocLabel
 } from "../../services/dataService";
 import { uploadEventAttachment, uploadEventAppendices, getPublicStorageUrl } from "../../services/storageService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
@@ -310,11 +310,20 @@ export default function StudentEvents() {
   const [editAppendixFiles, setEditAppendixFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
+  // APF Submission Mode: 'gdocs' (default & recommended) or 'file'
+  const [apfMode, setApfMode] = useState<"gdocs" | "file">("gdocs");
+  const [gdocsUrlInput, setGdocsUrlInput] = useState<string>("");
+
+  const [editApfMode, setEditApfMode] = useState<"gdocs" | "file">("gdocs");
+  const [editGdocsUrlInput, setEditGdocsUrlInput] = useState<string>("");
+
   function handleCreate() {
     setDraft(newEventShell(currentUser?.id ?? "", orgId, eventTypes[0]?.id ?? ""));
     setApfFile(null);
     setPcfFile(null);
     setAppendixFiles([]);
+    setApfMode("gdocs");
+    setGdocsUrlInput("");
     setCreateTab("details");
     setShowCreate(true);
   }
@@ -324,6 +333,13 @@ export default function StudentEvents() {
     setEditApfFile(null);
     setEditPcfFile(null);
     setEditAppendixFiles([]);
+    if (e.apfUrl && (isGoogleDocsUrl(e.apfUrl) || isWebUrl(e.apfUrl))) {
+      setEditApfMode("gdocs");
+      setEditGdocsUrlInput(e.apfUrl);
+    } else {
+      setEditApfMode(e.apfUrl ? "file" : "gdocs");
+      setEditGdocsUrlInput("");
+    }
     setEditTab("details");
   }
 
@@ -1118,52 +1134,197 @@ export default function StudentEvents() {
                   }}
                 />
 
-                {/* APF Upload Section */}
-                <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${draft.apfUrl ? "border-emerald-300 bg-emerald-50/30" : "border-[var(--border)] hover:border-[var(--primary)]/50 bg-[var(--card)]"}`}>
-                  <UploadCloud size={36} className={`mx-auto mb-2.5 ${draft.apfUrl ? "text-emerald-600" : "text-[var(--muted-foreground)]"}`} />
-                  <div className="flex items-center justify-center gap-2 mb-1">
-                    <p className="font-bold text-sm text-[var(--foreground)]">Upload APF (Activity Proposal Form) *</p>
-                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[var(--primary)] border border-orange-200">
-                      Required
-                    </span>
-                  </div>
-                  <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, Word (.docx), or Excel (.xlsx, .xls) document up to 10MB</p>
-
-                  {draft.apfUrl ? (
-                    <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
-                      {isExcelFile(draft.apfUrl) ? (
-                        <FileSpreadsheet size={15} className="text-emerald-600 flex-shrink-0" />
-                      ) : (
-                        <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-                      )}
-                      <span className="font-bold truncate max-w-[260px]">{draft.apfUrl.replace(/^.*[\\/]/, "")}</span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDraft((d) => ({ ...d, apfUrl: "" }));
-                          setApfFile(null);
-                          if (apfInputRef.current) apfInputRef.current.value = "";
-                        }}
-                        className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
-                        title="Remove file"
-                      >
-                        <X size={14} />
-                      </button>
+                {/* APF Section Header with Toggle */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-orange-50/60 border border-orange-200/80 shadow-2xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-sm text-[var(--foreground)]">APF (Activity Proposal Form) *</p>
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-100 text-[var(--primary)] border border-orange-300">
+                        Required
+                      </span>
                     </div>
-                  ) : (
-                    <Button
+                    <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                      Submit via online collaborative link or upload a document file.
+                    </p>
+                  </div>
+
+                  {/* Submission Method Toggle */}
+                  <div className="inline-flex items-center p-1 bg-white border border-[var(--border)] rounded-xl shadow-2xs">
+                    <button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => apfInputRef.current?.click()}
-                      className="bg-white shadow-2xs font-bold text-xs"
+                      onClick={() => {
+                        setApfMode("gdocs");
+                        if (gdocsUrlInput.trim()) {
+                          setDraft((d) => ({ ...d, apfUrl: toWebUrl(gdocsUrlInput.trim()) }));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        apfMode === "gdocs"
+                          ? "bg-[var(--primary)] text-white shadow-xs"
+                          : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      }`}
                     >
-                      <UploadCloud size={14} /> Choose APF File
-                    </Button>
-                  )}
+                      <Link2 size={13} />
+                      <span>Google Docs Link</span>
+                      <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-full font-bold font-mono ${
+                        apfMode === "gdocs" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"
+                      }`}>
+                        Recommended
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApfMode("file");
+                        if (apfFile) {
+                          setDraft((d) => ({ ...d, apfUrl: apfFile.name }));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        apfMode === "file"
+                          ? "bg-[var(--primary)] text-white shadow-xs"
+                          : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                      }`}
+                    >
+                      <UploadCloud size={13} />
+                      <span>File Upload</span>
+                    </button>
+                  </div>
                 </div>
+
+                {/* Mode 1: Google Docs Link (Default & Recommended) */}
+                {apfMode === "gdocs" ? (
+                  <div className={`border-2 border-dashed rounded-2xl p-6 transition ${
+                    draft.apfUrl && (isWebUrl(draft.apfUrl) || isGoogleDocsUrl(draft.apfUrl))
+                      ? "border-emerald-300 bg-emerald-50/30"
+                      : "border-[var(--border)] hover:border-[var(--primary)]/50 bg-[var(--card)]"
+                  }`}>
+                    <div className="flex flex-col items-center text-center max-w-lg mx-auto">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center mb-3 shadow-2xs">
+                        <Link2 size={22} strokeWidth={2.2} />
+                      </div>
+
+                      <p className="font-bold text-sm text-[var(--foreground)] mb-1">
+                        Activity Proposal Form (Google Docs Link)
+                      </p>
+                      <p className="text-xs text-[var(--muted-foreground)] mb-4">
+                        Paste the shareable link to your official APF Google Doc or Google Drive document.
+                      </p>
+
+                      <div className="w-full flex items-center gap-2">
+                        <input
+                          type="url"
+                          value={gdocsUrlInput}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setGdocsUrlInput(val);
+                            if (val.trim()) {
+                              setDraft((d) => ({ ...d, apfUrl: toWebUrl(val.trim()) }));
+                            } else {
+                              setDraft((d) => ({ ...d, apfUrl: "" }));
+                            }
+                          }}
+                          onBlur={() => {
+                            if (gdocsUrlInput.trim()) {
+                              const formatted = toWebUrl(gdocsUrlInput.trim());
+                              setGdocsUrlInput(formatted);
+                              setDraft((d) => ({ ...d, apfUrl: formatted }));
+                            }
+                          }}
+                          placeholder="https://docs.google.com/document/d/..."
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-white text-xs font-mono text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] shadow-2xs transition"
+                        />
+                        {gdocsUrlInput.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGdocsUrlInput("");
+                              setDraft((d) => ({ ...d, apfUrl: "" }));
+                            }}
+                            className="p-2.5 rounded-xl border border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 transition shadow-2xs cursor-pointer flex-shrink-0"
+                            title="Clear link"
+                          >
+                            <X size={15} />
+                          </button>
+                        )}
+                      </div>
+
+                      {draft.apfUrl && (isWebUrl(draft.apfUrl) || isGoogleDocsUrl(draft.apfUrl)) && (
+                        <div className="mt-3.5 w-full flex items-center justify-between p-3 rounded-xl bg-white border border-emerald-200 shadow-2xs">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+                            <div className="text-left min-w-0">
+                              <p className="text-xs font-bold text-emerald-900 truncate">
+                                {isGoogleDocsUrl(draft.apfUrl) ? "Google Docs Link Attached" : "Document Link Attached"}
+                              </p>
+                              <p className="text-[11px] font-mono text-emerald-700 truncate max-w-[280px]">
+                                {draft.apfUrl}
+                              </p>
+                            </div>
+                          </div>
+                          <a
+                            href={toWebUrl(draft.apfUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition border border-emerald-200 flex-shrink-0 ml-2"
+                          >
+                            <span>Test Link</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        </div>
+                      )}
+
+                      <div className="mt-3 text-[11px] text-slate-500 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-left w-full flex items-start gap-2">
+                        <Info size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                        <span>
+                          <strong>Recommended Access:</strong> In Google Docs, click <em>Share</em> and set General Access to <strong>"Anyone with the link can view"</strong> (or comment) so university advisers and reviewers can access it.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Mode 2: File Upload (Fallback) */
+                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${draft.apfUrl && !isWebUrl(draft.apfUrl) ? "border-emerald-300 bg-emerald-50/30" : "border-[var(--border)] hover:border-[var(--primary)]/50 bg-[var(--card)]"}`}>
+                    <UploadCloud size={36} className={`mx-auto mb-2.5 ${draft.apfUrl && !isWebUrl(draft.apfUrl) ? "text-emerald-600" : "text-[var(--muted-foreground)]"}`} />
+                    <p className="font-bold text-sm text-[var(--foreground)] mb-1">Upload APF File</p>
+                    <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, Word (.docx), or Excel (.xlsx, .xls) document up to 10MB</p>
+
+                    {draft.apfUrl && !isWebUrl(draft.apfUrl) ? (
+                      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
+                        {isExcelFile(draft.apfUrl) ? (
+                          <FileSpreadsheet size={15} className="text-emerald-600 flex-shrink-0" />
+                        ) : (
+                          <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                        )}
+                        <span className="font-bold truncate max-w-[260px]">{draft.apfUrl.replace(/^.*[\\/]/, "")}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDraft((d) => ({ ...d, apfUrl: "" }));
+                            setApfFile(null);
+                            if (apfInputRef.current) apfInputRef.current.value = "";
+                          }}
+                          className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
+                          title="Remove file"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => apfInputRef.current?.click()}
+                        className="bg-white shadow-2xs font-bold text-xs"
+                      >
+                        <UploadCloud size={14} /> Choose APF File
+                      </Button>
+                    )}
+                  </div>
+                )}
 
                 {/* PCF Upload Section (Optional for Off-campus) */}
                 {draft.setting === "Off-campus" && (
@@ -1285,7 +1446,18 @@ export default function StudentEvents() {
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(draft.dateStart, draft.dateEnd)}</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{draft.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{draft.location || (draft.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({draft.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">{draft.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}</p></div>
-                    <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {draft.apfUrl}</p></div>
+                    <div className="sm:col-span-2">
+                      <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
+                      <p className="font-mono text-emerald-700 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span>✓</span>
+                        {isGoogleDocsUrl(draft.apfUrl) ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-sans">
+                            <Link2 size={11} /> Google Doc
+                          </span>
+                        ) : null}
+                        <span className="truncate max-w-[320px]">{draft.apfUrl}</span>
+                      </p>
+                    </div>
                     {draft.setting === "Off-campus" && (
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached PCF (Parental Consent)</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {draft.pcfUrl || draft.pcfName}</p></div>
                     )}
@@ -1564,52 +1736,197 @@ export default function StudentEvents() {
                     }}
                   />
 
-                  {/* APF Upload Section */}
-                  <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${editEvent.apfUrl ? "border-emerald-300 bg-emerald-50/30" : "border-[var(--border)] hover:border-[var(--primary)]/50 bg-[var(--card)]"}`}>
-                    <UploadCloud size={36} className={`mx-auto mb-2.5 ${editEvent.apfUrl ? "text-emerald-600" : "text-[var(--muted-foreground)]"}`} />
-                    <div className="flex items-center justify-center gap-2 mb-1">
-                      <p className="font-bold text-sm text-[var(--foreground)]">Upload APF (Activity Proposal Form) *</p>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-50 text-[var(--primary)] border border-orange-200">
-                        Required
-                      </span>
-                    </div>
-                    <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, Word (DOC/DOCX), or Excel (XLS/XLSX) document up to 10MB</p>
-
-                    {editEvent.apfUrl ? (
-                      <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
-                        {isExcelFile(editEvent.apfUrl) ? (
-                          <FileSpreadsheet size={15} className="text-emerald-600 flex-shrink-0" />
-                        ) : (
-                          <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
-                        )}
-                        <span className="font-bold truncate max-w-[260px]">{editEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setEditEvent((d) => (d ? { ...d, apfUrl: "" } : null));
-                            setEditApfFile(null);
-                            if (editApfInputRef.current) editApfInputRef.current.value = "";
-                          }}
-                          className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
-                          title="Remove file"
-                        >
-                          <X size={14} />
-                        </button>
+                  {/* APF Section Header with Toggle */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-orange-50/60 border border-orange-200/80 shadow-2xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-sm text-[var(--foreground)]">APF (Activity Proposal Form) *</p>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-orange-100 text-[var(--primary)] border border-orange-300">
+                          Required
+                        </span>
                       </div>
-                    ) : (
-                      <Button
+                      <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+                        Submit via online collaborative link or upload a document file.
+                      </p>
+                    </div>
+
+                    {/* Submission Method Toggle */}
+                    <div className="inline-flex items-center p-1 bg-white border border-[var(--border)] rounded-xl shadow-2xs">
+                      <button
                         type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => editApfInputRef.current?.click()}
-                        className="bg-white shadow-2xs font-bold text-xs"
+                        onClick={() => {
+                          setEditApfMode("gdocs");
+                          if (editGdocsUrlInput.trim()) {
+                            setEditEvent((d) => (d ? { ...d, apfUrl: toWebUrl(editGdocsUrlInput.trim()) } : null));
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          editApfMode === "gdocs"
+                            ? "bg-[var(--primary)] text-white shadow-xs"
+                            : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                        }`}
                       >
-                        <UploadCloud size={14} /> Choose APF File
-                      </Button>
-                    )}
+                        <Link2 size={13} />
+                        <span>Google Docs Link</span>
+                        <span className={`text-[9px] uppercase px-1.5 py-0.5 rounded-full font-bold font-mono ${
+                          editApfMode === "gdocs" ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-800"
+                        }`}>
+                          Recommended
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditApfMode("file");
+                          if (editApfFile) {
+                            setEditEvent((d) => (d ? { ...d, apfUrl: editApfFile.name } : null));
+                          }
+                        }}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          editApfMode === "file"
+                            ? "bg-[var(--primary)] text-white shadow-xs"
+                            : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                        }`}
+                      >
+                        <UploadCloud size={13} />
+                        <span>File Upload</span>
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Mode 1: Google Docs Link (Default & Recommended) */}
+                  {editApfMode === "gdocs" ? (
+                    <div className={`border-2 border-dashed rounded-2xl p-6 transition ${
+                      editEvent.apfUrl && (isWebUrl(editEvent.apfUrl) || isGoogleDocsUrl(editEvent.apfUrl))
+                        ? "border-emerald-300 bg-emerald-50/30"
+                        : "border-[var(--border)] hover:border-[var(--primary)]/50 bg-[var(--card)]"
+                    }`}>
+                      <div className="flex flex-col items-center text-center max-w-lg mx-auto">
+                        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center mb-3 shadow-2xs">
+                          <Link2 size={22} strokeWidth={2.2} />
+                        </div>
+
+                        <p className="font-bold text-sm text-[var(--foreground)] mb-1">
+                          Activity Proposal Form (Google Docs Link)
+                        </p>
+                        <p className="text-xs text-[var(--muted-foreground)] mb-4">
+                          Paste the shareable link to your official APF Google Doc or Google Drive document.
+                        </p>
+
+                        <div className="w-full flex items-center gap-2">
+                          <input
+                            type="url"
+                            value={editGdocsUrlInput}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setEditGdocsUrlInput(val);
+                              if (val.trim()) {
+                                setEditEvent((d) => (d ? { ...d, apfUrl: toWebUrl(val.trim()) } : null));
+                              } else {
+                                setEditEvent((d) => (d ? { ...d, apfUrl: "" } : null));
+                              }
+                            }}
+                            onBlur={() => {
+                              if (editGdocsUrlInput.trim()) {
+                                const formatted = toWebUrl(editGdocsUrlInput.trim());
+                                setEditGdocsUrlInput(formatted);
+                                setEditEvent((d) => (d ? { ...d, apfUrl: formatted } : null));
+                              }
+                            }}
+                            placeholder="https://docs.google.com/document/d/..."
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border)] bg-white text-xs font-mono text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)] shadow-2xs transition"
+                          />
+                          {editGdocsUrlInput.trim() && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditGdocsUrlInput("");
+                                setEditEvent((d) => (d ? { ...d, apfUrl: "" } : null));
+                              }}
+                              className="p-2.5 rounded-xl border border-[var(--border)] bg-white text-[var(--muted-foreground)] hover:text-rose-600 hover:bg-rose-50 transition shadow-2xs cursor-pointer flex-shrink-0"
+                              title="Clear link"
+                            >
+                              <X size={15} />
+                            </button>
+                          )}
+                        </div>
+
+                        {editEvent.apfUrl && (isWebUrl(editEvent.apfUrl) || isGoogleDocsUrl(editEvent.apfUrl)) && (
+                          <div className="mt-3.5 w-full flex items-center justify-between p-3 rounded-xl bg-white border border-emerald-200 shadow-2xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <CheckCircle2 size={16} className="text-emerald-600 flex-shrink-0" />
+                              <div className="text-left min-w-0">
+                                <p className="text-xs font-bold text-emerald-900 truncate">
+                                  {isGoogleDocsUrl(editEvent.apfUrl) ? "Google Docs Link Attached" : "Document Link Attached"}
+                                </p>
+                                <p className="text-[11px] font-mono text-emerald-700 truncate max-w-[280px]">
+                                  {editEvent.apfUrl}
+                                </p>
+                              </div>
+                            </div>
+                            <a
+                              href={toWebUrl(editEvent.apfUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition border border-emerald-200 flex-shrink-0 ml-2"
+                            >
+                              <span>Test Link</span>
+                              <ExternalLink size={12} />
+                            </a>
+                          </div>
+                        )}
+
+                        <div className="mt-3 text-[11px] text-slate-500 bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-left w-full flex items-start gap-2">
+                          <Info size={14} className="text-blue-500 mt-0.5 flex-shrink-0" />
+                          <span>
+                            <strong>Recommended Access:</strong> In Google Docs, click <em>Share</em> and set General Access to <strong>"Anyone with the link can view"</strong> (or comment) so university advisers and reviewers can access it.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Mode 2: File Upload (Fallback) */
+                    <div className={`border-2 border-dashed rounded-2xl p-6 text-center transition ${editEvent.apfUrl && !isWebUrl(editEvent.apfUrl) ? "border-emerald-300 bg-emerald-50/30" : "border-[var(--border)] hover:border-[var(--primary)]/50 bg-[var(--card)]"}`}>
+                      <UploadCloud size={36} className={`mx-auto mb-2.5 ${editEvent.apfUrl && !isWebUrl(editEvent.apfUrl) ? "text-emerald-600" : "text-[var(--muted-foreground)]"}`} />
+                      <p className="font-bold text-sm text-[var(--foreground)] mb-1">Upload APF File</p>
+                      <p className="text-xs text-[var(--muted-foreground)] mb-3">PDF, Word (DOC/DOCX), or Excel (XLS/XLSX) document up to 10MB</p>
+
+                      {editEvent.apfUrl && !isWebUrl(editEvent.apfUrl) ? (
+                        <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-emerald-200 text-emerald-800 text-xs font-mono shadow-2xs">
+                          {isExcelFile(editEvent.apfUrl) ? (
+                            <FileSpreadsheet size={15} className="text-emerald-600 flex-shrink-0" />
+                          ) : (
+                            <CheckCircle size={15} className="text-emerald-600 flex-shrink-0" />
+                          )}
+                          <span className="font-bold truncate max-w-[260px]">{editEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setEditEvent((d) => (d ? { ...d, apfUrl: "" } : null));
+                              setEditApfFile(null);
+                              if (editApfInputRef.current) editApfInputRef.current.value = "";
+                            }}
+                            className="text-emerald-700 hover:text-rose-600 hover:bg-rose-50 ml-1 p-1 rounded-md cursor-pointer transition flex items-center justify-center"
+                            title="Remove file"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => editApfInputRef.current?.click()}
+                          className="bg-white shadow-2xs font-bold text-xs"
+                        >
+                          <UploadCloud size={14} /> Choose APF File
+                        </Button>
+                      )}
+                    </div>
+                  )}
 
                   {/* PCF Upload Section (Optional for Off-campus) */}
                   {editEvent.setting === "Off-campus" && (
@@ -1732,7 +2049,18 @@ export default function StudentEvents() {
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(editEvent.dateStart, editEvent.dateEnd)}</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{editEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{editEvent.location || (editEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({editEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">{editEvent.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}</p></div>
-                      <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {editEvent.apfUrl}</p></div>
+                      <div className="sm:col-span-2">
+                        <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
+                        <p className="font-mono text-emerald-700 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
+                          <span>✓</span>
+                          {isGoogleDocsUrl(editEvent.apfUrl) ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-sans">
+                              <Link2 size={11} /> Google Doc
+                            </span>
+                          ) : null}
+                          <span className="truncate max-w-[320px]">{editEvent.apfUrl}</span>
+                        </p>
+                      </div>
                       {editEvent.setting === "Off-campus" && (
                         <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Attached PCF (Parental Consent)</p><p className="font-mono text-emerald-700 font-bold mt-0.5">✓ {editEvent.pcfUrl || editEvent.pcfName}</p></div>
                       )}
@@ -1881,10 +2209,19 @@ export default function StudentEvents() {
               {viewTab === "compliance" && (
                 <div className="flex flex-col gap-4">
                   <div className="bg-[var(--muted)] rounded-xl p-4">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)]">APF (Activity Proposal Form)</p>
+                      {isGoogleDocsUrl(viewEvent.apfUrl) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium">
+                          <Link2 size={12} /> Google Doc
+                        </span>
+                      )}
+                    </div>
                     {viewEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        {isExcelFile(viewEvent.apfUrl) ? (
+                        {isGoogleDocsUrl(viewEvent.apfUrl) ? (
+                          <Link2 size={16} className="text-blue-600 flex-shrink-0" />
+                        ) : isExcelFile(viewEvent.apfUrl) ? (
                           <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
                         ) : (
                           <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
@@ -1895,7 +2232,7 @@ export default function StudentEvents() {
                           rel="noopener noreferrer"
                           className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
                         >
-                          <span>{viewEvent.apfUrl.replace(/^.*[\\/]/, '')}</span>
+                          <span>{formatComplianceDocLabel(viewEvent.apfUrl, "Activity Proposal Form (APF)")}</span>
                           <ExternalLink size={13} className="flex-shrink-0" />
                         </a>
                       </div>

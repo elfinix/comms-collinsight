@@ -7,11 +7,11 @@ import PublicNav from "../components/layout/PublicNav";
 import PublicFooter from "../components/layout/PublicFooter";
 import {
   Calendar as CalendarIcon, Clock, MapPin, ArrowLeft, ChevronLeft, ChevronRight,
-  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet, XCircle, Tag, Compass
+  Search, X, LayoutGrid, ListFilter, Award, ArrowUpRight, Globe, Radio, Building2, Wallet, Receipt, Video, ExternalLink, BadgeCheck, FileText, FileSpreadsheet, XCircle, Tag, Compass, Link2
 } from "lucide-react";
 import {
   getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, Transaction,
-  isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories
+  isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories, isGoogleDocsUrl
 } from "../services/dataService";
 import { printClearanceDocument, printLiquidationDocument } from "../services/pdfDocuments";
 import { buildAttachmentPath, getPublicStorageUrl, STORAGE_BUCKETS } from "../services/storageService";
@@ -890,9 +890,11 @@ export default function CalendarPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline font-bold font-mono text-[11px]"
-                          title="Open Activity Proposal Form from Storage"
+                          title="Open Activity Proposal Form"
                         >
-                          <FileText size={11} /> APF Document <ExternalLink size={10} />
+                          {isGoogleDocsUrl(selectedEvent.apfUrl) ? <Link2 size={11} className="text-blue-600" /> : <FileText size={11} />}
+                          <span>{isGoogleDocsUrl(selectedEvent.apfUrl) ? "Google Doc APF" : "APF Document"}</span>
+                          <ExternalLink size={10} />
                         </a>
                       ) : (
                         <span className="text-[var(--muted-foreground)] text-xs">No APF</span>

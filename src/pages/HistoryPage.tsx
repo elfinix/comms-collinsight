@@ -7,11 +7,12 @@ import {
   History, Search, Filter, Clock, CheckCircle, RotateCcw,
   FileText, FileSpreadsheet, ArrowRight, Eye, Calendar, ExternalLink, Video, MapPin,
   Shield, User, ArrowUpDown, ChevronDown, ChevronRight, Table, ListTree,
-  ArrowUpNarrowWide, ArrowDownWideNarrow, Trash2, Edit2, DollarSign
+  ArrowUpNarrowWide, ArrowDownWideNarrow, Trash2, Edit2, DollarSign, Link2
 } from "lucide-react";
 import {
   formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, getEventTypeById,
-  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass, formatUserRole, isExcelFile
+  Event, EventStatus, AuditEntry, isWebUrl, toWebUrl, resolvePdfUrl, getActionBadgeClass, formatUserRole, isExcelFile,
+  isGoogleDocsUrl, formatComplianceDocLabel
 } from "../services/dataService";
 import EventHistoryTimeline from "../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../components/events/EventClearanceTab";
@@ -895,10 +896,19 @@ export default function HistoryPage() {
               {dialogTab === "compliance" && (
                 <div className="flex flex-col gap-4">
                   <div className="bg-[var(--muted)] rounded-xl p-4">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)]">APF (Activity Proposal Form)</p>
+                      {isGoogleDocsUrl(selectedEvent.apfUrl) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium">
+                          <Link2 size={12} /> Google Doc
+                        </span>
+                      )}
+                    </div>
                     {selectedEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        {isExcelFile(selectedEvent.apfUrl) ? (
+                        {isGoogleDocsUrl(selectedEvent.apfUrl) ? (
+                          <Link2 size={16} className="text-blue-600 flex-shrink-0" />
+                        ) : isExcelFile(selectedEvent.apfUrl) ? (
                           <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
                         ) : (
                           <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
@@ -909,7 +919,7 @@ export default function HistoryPage() {
                           rel="noopener noreferrer"
                           className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
                         >
-                          <span>{selectedEvent.apfUrl.replace(/^.*[\\/]/, "")}</span>
+                          <span>{formatComplianceDocLabel(selectedEvent.apfUrl, "Activity Proposal Form (APF)")}</span>
                           <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                         </a>
                       </div>
