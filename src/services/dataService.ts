@@ -13,7 +13,7 @@
 export type UserRole = "student" | "adviser" | "dean" | "admin";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";
-export type EventCategory = "Organizational" | "Departmental";
+export type EventCategory = "Organizational" | "Departmental" | "Institutional";
 export type EventSetting = "On-campus" | "Off-campus";
 export type EventStatus =
   | "Created"
@@ -149,10 +149,12 @@ export interface Initiative {
 
 export interface Event {
   id: string;
-  organizationId: string;
+  organizationId?: string;
   name: string;
-  typeId: string;
+  typeId?: string;
   category?: EventCategory;
+  isInstitutional?: boolean;
+  isAllDay?: boolean;
   setting?: EventSetting;
   description: string;
   proposedBudget: number;
@@ -519,7 +521,7 @@ export function getDeptById(id: string): Department | undefined {
   return departments.find((d) => d.id === id);
 }
 
-export function getEventTypeById(id: string): EventType | undefined {
+export function getEventTypeById(id?: string): EventType | undefined {
   if (!id) return undefined;
   const found = eventTypes.find((et) => et.id === id);
   if (found) return found;
@@ -636,10 +638,10 @@ export function formatDateTime(dateStr: string): string {
  * - Same day without times / single date: "Sep 7, 2026"
  * - Multi-day span: "Sep 7, 2026, 8:00 AM – Sep 9, 2026, 5:00 PM" (or "Sep 7, 2026 – Sep 9, 2026")
  */
-export function formatEventSchedule(dateStart?: string, dateEnd?: string): string {
+export function formatEventSchedule(dateStart?: string, dateEnd?: string, isAllDay?: boolean): string {
   if (!dateStart && !dateEnd) return "—";
-  if (!dateStart && dateEnd) return formatDateTime(dateEnd);
-  if (dateStart && !dateEnd) return formatDateTime(dateStart);
+  if (!dateStart && dateEnd) return isAllDay ? `${new Date(dateEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} (All Day)` : formatDateTime(dateEnd);
+  if (dateStart && !dateEnd) return isAllDay ? `${new Date(dateStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} (All Day)` : formatDateTime(dateStart);
 
   try {
     const s = new Date(dateStart!);
@@ -647,6 +649,14 @@ export function formatEventSchedule(dateStart?: string, dateEnd?: string): strin
 
     const sDate = s.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
     const eDate = e.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    // Only treat as all-day if isAllDay is explicitly true, or pure YYYY-MM-DD date strings with no time
+    const isWholeDay = Boolean(isAllDay) || (!dateStart!.includes("T") && !dateStart!.includes(":") && !dateEnd!.includes("T") && !dateEnd!.includes(":"));
+
+    if (isWholeDay) {
+      if (sDate === eDate) return `${sDate} (All Day)`;
+      return `${sDate} – ${eDate} (All Day)`;
+    }
 
     const sHasTime = dateStart!.includes("T");
     const eHasTime = dateEnd!.includes("T");
@@ -861,11 +871,17 @@ export function getActionBadgeClass(action: string): string {
   if (act.includes("revision") || act.includes("change") || act.includes("reject")) {
     return "bg-orange-100 text-orange-800 border border-orange-300 font-bold";
   }
-  if (act.includes("delete") || act.includes("removed")) {
+  if (act.includes("delete") || act.includes("removed") || act.includes("archiv")) {
     return "bg-rose-100 text-rose-800 border border-rose-300 font-bold";
   }
   if (act.includes("modified") || act.includes("edit") || act.includes("update")) {
     return "bg-amber-100 text-amber-800 border border-amber-300 font-bold";
+  }
+  if (act.includes("created institutional") || act.includes("institutional event")) {
+    return "bg-blue-100 text-blue-800 border border-blue-300 font-bold";
+  }
+  if (act.includes("created") || act.includes("creat")) {
+    return "bg-sky-100 text-sky-800 border border-sky-300 font-bold";
   }
   if (act.includes("submit") || act.includes("for review")) {
     return "bg-amber-100 text-amber-800 border border-amber-300 font-bold";

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useApp } from "../../context/AppContext";
@@ -113,7 +113,12 @@ export default function StudentEvents() {
   const org = organizations.find((o) => o.id === orgId);
   const orgEvents = events.filter((e) => e.organizationId === orgId);
 
-  const getEventType = (id: string) => eventTypes.find((t) => t.id === id) || getEventTypeById(id);
+  const getEventType = (id?: string) => id ? (eventTypes.find((t) => t.id === id) || getEventTypeById(id)) : undefined;
+
+  // Filter out Institutional Event so student officers cannot select it
+  const officerEventTypes = useMemo(() => {
+    return eventTypes.filter((t) => !t.name.toLowerCase().includes("institutional"));
+  }, [eventTypes]);
 
   // Helper to extract the active (most recent unresolved) revision request feedback
   const getActiveRevisionFeedback = (eventId: string) => {
@@ -202,7 +207,7 @@ export default function StudentEvents() {
   const [createTab, setCreateTab] = useState("details");
   const [editTab, setEditTab] = useState("details");
   const [viewTab, setViewTab] = useState("details");
-  const [draft, setDraft] = useState<Omit<Event, "id">>(newEventShell(currentUser?.id ?? "", orgId, eventTypes[0]?.id ?? ""));
+  const [draft, setDraft] = useState<Omit<Event, "id">>(newEventShell(currentUser?.id ?? "", orgId, officerEventTypes[0]?.id || eventTypes[0]?.id || ""));
 
   const apfInputRef = useRef<HTMLInputElement>(null);
   const pcfInputRef = useRef<HTMLInputElement>(null);
@@ -318,7 +323,7 @@ export default function StudentEvents() {
   const [editGdocsUrlInput, setEditGdocsUrlInput] = useState<string>("");
 
   function handleCreate() {
-    setDraft(newEventShell(currentUser?.id ?? "", orgId, eventTypes[0]?.id ?? ""));
+    setDraft(newEventShell(currentUser?.id ?? "", orgId, officerEventTypes[0]?.id || eventTypes[0]?.id || ""));
     setApfFile(null);
     setPcfFile(null);
     setAppendixFiles([]);
@@ -990,7 +995,7 @@ export default function StudentEvents() {
                   label="Event Type *"
                   value={draft.typeId}
                   onChange={(e) => setDraft((d) => ({ ...d, typeId: e.target.value }))}
-                  options={eventTypes.map((t) => ({ value: t.id, label: t.name }))}
+                  options={officerEventTypes.map((t) => ({ value: t.id, label: t.name }))}
                 />
 
                 <div>
@@ -1595,7 +1600,7 @@ export default function StudentEvents() {
                     label="Event Type *"
                     value={editEvent.typeId}
                     onChange={(e) => setEditEvent((d) => (d ? { ...d, typeId: e.target.value } : null))}
-                    options={eventTypes.map((t) => ({ value: t.id, label: t.name }))}
+                    options={officerEventTypes.map((t) => ({ value: t.id, label: t.name }))}
                   />
 
                   <div>

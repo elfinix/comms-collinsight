@@ -32,6 +32,7 @@ import DeanProfile from "./pages/dean/Profile";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminDepartments from "./pages/admin/Departments";
 import AdminOrganizations from "./pages/admin/Organizations";
+import AdminInstitutionalEvents from "./pages/admin/InstitutionalEvents";
 import AdminUsers from "./pages/admin/Users";
 import AdminConfigurations from "./pages/admin/Configurations";
 import AdminAuditTrail from "./pages/admin/AuditTrail";
@@ -148,6 +149,8 @@ export default function App() {
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/departments" element={<AdminDepartments />} />
                 <Route path="/admin/organizations" element={<AdminOrganizations />} />
+                <Route path="/admin/institutional-events" element={<AdminInstitutionalEvents />} />
+                <Route path="/admin/events" element={<Navigate to="/admin/institutional-events" replace />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/configurations" element={<AdminConfigurations />} />
                 <Route path="/admin/audit" element={<AdminAuditTrail />} />

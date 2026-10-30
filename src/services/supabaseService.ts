@@ -113,10 +113,12 @@ export function mapInitiativeFromDb(row: any): Initiative {
 export function mapEventFromDb(row: any): Event {
   return {
     id: row.id,
-    organizationId: row.organization_id,
+    organizationId: row.organization_id || undefined,
     name: row.name,
-    typeId: row.type_id,
+    typeId: row.type_id || undefined,
     category: row.category || "Organizational",
+    isInstitutional: row.is_institutional ?? (row.category === "Institutional" || !row.organization_id),
+    isAllDay: row.is_all_day ?? false,
     setting: row.setting || "On-campus",
     description: row.description || "",
     proposedBudget: Number(row.proposed_budget || 0),
@@ -261,10 +263,12 @@ export const supabaseApi = {
   async createEvent(event: Event) {
     const dbPayload = {
       id: event.id,
-      organization_id: event.organizationId,
+      organization_id: event.organizationId || null,
       name: event.name,
-      type_id: event.typeId,
-      category: event.category || "Organizational",
+      type_id: event.typeId || null,
+      category: event.category || (event.isInstitutional ? "Institutional" : "Organizational"),
+      is_institutional: event.isInstitutional ?? (event.category === "Institutional" || !event.organizationId),
+      is_all_day: event.isAllDay ?? false,
       setting: event.setting || "On-campus",
       description: event.description,
       proposed_budget: event.proposedBudget,
@@ -298,8 +302,12 @@ export const supabaseApi = {
   async updateEvent(id: string, updates: Partial<Event>) {
     const dbPayload: any = {};
     if (updates.name !== undefined) dbPayload.name = updates.name;
-    if (updates.typeId !== undefined) dbPayload.type_id = updates.typeId;
+    if (updates.organizationId !== undefined) dbPayload.organization_id = updates.organizationId || null;
+    if (updates.typeId !== undefined) dbPayload.type_id = updates.typeId || null;
     if (updates.category !== undefined) dbPayload.category = updates.category;
+    if (updates.isInstitutional !== undefined) dbPayload.is_institutional = updates.isInstitutional;
+    if (updates.category === "Institutional") dbPayload.is_institutional = true;
+    if (updates.isAllDay !== undefined) dbPayload.is_all_day = updates.isAllDay;
     if (updates.setting !== undefined) dbPayload.setting = updates.setting;
     if (updates.description !== undefined) dbPayload.description = updates.description;
     if (updates.proposedBudget !== undefined) dbPayload.proposed_budget = updates.proposedBudget;
@@ -612,8 +620,14 @@ export const supabaseApi = {
   // Audit Trail API
   // --------------------------------------------------------------------------
   async createAuditEntry(entry: AuditEntry) {
-    const isTokenOrInvalid = !entry.userId || !entry.userId.includes("-0000-");
-    const dbUserId = isTokenOrInvalid ? "e1000000-0000-0000-0000-000000000001" : entry.userId;
+    let dbUserId = entry.userId;
+    if (!dbUserId || dbUserId === "admin" || dbUserId === "user-admin-1") {
+      dbUserId = "a1000000-0000-0000-0000-000000000001";
+    } else if (!dbUserId.includes("-0000-") && entry.actorRole === "admin") {
+      dbUserId = "a1000000-0000-0000-0000-000000000001";
+    } else if (!dbUserId.includes("-0000-")) {
+      dbUserId = "e1000000-0000-0000-0000-000000000001";
+    }
     const dbPayload = {
       id: entry.id,
       user_id: dbUserId,

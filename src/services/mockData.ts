@@ -7,7 +7,7 @@
 export type UserRole = "student" | "adviser" | "dean" | "admin";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";
-export type EventCategory = "Organizational" | "Departmental";
+export type EventCategory = "Organizational" | "Departmental" | "Institutional";
 export type EventSetting = "On-campus" | "Off-campus";
 export type EventStatus =
   | "Created"
@@ -107,9 +107,13 @@ export interface EventSignatory {
 
 export interface Event {
   id: string;
-  organizationId: string;
+  organizationId?: string;
   name: string;
-  typeId: string;
+  typeId?: string;
+  category?: EventCategory;
+  isInstitutional?: boolean;
+  isAllDay?: boolean;
+  setting?: EventSetting;
   description: string;
   proposedBudget: number;
   requisites: string;
@@ -1118,7 +1122,8 @@ export function getDeptById(id: string): Department | undefined {
   return departments.find((d) => d.id === id);
 }
 
-export function getEventTypeById(id: string): EventType | undefined {
+export function getEventTypeById(id?: string): EventType | undefined {
+  if (!id) return undefined;
   return eventTypes.find((e) => e.id === id);
 }
 
@@ -1150,13 +1155,25 @@ export function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function formatEventSchedule(dateStart?: string, dateEnd?: string): string {
+export function formatEventSchedule(dateStart?: string, dateEnd?: string, isAllDay?: boolean): string {
   if (!dateStart) return "—";
   try {
     const s = new Date(dateStart);
     if (isNaN(s.getTime())) return dateStart;
 
+    // Only treat as all-day if isAllDay is explicitly true, or pure YYYY-MM-DD date strings with no time
+    const isWholeDay = Boolean(isAllDay) || (!dateStart.includes("T") && !dateStart.includes(":") && (!dateEnd || (!dateEnd.includes("T") && !dateEnd.includes(":"))));
+
     const startDateStr = s.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+
+    if (isWholeDay) {
+      if (!dateEnd || dateEnd === dateStart) return `${startDateStr} (All Day)`;
+      const e = new Date(dateEnd);
+      const endDateStr = e.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+      if (startDateStr === endDateStr) return `${startDateStr} (All Day)`;
+      return `${startDateStr} – ${endDateStr} (All Day)`;
+    }
+
     const hasTime = dateStart.includes("T") || dateStart.includes(":");
     const startTimeStr = hasTime ? s.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
 

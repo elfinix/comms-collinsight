@@ -619,7 +619,7 @@ export function DatePicker({
 
   return (
     <div className={`flex flex-col gap-1 ${className}`} ref={containerRef}>
-      {label && <label className="text-xs font-medium text-[var(--foreground)]">{label}</label>}
+      {label && <label className="text-sm font-medium text-[var(--foreground)]">{label}</label>}
 
       <div className="relative flex items-center">
         <input

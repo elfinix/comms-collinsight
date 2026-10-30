@@ -126,10 +126,12 @@ CREATE TABLE public.expenditure_categories (
 -- 2.8 Student Event Proposals & Institutional Initiatives
 CREATE TABLE public.events (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  organization_id TEXT NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
+  organization_id TEXT REFERENCES public.organizations(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  type_id TEXT NOT NULL REFERENCES public.event_types(id) ON DELETE RESTRICT,
-  category TEXT NOT NULL DEFAULT 'Organizational' CHECK (category IN ('Organizational', 'Departmental')),
+  type_id TEXT REFERENCES public.event_types(id) ON DELETE RESTRICT,
+  category TEXT NOT NULL DEFAULT 'Organizational' CHECK (category IN ('Organizational', 'Departmental', 'Institutional')),
+  is_institutional BOOLEAN NOT NULL DEFAULT false,
+  is_all_day BOOLEAN NOT NULL DEFAULT false,
   setting TEXT NOT NULL DEFAULT 'On-campus' CHECK (setting IN ('On-campus', 'Off-campus')),
   description TEXT NOT NULL,
   proposed_budget NUMERIC(12, 2) NOT NULL DEFAULT 0.00,

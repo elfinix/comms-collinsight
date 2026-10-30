@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { useAuth } from "./AuthContext";
 import {
   Event,
   Transaction,
@@ -103,6 +104,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+  const { currentUser } = useAuth();
 
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     try {
@@ -234,10 +236,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [tableDensity]);
 
-  const addAuditEntry = (entry: AuditEntry) => {
-    const entryWithId = {
-      ...entry,
+  const addAuditEntry = (entry: Partial<AuditEntry>) => {
+    const isInst = entry.actorRole === "admin" || (entry.action && entry.action.toLowerCase().includes("institutional"));
+    const defaultUserId = isInst ? "a1000000-0000-0000-0000-000000000001" : "51000000-0000-0000-0000-000000000001";
+    const entryWithId: AuditEntry = {
       id: entry.id || generateId(),
+      eventId: entry.eventId,
+      organizationId: entry.organizationId,
+      userId: entry.userId || currentUser?.id || defaultUserId,
+      actorRole: entry.actorRole || (currentUser?.role as any) || (isInst ? "admin" : "student"),
+      action: entry.action || "Activity Logged",
+      details: entry.details || "",
+      remarks: entry.remarks,
+      statusFrom: entry.statusFrom,
+      statusTo: entry.statusTo,
       timestamp: entry.timestamp || new Date().toISOString(),
     };
     setAudit((p) => [entryWithId, ...p]);
@@ -246,23 +258,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const addEvent = (e: Event) => {
+  const addEvent = async (e: Event) => {
     const eventWithId = { ...e, id: e.id || generateId() };
     setEvts((p) => [eventWithId, ...p]);
-    supabaseApi.createEvent(eventWithId).catch((err) =>
-      console.warn("Supabase createEvent error:", err)
-    );
-    addAuditEntry({
+
+    const isInst = eventWithId.isInstitutional || eventWithId.category === "Institutional";
+    const auditUserId =
+      currentUser?.id ||
+      eventWithId.createdBy ||
+      (isInst ? "a1000000-0000-0000-0000-000000000001" : "51000000-0000-0000-0000-000000000001");
+    const auditRole = isInst ? "admin" : (currentUser?.role || "student");
+
+    const auditEntry: AuditEntry = {
       id: generateId(),
       eventId: eventWithId.id,
       organizationId: eventWithId.organizationId,
-      userId: eventWithId.createdBy || "51000000-0000-0000-0000-000000000001",
-      actorRole: "student",
-      action: "Created Event",
-      details: `Created event proposal for '${eventWithId.name}'`,
-      statusTo: eventWithId.status || "Created",
+      userId: auditUserId,
+      actorRole: auditRole,
+      action: isInst ? "Created Institutional Event" : "Created Event",
+      details: isInst
+        ? `Created institutional event '${eventWithId.name}'`
+        : `Created event proposal for '${eventWithId.name}'`,
+      statusTo: eventWithId.status || (isInst ? "Approved" : "Created"),
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    setAudit((p) => [auditEntry, ...p]);
+
+    try {
+      await supabaseApi.createEvent(eventWithId);
+      await supabaseApi.createAuditEntry(auditEntry);
+    } catch (err) {
+      console.warn("Supabase createEvent/createAuditEntry error:", err);
+    }
   };
 
   const PROPOSAL_CONTENT_KEYS: (keyof Event)[] = [
@@ -275,6 +303,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     "location",
     "setting",
     "category",
+    "isInstitutional",
     "mode",
     "typeId",
     "apfUrl",
@@ -295,15 +324,54 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
 
     if (targetEvt && !skipAudit) {
-      if (u.status === "Closed") {
+      const isInst =
+        targetEvt.isInstitutional ||
+        targetEvt.category === "Institutional" ||
+        u.isInstitutional ||
+        u.category === "Institutional";
+      const auditUserId =
+        currentUser?.id ||
+        targetEvt.createdBy ||
+        (isInst ? "a1000000-0000-0000-0000-000000000001" : "51000000-0000-0000-0000-000000000001");
+      const auditRole = isInst ? "admin" : (currentUser?.role || "student");
+
+      if (u.deleted !== undefined) {
+        if (u.deleted && !targetEvt.deleted) {
+          addAuditEntry({
+            id: generateId(),
+            eventId: id,
+            organizationId: targetEvt.organizationId,
+            userId: auditUserId,
+            actorRole: auditRole,
+            action: isInst ? "Archived Institutional Event" : "Deleted Proposal",
+            details: isInst
+              ? `Archived institutional event '${targetEvt.name}'`
+              : `Deleted event proposal '${targetEvt.name}'`,
+            timestamp: new Date().toISOString(),
+          });
+        } else if (!u.deleted && targetEvt.deleted) {
+          addAuditEntry({
+            id: generateId(),
+            eventId: id,
+            organizationId: targetEvt.organizationId,
+            userId: auditUserId,
+            actorRole: auditRole,
+            action: isInst ? "Restored Institutional Event" : "Restored Proposal",
+            details: isInst
+              ? `Restored institutional event '${targetEvt.name}'`
+              : `Restored event proposal '${targetEvt.name}'`,
+            timestamp: new Date().toISOString(),
+          });
+        }
+      } else if (u.status === "Closed") {
         const rev = u.revenue !== undefined ? u.revenue : targetEvt.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
         addAuditEntry({
           id: generateId(),
           eventId: id,
           organizationId: targetEvt.organizationId,
-          userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
-          actorRole: "student",
+          userId: auditUserId,
+          actorRole: auditRole,
           action: "Event Closed",
           details: `Finalized liquidation and closed event '${targetEvt.name}'${revStr}`,
           statusFrom: targetEvt.status,
@@ -319,10 +387,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
             id: generateId(),
             eventId: id,
             organizationId: targetEvt.organizationId,
-            userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
-            actorRole: "student",
-            action: "Modified Proposal",
-            details: `Updated proposal details for '${u.name || targetEvt.name}'`,
+            userId: auditUserId,
+            actorRole: auditRole,
+            action: isInst ? "Modified Institutional Event" : "Modified Proposal",
+            details: isInst
+              ? `Updated institutional event details for '${u.name || targetEvt.name}'`
+              : `Updated proposal details for '${u.name || targetEvt.name}'`,
             timestamp: new Date().toISOString(),
           });
         }
@@ -337,15 +407,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.warn("Supabase softDeleteEvent error:", err)
     );
 
-    if (targetEvt) {
+    if (targetEvt && !targetEvt.deleted) {
+      const isInst = targetEvt.isInstitutional || targetEvt.category === "Institutional";
+      const auditUserId =
+        currentUser?.id ||
+        targetEvt.createdBy ||
+        (isInst ? "a1000000-0000-0000-0000-000000000001" : "51000000-0000-0000-0000-000000000001");
+      const auditRole = isInst ? "admin" : (currentUser?.role || "student");
+
       addAuditEntry({
         id: generateId(),
         eventId: id,
         organizationId: targetEvt.organizationId,
-        userId: targetEvt.createdBy || "51000000-0000-0000-0000-000000000001",
-        actorRole: "student",
-        action: "Deleted Proposal",
-        details: `Deleted event proposal '${targetEvt.name}'`,
+        userId: auditUserId,
+        actorRole: auditRole,
+        action: isInst ? "Archived Institutional Event" : "Deleted Proposal",
+        details: isInst
+          ? `Archived institutional event '${targetEvt.name}'`
+          : `Deleted event proposal '${targetEvt.name}'`,
         timestamp: new Date().toISOString(),
       });
     }
@@ -886,7 +965,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const orgLabel = targetOrg?.code || targetOrg?.name || "organization";
           const initPayload: Initiative = {
             id: generateId(),
-            organizationId: targetEvt.organizationId,
+            organizationId: targetEvt.organizationId || "01000000-0000-0000-0000-000000000001",
             name: `Surplus Reversion: ${targetEvt.name}`,
             title: `Surplus Reversion: ${targetEvt.name}`,
             source: "Event Revenue",

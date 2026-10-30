@@ -70,8 +70,8 @@ function ModeIcon({ mode, size = 12, className = "text-[var(--primary)]" }: { mo
   return <Building2 size={size} className={className} />;
 }
 
-function formatTimeRange(startStr: string, endStr: string): string {
-  return formatEventSchedule(startStr, endStr);
+function formatTimeRange(startStr: string, endStr: string, isAllDay?: boolean): string {
+  return formatEventSchedule(startStr, endStr, isAllDay);
 }
 
 function CalendarGrid({
@@ -97,9 +97,14 @@ function CalendarGrid({
   while (cells.length % 7 !== 0) cells.push(null);
 
   function eventsOnDay(day: number) {
+    const dayStart = new Date(viewYear, viewMonth, day, 0, 0, 0, 0).getTime();
+    const dayEnd = new Date(viewYear, viewMonth, day, 23, 59, 59, 999).getTime();
+
     return events.filter((e) => {
-      const d = new Date(e.dateStart);
-      return d.getFullYear() === viewYear && d.getMonth() === viewMonth && d.getDate() === day;
+      const s = new Date(e.dateStart).getTime();
+      const end = new Date(e.dateEnd).getTime();
+      if (isNaN(s) || isNaN(end)) return false;
+      return s <= dayEnd && end >= dayStart;
     });
   }
 
@@ -137,9 +142,9 @@ function CalendarGrid({
     selectedDay.year === viewYear;
 
   return (
-    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xs">
+    <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-xs">
       {/* Month Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-[var(--border)] bg-[var(--muted)]/30">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-[var(--border)] bg-[var(--muted)]/30 rounded-t-2xl">
         <div className="flex items-center gap-3">
           <h3 className="font-bold text-lg text-[var(--foreground)] tracking-tight">
             {MONTH_NAMES[viewMonth]} <span className="text-[var(--primary)]">{viewYear}</span>
@@ -239,7 +244,11 @@ function CalendarGrid({
 
                   <div className="flex flex-col gap-1 flex-1">
                     {dayEvents.slice(0, 2).map((e) => {
+                      const isInst = e.isInstitutional || e.category === "Institutional" || !e.organizationId;
                       const org = organizations.find((o) => o.id === e.organizationId);
+                      const badgeColor = isInst ? "#3f3f46" : (org?.logoColor ?? "var(--primary)");
+                      const prefix = isInst ? "LCUP" : (org?.code?.substring(0, 3) ?? "ORG");
+
                       return (
                         <button
                           key={e.id}
@@ -247,23 +256,61 @@ function CalendarGrid({
                             ev.stopPropagation();
                             onSelectEvent(e);
                           }}
-                          className="w-full text-left text-[10px] font-medium px-2 py-1 rounded-md truncate text-white leading-tight hover:brightness-110 hover:shadow-xs transition cursor-pointer"
-                          style={{ backgroundColor: org?.logoColor ?? "var(--primary)" }}
-                          title={`${e.name} (${org?.code ?? ""})`}
+                          className={`w-full text-left text-[10px] font-medium px-2 py-1 rounded-md truncate text-white leading-tight hover:brightness-110 hover:shadow-xs transition cursor-pointer ${
+                            isInst ? "bg-zinc-700 border border-zinc-600 font-semibold" : ""
+                          }`}
+                          style={{ backgroundColor: badgeColor }}
+                          title={`${e.name} (${prefix})`}
                         >
-                          {org?.logoUrl ? (
+                          {!isInst && org?.logoUrl ? (
                             <img src={org.logoUrl} alt="" className="w-3.5 h-3.5 rounded-sm object-contain inline-block mr-1 bg-white/20" />
                           ) : (
-                            <span className="font-bold opacity-90 mr-1">{org?.code}:</span>
+                            <span className="font-bold opacity-90 mr-1">{prefix}:</span>
                           )}
                           {e.name}
                         </button>
                       );
                     })}
                     {dayEvents.length > 2 && (
-                      <span className="text-[9px] font-mono font-bold text-[var(--primary)] px-1 mt-auto">
-                        +{dayEvents.length - 2} more
-                      </span>
+                      <div className="relative group/more mt-auto">
+                        <span className="text-[10px] font-mono font-bold text-[var(--primary)] hover:underline px-1 cursor-pointer inline-flex items-center gap-0.5">
+                          +{dayEvents.length - 2} more
+                        </span>
+                        <div className={`absolute ${idx % 7 >= 5 ? "right-0" : "left-0"} top-full mt-1.5 z-50 hidden group-hover/more:flex flex-col gap-1 p-2.5 bg-white dark:bg-zinc-800 border border-[var(--border)] rounded-xl shadow-xl min-w-[210px] max-w-[270px] pointer-events-auto`}>
+                          <div className="text-[10px] font-mono uppercase text-[var(--muted-foreground)] font-bold pb-1 border-b border-[var(--border)]">
+                            More Events on this day ({dayEvents.length - 2})
+                          </div>
+                          <div className="flex flex-col gap-1 max-h-48 overflow-y-auto pt-1">
+                            {dayEvents.slice(2).map((extra) => {
+                              const isInst = extra.isInstitutional || extra.category === "Institutional" || !extra.organizationId;
+                              const org = organizations.find((o) => o.id === extra.organizationId);
+                              const prefix = isInst ? "LCUP" : (org?.code?.substring(0, 3) ?? "ORG");
+                              const badgeColor = isInst ? "#3f3f46" : (org?.logoColor ?? "var(--primary)");
+
+                              return (
+                                <button
+                                  key={extra.id}
+                                  type="button"
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    onSelectEvent(extra);
+                                  }}
+                                  className={`w-full text-left text-[10px] font-medium px-2 py-1 rounded-md truncate transition leading-tight ${
+                                    isInst
+                                      ? "bg-zinc-700 border border-zinc-600 text-white font-semibold hover:brightness-110 cursor-pointer shadow-2xs"
+                                      : "text-white opacity-95 hover:opacity-100 hover:brightness-110 cursor-pointer shadow-2xs"
+                                  }`}
+                                  style={!isInst ? { backgroundColor: badgeColor } : undefined}
+                                  title={extra.name}
+                                >
+                                  <span className="font-bold mr-1 opacity-90">{prefix}:</span>
+                                  {extra.name}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -364,15 +411,18 @@ export default function OrganizationsPage() {
         }
       }
       // Org filter
-      if (selectedOrgFilter !== "all" && e.organizationId !== selectedOrgFilter) return false;
+      if (selectedOrgFilter === "institutional") {
+        if (!e.isInstitutional && e.category !== "Institutional" && e.organizationId) return false;
+      } else if (selectedOrgFilter !== "all" && e.organizationId !== selectedOrgFilter) {
+        return false;
+      }
       // Day filter
       if (selectedDay) {
-        const d = new Date(e.dateStart);
-        if (
-          d.getFullYear() !== selectedDay.year ||
-          d.getMonth() !== selectedDay.month ||
-          d.getDate() !== selectedDay.day
-        ) {
+        const dayStart = new Date(selectedDay.year, selectedDay.month, selectedDay.day, 0, 0, 0, 0).getTime();
+        const dayEnd = new Date(selectedDay.year, selectedDay.month, selectedDay.day, 23, 59, 59, 999).getTime();
+        const s = new Date(e.dateStart).getTime();
+        const end = new Date(e.dateEnd).getTime();
+        if (isNaN(s) || isNaN(end) || s > dayEnd || end < dayStart) {
           return false;
         }
       }
@@ -844,7 +894,8 @@ export default function OrganizationsPage() {
                       onChange={(e) => setSelectedOrgFilter(e.target.value)}
                       className="px-3 py-2 text-xs font-semibold bg-[var(--background)] border border-[var(--border)] rounded-xl text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] cursor-pointer max-w-[200px] truncate"
                     >
-                      <option value="all">All Organizations</option>
+                      <option value="all">All Events</option>
+                      <option value="institutional">Institutional Events</option>
                       {organizations.map((o) => (
                         <option key={o.id} value={o.id}>
                           {o.code} — {o.name}
@@ -1015,7 +1066,7 @@ export default function OrganizationsPage() {
                             <div className="flex items-center gap-2 truncate">
                               <Clock size={13} className="text-[var(--primary)] flex-shrink-0" />
                               <span className="truncate">
-                                {formatTimeRange(e.dateStart, e.dateEnd)}
+                                {formatTimeRange(e.dateStart, e.dateEnd, e.isAllDay)}
                               </span>
                             </div>
                             <div className="flex items-center gap-2 truncate">
@@ -1033,7 +1084,13 @@ export default function OrganizationsPage() {
                         {/* Card Footer: Organization pill & Event Type */}
                         <div className="flex items-center justify-between gap-2 pt-3 border-t border-[var(--border)] mt-auto w-full">
                           <div className="flex items-center gap-2 min-w-0">
-                            {org?.logoUrl ? (
+                            {(!e.organizationId || e.isInstitutional || e.category === "Institutional") ? (
+                              <img
+                                src="/images/lcup_logo.png"
+                                alt="LCUP Administration"
+                                className="w-5 h-5 rounded object-contain bg-white dark:bg-zinc-800 p-0.5 border border-[var(--border)] flex-shrink-0"
+                              />
+                            ) : org?.logoUrl ? (
                               <img
                                 src={org.logoUrl}
                                 alt={org.name}
@@ -1048,7 +1105,9 @@ export default function OrganizationsPage() {
                               </div>
                             )}
                             <span className="text-xs font-semibold text-[var(--foreground)] truncate">
-                              {org?.name}
+                              {(!e.organizationId || e.isInstitutional || e.category === "Institutional")
+                                ? "LCUP Administration"
+                                : (org?.name ?? "Student Org")}
                             </span>
                           </div>
                           {type && (
@@ -1066,6 +1125,7 @@ export default function OrganizationsPage() {
               /* List Layout */
               <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl overflow-hidden shadow-xs divide-y divide-[var(--border)]">
                 {filteredCalendarEvents.map((e, i) => {
+                  const isInst = !e.organizationId || e.isInstitutional || e.category === "Institutional";
                   const org = organizations.find((o) => o.id === e.organizationId);
                   const type = getEventTypeById(e.typeId);
                   return (
@@ -1075,7 +1135,13 @@ export default function OrganizationsPage() {
                         className="w-full p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left hover:bg-[var(--muted)]/40 transition group cursor-pointer"
                       >
                         <div className="flex items-start sm:items-center gap-4 min-w-0 flex-1">
-                          {org?.logoUrl ? (
+                          {isInst ? (
+                            <img
+                              src="/images/lcup_logo.png"
+                              alt="LCUP Administration"
+                              className="w-12 h-12 rounded-xl object-contain bg-white dark:bg-zinc-800 p-1.5 border border-[var(--border)] flex-shrink-0 shadow-2xs"
+                            />
+                          ) : org?.logoUrl ? (
                             <img
                               src={org.logoUrl}
                               alt={org.name}
@@ -1101,7 +1167,7 @@ export default function OrganizationsPage() {
                             <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)] font-mono flex-wrap">
                               <span className="font-bold text-[var(--primary)]">{formatDate(e.dateStart)}</span>
                               <span>•</span>
-                              <span>{formatTimeRange(e.dateStart, e.dateEnd)}</span>
+                              <span>{formatTimeRange(e.dateStart, e.dateEnd, e.isAllDay)}</span>
                               <span>•</span>
                               <span className="flex items-center gap-1">
                                 <ModeIcon mode={e.mode} size={12} />
@@ -1135,16 +1201,177 @@ export default function OrganizationsPage() {
         <Dialog
           open={!!selectedEvent}
           onClose={() => setSelectedEvent(null)}
-          title={selectedEvent.name}
+          title={
+            (!selectedEvent.organizationId || selectedEvent.isInstitutional || selectedEvent.category === "Institutional")
+              ? "Institutional Event Details"
+              : selectedEvent.name
+          }
           size="lg"
         >
           {(() => {
+            const isInst = !selectedEvent.organizationId || selectedEvent.isInstitutional || selectedEvent.category === "Institutional";
             const org = organizations.find((o) => o.id === selectedEvent.organizationId);
             const dept = departments.find((d) => d.id === org?.departmentId);
             const type = getEventTypeById(selectedEvent.typeId);
             const eventTxns = liveTxns.filter((t) => t.eventId === selectedEvent.id && !t.deleted);
             const totalDisbursed = eventTxns.reduce((s, t) => s + t.amount, 0);
             const remainingBalance = selectedEvent.proposedBudget - totalDisbursed;
+
+            if (isInst) {
+              return (
+                <div className="p-6 flex flex-col gap-5">
+                  {/* Institutional Header Banner */}
+                  <div className="flex items-center justify-between gap-4 p-4 rounded-xl bg-[var(--muted)]/40 border border-[var(--border)]">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <img
+                        src="/images/lcup_logo.png"
+                        alt="LCUP Administration"
+                        className="w-11 h-11 rounded-xl object-contain bg-white dark:bg-zinc-800 p-1 border border-[var(--border)] flex-shrink-0 shadow-2xs"
+                      />
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-[var(--foreground)] truncate">
+                          LCUP Admin · Institutional Event
+                        </p>
+                        <p className="text-xs font-mono text-[var(--muted-foreground)] truncate">
+                          University-wide
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                      <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
+                        {selectedEvent.setting || "On-campus"}
+                      </span>
+                      <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-[var(--card)] text-[var(--foreground)] border border-[var(--border)] font-semibold">
+                        {selectedEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Event Title & Subtitle Type */}
+                  <div>
+                    <h2 className="text-xl font-extrabold text-[var(--foreground)] leading-tight">
+                      {selectedEvent.name}
+                    </h2>
+                    <p className="text-xs font-mono text-[var(--muted-foreground)] mt-1 font-semibold">
+                      {type?.name ?? "Official Campus Initiative"}
+                    </p>
+                  </div>
+
+                  {/* Metadata Info Grid */}
+                  <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                        <Tag size={12} className="text-[var(--primary)]" /> Classification
+                      </p>
+                      <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                        {type?.name || "Institutional Event"}
+                      </p>
+                    </div>
+
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                        <Compass size={12} className="text-[var(--primary)]" /> Setting & Scope
+                      </p>
+                      <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                        {selectedEvent.setting || "On-campus"}
+                      </p>
+                    </div>
+
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                        <Clock size={12} className="text-[var(--primary)]" /> Scheduled Date & Time
+                      </p>
+                      <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
+                        {formatTimeRange(selectedEvent.dateStart, selectedEvent.dateEnd, selectedEvent.isAllDay)}
+                      </p>
+                    </div>
+
+                    <div className="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-2xs">
+                      <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1 font-bold">
+                        {selectedEvent.mode === "Online/Virtual" ? (
+                          <Video size={12} className="text-[var(--primary)]" />
+                        ) : (
+                          <MapPin size={12} className="text-[var(--primary)]" />
+                        )}{" "}
+                        {selectedEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}
+                      </p>
+                      {isWebUrl(selectedEvent.location) ? (
+                        <a
+                          href={toWebUrl(selectedEvent.location!)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-bold text-xs text-[var(--primary)] hover:underline underline-offset-2 flex items-center gap-1.5 leading-snug break-all transition-colors"
+                        >
+                          <span className="truncate">{selectedEvent.location}</span>
+                          <ExternalLink size={12} className="flex-shrink-0 text-[var(--primary)]" />
+                        </a>
+                      ) : (
+                        <p className="font-bold text-xs text-[var(--foreground)] leading-snug truncate">
+                          {selectedEvent.location || "LCUP Main Campus"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Overview & Objectives */}
+                  <div>
+                    <p className="text-[10px] font-mono text-[var(--foreground)] uppercase tracking-wider mb-1.5 font-bold">
+                      Event Overview & Objectives
+                    </p>
+                    <div className="bg-[var(--muted)]/30 border border-[var(--border)] rounded-xl p-4 text-xs sm:text-sm text-[var(--foreground)] leading-relaxed font-medium whitespace-pre-wrap">
+                      {selectedEvent.description || "No description provided."}
+                    </div>
+                  </div>
+
+                  {/* Target Scope & Requisites */}
+                  {selectedEvent.requisites && (
+                    <div>
+                      <p className="text-[10px] font-mono text-[var(--foreground)] uppercase tracking-wider mb-1.5 font-bold">
+                        Attendee Requisites & Target Scope
+                      </p>
+                      <p className="bg-[var(--muted)]/30 border border-[var(--border)] rounded-xl p-3.5 text-xs text-[var(--foreground)] leading-relaxed font-medium">
+                        {selectedEvent.requisites}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Official Memo / Attached Document Banner */}
+                  {selectedEvent.apfUrl && (
+                    <div className="p-4 bg-orange-50/60 dark:bg-zinc-800/60 border border-orange-200 dark:border-zinc-700 rounded-xl flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-orange-100 dark:bg-zinc-700 border border-orange-200 dark:border-zinc-600 flex items-center justify-center text-[var(--primary)] flex-shrink-0">
+                          <Link2 size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-[var(--foreground)]">Official Memo / Attached Document</p>
+                          <p className="text-[11px] text-[var(--muted-foreground)] truncate max-w-sm font-mono">{selectedEvent.apfUrl}</p>
+                        </div>
+                      </div>
+                      <a
+                        href={toWebUrl(selectedEvent.apfUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-1.5 rounded-lg bg-[var(--primary)] text-white text-xs font-semibold hover:bg-[var(--primary)]/90 inline-flex items-center gap-1.5 shadow-2xs flex-shrink-0 cursor-pointer"
+                      >
+                        <span>Open Document</span>
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEvent(null)}
+                      className="px-4 py-2 text-xs font-semibold rounded-xl border border-[var(--border)] bg-[var(--card)] hover:bg-[var(--muted)] text-[var(--foreground)] transition cursor-pointer shadow-2xs"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <div className="p-6 flex flex-col gap-6">
@@ -1216,7 +1443,7 @@ export default function OrganizationsPage() {
                       <Clock size={12} className="text-[var(--primary)]" /> Date & Schedule
                     </p>
                     <p className="font-bold text-xs text-[var(--foreground)] leading-snug">
-                      {formatTimeRange(selectedEvent.dateStart, selectedEvent.dateEnd)}
+                      {formatTimeRange(selectedEvent.dateStart, selectedEvent.dateEnd, selectedEvent.isAllDay)}
                     </p>
                   </div>
 
