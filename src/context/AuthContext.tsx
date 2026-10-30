@@ -13,6 +13,8 @@ export function getDefaultDashboardPath(role?: string): string {
       return "/dean/dashboard";
     case "admin":
       return "/admin/dashboard";
+    case "sds":
+      return "/sds/dashboard";
     default:
       return "/";
   }

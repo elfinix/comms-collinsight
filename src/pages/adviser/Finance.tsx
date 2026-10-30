@@ -25,11 +25,8 @@ import { getInitiativeSourceBadgeClass } from "../student/Finance";
 
 const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#ef4444", "#10b981", "#f97316"];
 
-function isEventFinanceUnlocked(status: string, setting?: string): boolean {
+function isEventFinanceUnlocked(status: string, _setting?: string): boolean {
   if (status === "Completed" || status === "Closed") return true;
-  if (setting === "Off-campus") {
-    return status === "CMO Authorized";
-  }
   return status === "SDS Authorized" || status === "CMO Authorized";
 }
 
@@ -726,7 +723,7 @@ export default function AdviserFinance() {
                                 {/* Notice */}
                                 <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium">
                                   <Clock size={14} className="text-amber-600 shrink-0" />
-                                  <span>Ledger locked · Activates on {e.setting === "Off-campus" ? "CMO" : "SDS"} authorization</span>
+                                  <span>Ledger locked · Activates on SDS authorization</span>
                                 </div>
 
                                 {/* Footer */}
@@ -756,7 +753,7 @@ export default function AdviserFinance() {
                                       <td className="px-4 py-3 font-semibold text-[var(--foreground)] max-w-[220px]">
                                         <div className="truncate">{e.name}</div>
                                         <span className="text-[10px] font-mono text-amber-700 font-medium block mt-0.5">
-                                          Awaiting {e.setting === "Off-campus" ? "CMO" : "SDS"} Authorization
+                                          Awaiting SDS Authorization
                                         </span>
                                       </td>
                                       <td className="px-4 py-3 text-xs">

@@ -394,8 +394,12 @@ export const supabaseApi = {
   // Event Signatories API (Feedback & Approvals Iteration Bridge)
   // --------------------------------------------------------------------------
   async createEventSignatory(sig: EventSignatory) {
-    const isTokenOrInvalid = !sig.userId || !sig.userId.includes("-0000-");
-    const dbUserId = isTokenOrInvalid ? "e1000000-0000-0000-0000-000000000001" : sig.userId;
+    let dbUserId = sig.userId;
+    if (sig.role === "sds" || dbUserId === "sds-external-token") {
+      dbUserId = "d1000000-0000-0000-0000-000000000001";
+    } else if (!dbUserId || !dbUserId.includes("-0000-")) {
+      dbUserId = "e1000000-0000-0000-0000-000000000001";
+    }
     const dbPayload = {
       id: sig.id,
       event_id: sig.eventId,
@@ -625,6 +629,8 @@ export const supabaseApi = {
       dbUserId = "a1000000-0000-0000-0000-000000000001";
     } else if (!dbUserId.includes("-0000-") && entry.actorRole === "admin") {
       dbUserId = "a1000000-0000-0000-0000-000000000001";
+    } else if (entry.actorRole === "sds" || dbUserId === "sds-external-token") {
+      dbUserId = "d1000000-0000-0000-0000-000000000001";
     } else if (!dbUserId.includes("-0000-")) {
       dbUserId = "e1000000-0000-0000-0000-000000000001";
     }

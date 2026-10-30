@@ -1732,7 +1732,7 @@ export default function OrganizationsPage() {
                       Signatory Approval Progression
                     </p>
                     <span className="text-[10px] font-mono text-[var(--primary)] font-bold">
-                      {selectedEvent.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}
+                      Student → Adviser → Dean → SDS
                     </span>
                   </div>
                   <SignatoryProgress status={selectedEvent.status} setting={selectedEvent.setting} />

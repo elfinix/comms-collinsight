@@ -10,7 +10,7 @@
 // 1. DOMAIN TYPES & ENUMS
 // ============================================================================
 
-export type UserRole = "student" | "adviser" | "dean" | "admin";
+export type UserRole = "student" | "adviser" | "dean" | "admin" | "sds" | "cmo";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";
 export type EventCategory = "Organizational" | "Departmental" | "Institutional";
@@ -20,6 +20,7 @@ export type EventStatus =
   | "For Review"
   | "For Approval"
   | "Approved"
+  | "For Review (SDS)"
   | "SDS Authorized"
   | "CMO Authorized"
   | "Pending Revision"
@@ -381,6 +382,20 @@ export const expenditureCategories: ExpenditureCategory[] = [
 
 export const users: User[] = [
   {
+    id: "d1000000-0000-0000-0000-000000000001",
+    firstName: "Student Development & Services",
+    middleName: "Office",
+    lastName: "(SDS)",
+    suffix: "LCUP",
+    email: "sds@cite.edu.ph",
+    password: "collinsight_sds",
+    role: "sds",
+    position: "Director of Student Development & Services",
+    gender: "non-binary",
+    yearLevel: "Faculty/Staff",
+    memberSince: "2022-01-01",
+  },
+  {
     id: "user-admin-1",
     firstName: "Team COLLinSight",
     middleName: "",
@@ -728,6 +743,7 @@ export const statusColors: Record<EventStatus, string> = {
   "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
   "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  "For Review (SDS)": "bg-orange-100 text-orange-900 border border-orange-300 font-medium",
   "SDS Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "CMO Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
@@ -738,21 +754,12 @@ export const statusColors: Record<EventStatus, string> = {
 
 /**
  * Returns the contextual CSS classes for an event status badge based on its setting.
- * For Off-campus:
- *   - "SDS Authorized" = Light softer indigo bg, dark indigo text (intermediate step)
- *   - "CMO Authorized" = Light indigo bg, dark indigo text (final authorized phase)
- * For On-campus:
- *   - "SDS Authorized" = Light indigo bg, dark indigo text (final authorized phase)
  */
-export function getStatusBadgeClass(status: EventStatus, setting?: EventSetting): string {
-  if (status === "SDS Authorized") {
-    if (setting === "Off-campus") {
-      return "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60 font-medium";
-    }
-    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+export function getStatusBadgeClass(status: EventStatus, _setting?: EventSetting): string {
+  if (status === "For Review (SDS)") {
+    return "bg-orange-100 text-orange-900 border border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-700 font-medium";
   }
-
-  if (status === "CMO Authorized") {
+  if (status === "SDS Authorized" || status === "CMO Authorized") {
     return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
   }
 

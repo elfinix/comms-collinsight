@@ -18,7 +18,6 @@ import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, Ex
 import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories, isExcelFile, isGoogleDocsUrl, formatComplianceDocLabel } from "../../services/dataService";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
-import { dispatchClearanceEmail } from "../../services/mailerService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
@@ -82,34 +81,10 @@ export default function DeanPendingApproval() {
       console.warn("[DeanApproval] Storage upload notice:", e);
     }
 
-    // 2. Concurrently Dispatch Official Email with Clearance, APF & Appendices
-    let emailStatusMessage = "";
-    try {
-      const emailResult = await dispatchClearanceEmail({
-        event: targetApprovedEvent,
-        organizationName: orgName,
-        eventTypeName: typeName,
-        officerName,
-        adviserName,
-        deanName,
-        feedback: trimmed || undefined,
-        actionToken: freshSdsToken,
-      });
-
-      if (emailResult.success) {
-        emailStatusMessage = ` Official notification email & clearance certificate dispatched to SDS (${emailResult.to || "sds@unlv.edu.ph"}).`;
-      } else {
-        emailStatusMessage = ` Notification notice: ${emailResult.error || "Email dispatch simulated in dev mode."}`;
-      }
-    } catch (err: any) {
-      console.warn("[DeanApproval] Clearance email dispatch warning:", err);
-      emailStatusMessage = " Notification notice: Dispatch completed in local offline mode.";
-    }
-
-    // 3. Update Database & Local App State
+    // 2. Update Database & Local App State
     setEventStatus(viewEvent.id, "Approved", trimmed || undefined, currentUser?.id, { sdsActionToken: freshSdsToken });
     setIsApproving(false);
-    toast.success("Proposal Approved", `'${viewEvent.name}' approved.${emailStatusMessage}`, {
+    toast.success("Proposal Approved", `'${viewEvent.name}' approved and dispatched to SDS.`, {
       action: {
         label: "Click here to view event details",
         onClick: () => {
@@ -549,7 +524,7 @@ export default function DeanPendingApproval() {
 
       <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
-          <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance. APF, Clearance, and Appendices will be emailed to SDS.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance document dispatched to SDS.</p>
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Optional notes..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowApproveRemarks(false)} disabled={isApproving}>Cancel</Button>

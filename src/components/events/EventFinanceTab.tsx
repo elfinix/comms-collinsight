@@ -33,9 +33,8 @@ export default function EventFinanceTab({
   const isUnlocked =
     event.status === "Completed" ||
     event.status === "Closed" ||
-    (event.setting === "Off-campus"
-      ? event.status === "CMO Authorized"
-      : (event.status === "SDS Authorized" || event.status === "CMO Authorized"));
+    event.status === "SDS Authorized" ||
+    event.status === "CMO Authorized";
   const isClosed = event.status === "Closed";
   const isRejected = event.status === "Rejected";
 
@@ -112,7 +111,7 @@ export default function EventFinanceTab({
   }
 
   if (!isUnlocked) {
-    const requiredAuthOffice = event.setting === "Off-campus" ? "Crisis Management Office (CMO)" : "Student Development & Services (SDS)";
+    const requiredAuthOffice = "Student Development & Services (SDS)";
     return (
       <div className="flex flex-col gap-4">
         <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-amber-900">

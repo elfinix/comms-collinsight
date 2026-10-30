@@ -109,6 +109,8 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
             entry.actorRole === "sds" ||
             entry.userId === "sds-external-token" ||
             entry.action === "SDS Authorized" ||
+            entry.action === "For Review (SDS)" ||
+            entry.statusTo === "For Review (SDS)" ||
             (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
             (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
 

@@ -1385,49 +1385,32 @@ export function EmptyState({ icon, title, description, action }: { icon?: ReactN
 export function SignatoryProgress({ status, setting = "On-campus" }: { status: string; setting?: string }) {
   const isRevision = status === "Pending Revision";
   const isRejected = status === "Rejected";
-  const isOffCampus = setting === "Off-campus";
+  const isSdsReview = status === "For Review (SDS)";
 
-  const steps = isOffCampus
-    ? [
-        { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
-        { label: "Adviser", sub: "Endorsement" },
-        { label: "Dean", sub: "Dean Approval" },
-        { label: "SDS", sub: "SDS Clearance" },
-        { label: "CMO", sub: "CMO Clearance" },
-      ]
-    : [
-        { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
-        { label: "Adviser", sub: "Endorsement" },
-        { label: "Dean", sub: "Dean Approval" },
-        { label: "SDS", sub: "Final Clearance" },
-      ];
+  // Strictly 4-stage journey for all events: Student -> Adviser -> Dean -> SDS (Final Checkpoint)
+  const steps = [
+    { label: "Student", sub: isRevision ? "Revision Needed" : "APF Submission" },
+    { label: "Adviser", sub: "Endorsement" },
+    { label: "Dean", sub: "Dean Approval" },
+    { label: "SDS", sub: isSdsReview ? "Under Review" : "SDS Clearance" },
+  ];
 
   const totalSteps = steps.length;
 
-  const stepIndex = isOffCampus
-    ? ({
-        Created: 0,
-        "Pending Revision": 0,
-        "For Review": 1,
-        "For Approval": 2,
-        Approved: 3,
-        "SDS Authorized": 4,
-        "CMO Authorized": 5,
-        Rejected: 4,
-        Completed: 5,
-        Closed: 5,
-      }[status] ?? 0)
-    : ({
-        Created: 0,
-        "Pending Revision": 0,
-        "For Review": 1,
-        "For Approval": 2,
-        Approved: 3,
-        "SDS Authorized": 4,
-        Rejected: 3,
-        Completed: 4,
-        Closed: 4,
-      }[status] ?? 0);
+  const stepIndex =
+    {
+      Created: 0,
+      "Pending Revision": 0,
+      "For Review": 1,
+      "For Approval": 2,
+      Approved: 3,
+      "For Review (SDS)": 3,
+      "SDS Authorized": 4,
+      "CMO Authorized": 4,
+      Rejected: 3,
+      Completed: 4,
+      Closed: 4,
+    }[status] ?? 0;
 
   return (
     <div className="w-full py-1.5 overflow-hidden">

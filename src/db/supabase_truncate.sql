@@ -10,7 +10,8 @@
 --   while retaining ONLY:
 --     1. System Administrator account (Team COLLinSight CITE)
 --     2. College Dean account (Dr. Marilou Villanueva)
---     3. One Faculty Adviser account (Prof. Eduardo Reyes)
+--     3. Dedicated SDS account (Student Development & Services)
+--     4. One Faculty Adviser account (Prof. Eduardo Reyes)
 -- ==============================================================================
 
 BEGIN;
@@ -36,6 +37,28 @@ RESTART IDENTITY CASCADE;
 
 -- Ensure settings column exists on public.users
 ALTER TABLE IF EXISTS public.users ADD COLUMN IF NOT EXISTS settings JSONB DEFAULT '{"theme":"light","dataDensity":"comfortable","tableDensity":"normal","defaultView":"list"}'::jsonb;
+
+-- Ensure users_role_check constraint allows sds and cmo
+ALTER TABLE IF EXISTS public.users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE IF EXISTS public.users ADD CONSTRAINT users_role_check CHECK (role IN ('student', 'adviser', 'dean', 'admin', 'sds', 'cmo'));
+
+-- Ensure events_status_check constraint includes 'For Review (SDS)'
+ALTER TABLE IF EXISTS public.events DROP CONSTRAINT IF EXISTS events_status_check;
+ALTER TABLE IF EXISTS public.events ADD CONSTRAINT events_status_check CHECK (
+  status IN (
+    'Created',
+    'For Review',
+    'For Approval',
+    'Approved',
+    'For Review (SDS)',
+    'SDS Authorized',
+    'CMO Authorized',
+    'Pending Revision',
+    'Rejected',
+    'Completed',
+    'Closed'
+  )
+);
 
 -- Re-establish FK on organizations
 ALTER TABLE public.organizations
@@ -84,6 +107,24 @@ INSERT INTO public.users (
     NULL,
     'Faculty/Staff',
     '2020-08-01',
+    false,
+    '{"theme":"light","dataDensity":"comfortable","tableDensity":"normal","defaultView":"list"}'::jsonb
+  ),
+  -- Student Development & Services (SDS) Dedicated Account
+  (
+    'd1000000-0000-0000-0000-000000000001',
+    'Student Development & Services',
+    'Office',
+    '(SDS)',
+    'LCUP',
+    'sds@cite.edu.ph',
+    'collinsight_sds',
+    'sds',
+    'Director of Student Development & Services',
+    'non-binary',
+    NULL,
+    'Faculty/Staff',
+    '2022-01-01',
     false,
     '{"theme":"light","dataDensity":"comfortable","tableDensity":"normal","defaultView":"list"}'::jsonb
   ),

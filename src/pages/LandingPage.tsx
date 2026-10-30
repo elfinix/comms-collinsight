@@ -120,7 +120,7 @@ export default function LandingPage() {
                   </div>
                   <p className="font-bold text-white text-sm mb-4">TechFest 2026: IT Innovation Summit</p>
                   <div className="flex items-center gap-0 mb-4">
-                    {["Student", "Adviser", "Dean", "SDS / CMO"].map((step, i) => (
+                    {["Student", "Adviser", "Dean", "SDS"].map((step, i) => (
                       <div key={step} className="flex items-center">
                         <div className="flex flex-col items-center gap-1">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 2 ? "bg-orange-500 text-white shadow-sm" : i === 2 ? "bg-blue-500 text-white ring-2 ring-offset-1 ring-orange-300 ring-offset-transparent shadow-sm" : "bg-white/20 text-slate-300"}`}>
@@ -249,7 +249,7 @@ export default function LandingPage() {
                   { label: "Draft", desc: "Officers create event details, choose Category & Setting, and upload APF/PCF compliance documents." },
                   { label: "Adviser Review", desc: "Faculty adviser reviews the proposal and provides feedback or approval." },
                   { label: "Dean Approval", desc: "College Dean gives final collegiate endorsement and generates official clearance." },
-                  { label: "SDS & CMO Authorization", desc: "External review by SDS (and CMO for off-campus events) grants final clearance and unlocks the finance ledger." },
+                  { label: "SDS Clearance", desc: "Student Development & Services (SDS) grants final clearance and unlocks the finance ledger." },
                 ],
               },
               {
@@ -257,7 +257,7 @@ export default function LandingPage() {
                 icon: <BarChart2 size={20} className="text-white" />,
                 headerBg: "bg-[#1e3a8a]",
                 steps: [
-                  { label: "Ledger Unlocked", desc: "SDS/CMO Authorization unlocks the event's financial ledger for disbursement entry." },
+                  { label: "Ledger Unlocked", desc: "SDS Clearance unlocks the event's financial ledger for disbursement entry." },
                   { label: "Log Expenses", desc: "Officers record expenditures by category with digital receipt uploads." },
                   { label: "Track Budget", desc: "System tracks departmental and self-generated organizational funds in real-time." },
                   { label: "Liquidation & Surplus", desc: "Event closure auto-deposits remaining surplus revenues into the organization's treasury." },
@@ -310,9 +310,7 @@ export default function LandingPage() {
                   { label: "→", color: "text-[var(--muted-foreground)]" },
                   { label: "Approved", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "SDS Authorized", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-                  { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "CMO Authorized", sub: "Off-campus", color: "bg-indigo-100 text-indigo-900 border-indigo-300" },
+                  { label: "SDS Authorized", color: "bg-indigo-100 text-indigo-900 border-indigo-300", sub: "Final Clearance" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
                   { label: "Completed", color: "bg-teal-100 text-teal-800 border-teal-200" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },

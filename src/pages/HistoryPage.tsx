@@ -62,6 +62,13 @@ export default function HistoryPage() {
         { id: "REVISION" as ActionFilterType, label: "Revision Requests" },
       ];
     }
+    if (role === "sds") {
+      return [
+        { id: "ALL" as ActionFilterType, label: "All" },
+        { id: "APPROVE" as ActionFilterType, label: "Authorizations" },
+        { id: "REVISION" as ActionFilterType, label: "Revision Requests" },
+      ];
+    }
     return ACTION_FILTERS;
   }, [role]);
 
@@ -102,6 +109,19 @@ export default function HistoryPage() {
           entry.details?.toLowerCase().includes("college dean");
 
         return isDeanRole || isDeanExecutiveAction || entry.userId === currentUser?.id;
+      }
+
+      // For SDS: Clearance authorizations and revision requests dispatched by SDS
+      if (role === "sds") {
+        return (
+          entry.actorRole === "sds" ||
+          entry.userId === currentUser?.id ||
+          entry.userId === "d1000000-0000-0000-0000-000000000001" ||
+          entry.userId === "sds-external-token" ||
+          entry.action.toLowerCase().includes("sds") ||
+          entry.details?.toLowerCase().includes("student development") ||
+          entry.details?.toLowerCase().includes("by sds")
+        );
       }
 
       // For Student and Adviser: Organization's events history
@@ -447,6 +467,8 @@ export default function HistoryPage() {
                   entry.actorRole === "sds" ||
                   entry.userId === "sds-external-token" ||
                   entry.action === "SDS Authorized" ||
+                  entry.action === "For Review (SDS)" ||
+                  entry.statusTo === "For Review (SDS)" ||
                   (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
                   (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
 
@@ -670,6 +692,8 @@ export default function HistoryPage() {
                       entry.actorRole === "sds" ||
                       entry.userId === "sds-external-token" ||
                       entry.action === "SDS Authorized" ||
+                      entry.action === "For Review (SDS)" ||
+                      entry.statusTo === "For Review (SDS)" ||
                       (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
                       (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
 

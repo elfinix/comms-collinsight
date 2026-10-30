@@ -49,7 +49,7 @@ export default function DeanApprovedEvents() {
   };
 
   const baseApproved = useMemo(() => {
-    return events.filter((e) => ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
+    return events.filter((e) => ["Approved", "For Review (SDS)", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
   }, [events]);
 
   const totalSpent = useMemo(() => {
@@ -77,6 +77,8 @@ export default function DeanApprovedEvents() {
         if (statusFilter !== "All") {
           if (statusFilter === "Authorized") {
             if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+          } else if (statusFilter === "Approved") {
+            if (e.status !== "Approved" && e.status !== "For Review (SDS)") return false;
           } else if (e.status !== statusFilter) {
             return false;
           }
@@ -300,6 +302,8 @@ export default function DeanApprovedEvents() {
                   ? baseApproved.length
                   : s === "Authorized"
                   ? baseApproved.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                  : s === "Approved"
+                  ? baseApproved.filter((e) => e.status === "Approved" || e.status === "For Review (SDS)").length
                   : baseApproved.filter((e) => e.status === s).length;
 
               return (

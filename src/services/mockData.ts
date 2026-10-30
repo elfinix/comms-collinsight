@@ -15,6 +15,7 @@ export type EventStatus =
   | "For Approval"
   | "Pending Revision"
   | "Approved"
+  | "For Review (SDS)"
   | "SDS Authorized"
   | "CMO Authorized"
   | "Rejected"
@@ -1218,6 +1219,7 @@ export const statusColors: Record<EventStatus, string> = {
   "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
   Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  "For Review (SDS)": "bg-orange-100 text-orange-900 border border-orange-300 font-medium",
   "SDS Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "CMO Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   Rejected: "bg-rose-100 text-rose-800 border border-rose-300 font-medium",
@@ -1225,15 +1227,11 @@ export const statusColors: Record<EventStatus, string> = {
   Closed: "bg-gray-100 text-gray-700 border border-gray-300 font-medium",
 };
 
-export function getStatusBadgeClass(status: EventStatus, setting?: EventSetting): string {
-  if (status === "SDS Authorized") {
-    if (setting === "Off-campus") {
-      return "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60 font-medium";
-    }
-    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+export function getStatusBadgeClass(status: EventStatus, _setting?: EventSetting): string {
+  if (status === "For Review (SDS)") {
+    return "bg-orange-100 text-orange-900 border border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-700 font-medium";
   }
-
-  if (status === "CMO Authorized") {
+  if (status === "SDS Authorized" || status === "CMO Authorized") {
     return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
   }
 

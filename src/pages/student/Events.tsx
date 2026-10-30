@@ -292,6 +292,8 @@ export default function StudentEvents() {
       if (statusFilter !== "All") {
         if (statusFilter === "Authorized") {
           if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+        } else if (statusFilter === "Approved") {
+          if (e.status !== "Approved" && e.status !== "For Review (SDS)") return false;
         } else if (e.status !== statusFilter) {
           return false;
         }
@@ -707,6 +709,8 @@ export default function StudentEvents() {
                       ? orgEvents.length
                       : s === "Authorized"
                       ? orgEvents.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                      : s === "Approved"
+                      ? orgEvents.filter((e) => e.status === "Approved" || e.status === "For Review (SDS)").length
                       : orgEvents.filter((e) => e.status === s).length;
                   return (
                     <button
@@ -1450,7 +1454,7 @@ export default function StudentEvents() {
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{draft.description || "—"}</p></div>
                     <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(draft.dateStart, draft.dateEnd)}</p></div>
                     <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{draft.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{draft.location || (draft.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({draft.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
-                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">{draft.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}</p></div>
+                    <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">Student → Adviser → Dean → SDS</p></div>
                     <div className="sm:col-span-2">
                       <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
                       <p className="font-mono text-emerald-700 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -2053,7 +2057,7 @@ export default function StudentEvents() {
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Event Description</p><p className="font-medium mt-0.5 text-xs leading-relaxed text-[var(--foreground)]">{editEvent.description || "—"}</p></div>
                       <div className="sm:col-span-2"><p className="font-mono text-[var(--muted-foreground)] font-bold">Scheduled Date & Time</p><p className="font-medium mt-0.5">{formatEventSchedule(editEvent.dateStart, editEvent.dateEnd)}</p></div>
                       <div><p className="font-mono text-[var(--muted-foreground)] font-bold">{editEvent.mode === "Online/Virtual" ? "Platform / Link" : "Venue / Location"}</p><p className="font-medium mt-0.5">{editEvent.location || (editEvent.mode === "Online/Virtual" ? "Online Platform" : "Venue TBD")} ({editEvent.mode === "Online/Virtual" ? "Online / Virtual" : "Face-to-Face (FTF)"})</p></div>
-                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">{editEvent.setting === "Off-campus" ? "Student → Adviser → Dean → SDS → CMO" : "Student → Adviser → Dean → SDS"}</p></div>
+                      <div><p className="font-mono text-[var(--muted-foreground)] font-bold">Signatory Workflow</p><p className="font-medium mt-0.5 text-indigo-700 font-bold">Student → Adviser → Dean → SDS</p></div>
                       <div className="sm:col-span-2">
                         <p className="font-mono text-[var(--muted-foreground)] font-bold">Attached APF</p>
                         <p className="font-mono text-emerald-700 font-bold mt-0.5 flex items-center gap-1.5 flex-wrap">

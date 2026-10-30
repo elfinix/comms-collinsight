@@ -23,7 +23,7 @@ export default function EventClearanceTab({
   const { organizations, eventTypes, users, eventSignatories, auditTrail } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Approved", "Authorized", "For Review (SDS)", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const isDeanViewing = currentUser?.role === "dean" || currentUser?.role === "admin";
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 

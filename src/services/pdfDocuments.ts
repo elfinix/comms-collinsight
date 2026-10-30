@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCategoryById, resolveEventSignatories } from "./dataService";
+import { Event, Transaction, formatDateTime, formatDate, getEventTypeById, getCategoryById, resolveEventSignatories, UserRole } from "./dataService";
 
 export interface ClearancePdfOptions {
   organizationName?: string;
@@ -11,7 +11,7 @@ export interface ClearancePdfOptions {
   adviserName?: string;
   deanName?: string;
   categories?: { id: string; name: string }[];
-  viewerRole?: "student" | "adviser" | "dean" | "admin";
+  viewerRole?: UserRole;
   logoDataUrl?: string | null;
   citeLogoDataUrl?: string | null;
   orgLogoDataUrl?: string | null;
@@ -203,12 +203,12 @@ export function drawPdfHeader(config: PdfHeaderConfig): number {
   } = config;
 
   // 1. Logos centered at the top (3 logos for Students/Advisers, 2 logos for Dean/Admin)
-  const logoSize = 15;
+  const logoSize = 14;
   const logoGap = 5;
   const logoCount = showOrgLogo ? 3 : 2;
   const totalLogosWidth = logoSize * logoCount + logoGap * (logoCount - 1);
   const startX = (pageWidth - totalLogosWidth) / 2;
-  const logoY = 7;
+  const logoY = 6;
 
   // 1.1 LCUP Logo
   const lcup = lcupLogoDataUrl || cachedLogoDataUrl;
@@ -281,21 +281,21 @@ export function drawPdfHeader(config: PdfHeaderConfig): number {
     }
   }
 
-  // 2. Left Header Titles
+  // 2. Left Header Titles (Positioned with generous breathing room below logos)
   doc.setTextColor(15, 23, 42); // #0f172a
   doc.setFontSize(10.5);
   doc.setFont("helvetica", "bold");
-  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin, 26.5);
+  doc.text("LA CONSOLACION UNIVERSITY PHILIPPINES", margin, 29);
 
   doc.setTextColor(71, 85, 105); // #475569
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "normal");
-  doc.text("College of Information Technology & Engineering", margin, 30.5);
+  doc.text("College of Information Technology & Engineering", margin, 33.5);
 
   doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.text(subtitle, margin, 34.5);
+  doc.text(subtitle, margin, 38);
 
   // 3. Right Header Info (Badge, Ref, Generated Date)
   doc.setFont("helvetica", "bold");
@@ -306,23 +306,23 @@ export function drawPdfHeader(config: PdfHeaderConfig): number {
   doc.setFillColor(255, 237, 213); // #ffedd5
   doc.setDrawColor(254, 215, 170); // #fed7aa
   doc.setLineWidth(0.3);
-  doc.roundedRect(badgeX, 22.5, badgeW, 5.5, 1.2, 1.2, "FD");
+  doc.roundedRect(badgeX, 24.5, badgeW, 5.5, 1.2, 1.2, "FD");
 
   doc.setTextColor(154, 52, 18); // #9a3412
-  doc.text(badgeText, badgeX + 2.5, 26.5);
+  doc.text(badgeText, badgeX + 2.5, 28.5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(71, 85, 105);
-  doc.text(`Ref: ${docRef}`, pageWidth - margin, 31, { align: "right" });
-  doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 35, { align: "right" });
+  doc.text(`Ref: ${docRef}`, pageWidth - margin, 33.5, { align: "right" });
+  doc.text(`Generated: ${generatedDate}`, pageWidth - margin, 37.5, { align: "right" });
 
   // 4. Header Divider Line
   doc.setDrawColor(234, 88, 12); // #ea580c
   doc.setLineWidth(0.5);
-  doc.line(margin, 38, pageWidth - margin, 38);
+  doc.line(margin, 41.5, pageWidth - margin, 41.5);
 
-  return 38;
+  return 41.5;
 }
 
 /**
@@ -415,7 +415,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     generatedDate,
   });
 
-  const isApproved = ["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Approved", "Authorized", "For Review (SDS)", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const viewerRole = options?.viewerRole;
 
   let showAdviserSign = false;
@@ -433,7 +433,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   }
 
   // ── 2. EXECUTIVE STATUS BANNER (GENEROUS PADDING) ──────────────
-  const bannerY = 42;
+  const bannerY = 46;
   const bannerH = 15;
   if (showDeanSign) {
     doc.setFillColor(240, 253, 244); // #f0fdf4
@@ -483,7 +483,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   }
 
   // ── 3. EVENT IDENTIFICATION GRID (BALANCED PADDING) ────────────
-  const gridY = 61;
+  const gridY = 65;
   const gridH = 54;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
@@ -810,7 +810,7 @@ export function generateLiquidationPdfBlob(
   const varianceLabel = remaining >= 0 ? "SURPLUS" : "DEFICIT";
 
   // 2-Tier Event Details Box (Full Event Name Un-truncated & Generous Bottom Padding)
-  const kpiY = 42;
+  const kpiY = 46;
   const kpiH = 24;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
@@ -887,10 +887,10 @@ export function generateLiquidationPdfBlob(
     "100% RECONCILED",
   ]);
 
-  let finalTableY = 69;
+  let finalTableY = 74;
 
   autoTable(doc, {
-    startY: 69,
+    startY: 74,
     head: [["#", "Description", "Category", "Amount (PHP)", "Status"]],
     body: txnTableData,
     theme: "plain",

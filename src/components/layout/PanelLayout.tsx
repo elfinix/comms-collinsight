@@ -222,6 +222,15 @@ export function deanNavItems(pendingCount = 0): NavItem[] {
   ];
 }
 
+export function sdsNavItems(pendingCount = 0): NavItem[] {
+  return [
+    { to: "/sds/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
+    { to: "/sds/pending", label: "Pending Clearance", icon: <ClipboardList size={16} />, badge: pendingCount },
+    { to: "/sds/approved", label: "Authorized Events", icon: <CalendarCheck size={16} /> },
+    { to: "/sds/history", label: "History", icon: <History size={16} /> },
+  ];
+}
+
 export function adminNavItems(): NavItem[] {
   return [
     { to: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },

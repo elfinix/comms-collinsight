@@ -73,7 +73,7 @@ CREATE TABLE public.users (
   suffix TEXT DEFAULT '',
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('student', 'adviser', 'dean', 'admin')),
+  role TEXT NOT NULL CHECK (role IN ('student', 'adviser', 'dean', 'admin', 'sds', 'cmo')),
   position TEXT NOT NULL,
   gender TEXT DEFAULT 'male',
   organization_id TEXT REFERENCES public.organizations(id) ON DELETE SET NULL,
@@ -153,6 +153,7 @@ CREATE TABLE public.events (
       'For Review',
       'For Approval',
       'Approved',
+      'For Review (SDS)',
       'SDS Authorized',
       'CMO Authorized',
       'Pending Revision',
@@ -387,6 +388,24 @@ INSERT INTO public.users (
     NULL,
     'Faculty/Staff',
     '2020-08-01',
+    false,
+    '{"theme":"light","dataDensity":"comfortable","tableDensity":"normal","defaultView":"list"}'::jsonb
+  ),
+  -- 1 Dedicated Student Development & Services (SDS) Account
+  (
+    'd1000000-0000-0000-0000-000000000001',
+    'Student Development & Services',
+    'Office',
+    '(SDS)',
+    'LCUP',
+    'sds@cite.edu.ph',
+    'collinsight_sds',
+    'sds',
+    'Director of Student Development & Services',
+    'non-binary',
+    NULL,
+    'Faculty/Staff',
+    '2022-01-01',
     false,
     '{"theme":"light","dataDensity":"comfortable","tableDensity":"normal","defaultView":"list"}'::jsonb
   ),
@@ -855,7 +874,7 @@ INSERT INTO public.audit_trail (id, user_id, action, details, timestamp, event_i
   ('81000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cloud Computing & DevOps Workshop 2026'' to Adviser', '2026-08-15T04:30:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
   ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', 'Strong technical relevance for 3rd and 4th-year students.'),
   ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026'' and dispatched to SDS', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', 'Approved. Ensure virtual lab guidelines are maintained.'),
-  ('81000000-0000-0000-0000-000000000005', '51000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services (SDS) cleared proposal. Finance ledger unlocked.', '2026-08-17T09:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'sds', 'Approved', 'SDS Authorized', 'Institutional clearance granted via verification token.'),
+  ('81000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services (SDS) cleared proposal. Finance ledger unlocked.', '2026-08-17T09:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'sds', 'Approved', 'SDS Authorized', 'Institutional clearance granted via verification token.'),
   ('81000000-0000-0000-0000-000000000006', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,500.00 for ''AWS Cloud Lab Credits & Domain Voucher Pack''', '2026-08-18T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
 
   -- Event 4

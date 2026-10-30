@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { AuthProvider, useAuth, getDefaultDashboardPath } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
 import { ToastProvider } from "./context/ToastContext";
-import PanelLayout, { studentNavItems, adviserNavItems, deanNavItems, adminNavItems } from "./components/layout/PanelLayout";
+import PanelLayout, { studentNavItems, adviserNavItems, deanNavItems, sdsNavItems, adminNavItems } from "./components/layout/PanelLayout";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -28,6 +28,10 @@ import DeanPendingApproval from "./pages/dean/PendingApproval";
 import DeanApprovedEvents from "./pages/dean/ApprovedEvents";
 import DeanReports from "./pages/dean/Reports";
 import DeanProfile from "./pages/dean/Profile";
+
+import SDSDashboard from "./pages/sds/Dashboard";
+import SDSPendingClearance from "./pages/sds/PendingClearance";
+import SDSApprovedEvents from "./pages/sds/ApprovedEvents";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminDepartments from "./pages/admin/Departments";
@@ -78,6 +82,18 @@ function DeanPanel() {
   const pending = events.filter((e) => e.status === "For Approval").length;
   return (
     <PanelLayout navItems={deanNavItems(pending)} panelLabel="Dean's Panel">
+      <Outlet />
+    </PanelLayout>
+  );
+}
+
+function SdsPanel() {
+  const { events } = useApp();
+  const pending = events.filter(
+    (e) => !e.isInstitutional && e.category !== "Institutional" && Boolean(e.organizationId) && (e.status === "Approved" || e.status === "For Review (SDS)")
+  ).length;
+  return (
+    <PanelLayout navItems={sdsNavItems(pending)} panelLabel="SDS Panel">
       <Outlet />
     </PanelLayout>
   );
@@ -140,6 +156,17 @@ export default function App() {
                 <Route path="/dean/history" element={<HistoryPage />} />
                 <Route path="/dean/reports" element={<DeanReports />} />
                 <Route path="/dean/profile" element={<DeanProfile />} />
+              </Route>
+            </Route>
+
+            {/* SDS Routes */}
+            <Route element={<ProtectedRoute role="sds" />}>
+              <Route element={<SdsPanel />}>
+                <Route path="/sds/dashboard" element={<SDSDashboard />} />
+                <Route path="/sds/pending" element={<SDSPendingClearance />} />
+                <Route path="/sds/approved" element={<SDSApprovedEvents />} />
+                <Route path="/sds/cleared" element={<Navigate to="/sds/approved" replace />} />
+                <Route path="/sds/history" element={<HistoryPage />} />
               </Route>
             </Route>
 

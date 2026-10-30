@@ -766,6 +766,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const isDeanApproval = status === "Approved";
       const isAdviserApproval = status === "For Approval";
       const isSdsApproval = status === "SDS Authorized";
+      const isSdsReview = status === "For Review (SDS)";
       const isCmoApproval = status === "CMO Authorized";
       const isRevision = status === "Pending Revision";
       const isRejected = status === "Rejected";
@@ -791,7 +792,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const sigUserId = sigRole === "cmo"
           ? "cmo-external-token"
           : sigRole === "sds"
-          ? "sds-external-token"
+          ? currentUser?.id || actorUserId || "d1000000-0000-0000-0000-000000000001"
           : isFromDean
           ? actualDean?.id || "e1000000-0000-0000-0000-000000000001"
           : actualAdviser?.id || "ad100000-0000-0000-0000-000000000001";
@@ -809,7 +810,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const sigRole = isFromCmo ? "cmo" : (actingUser?.role as any) || "sds";
         const sigUserId = sigRole === "cmo"
           ? "cmo-external-token"
-          : "sds-external-token";
+          : currentUser?.id || actorUserId || "d1000000-0000-0000-0000-000000000001";
         addEventSignatory({
           id: generateId(),
           eventId,
@@ -848,7 +849,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addEventSignatory({
           id: generateId(),
           eventId,
-          userId: "sds-external-token",
+          userId: currentUser?.id || actorUserId || "d1000000-0000-0000-0000-000000000001",
           role: "sds",
           status: "Approved",
           feedback: feedback || undefined,
@@ -876,6 +877,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "Approved & Forwarded"
         : isSdsApproval
         ? "SDS Authorized"
+        : isSdsReview
+        ? "For Review (SDS)"
         : isCmoApproval
         ? "CMO Authorized"
         : isRevision
@@ -894,7 +897,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         ? "dean"
         : isAdviserApproval
         ? "adviser"
-        : isSdsApproval
+        : isSdsApproval || isSdsReview
         ? "sds"
         : isCmoApproval
         ? "cmo"
@@ -909,7 +912,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : actingUser?.role || "student";
 
       const userId = role === "sds"
-        ? "sds-external-token"
+        ? currentUser?.id || actorUserId || "d1000000-0000-0000-0000-000000000001"
         : role === "cmo"
         ? "cmo-external-token"
         : isDeanApproval
@@ -928,9 +931,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else if (isAdviserApproval) {
         actionDetails = `Endorsed and forwarded proposal '${targetEvt.name}' to Dean for approval`;
       } else if (isSdsApproval) {
-        actionDetails = targetEvt.setting === "Off-campus"
-          ? `Authorized by Student Development & Services (SDS) and dispatched to CMO for '${targetEvt.name}'`
-          : `Authorized by Student Development & Services (SDS). Finance ledger unlocked for '${targetEvt.name}'`;
+        actionDetails = `Authorized by Student Development & Services (SDS). Finance ledger unlocked for '${targetEvt.name}'`;
+      } else if (isSdsReview) {
+        actionDetails = `Review initiated by Student Development & Services (SDS) for '${targetEvt.name}'`;
       } else if (isCmoApproval) {
         actionDetails = `Authorized by Crisis Management Office (CMO). Finance ledger unlocked for '${targetEvt.name}'`;
       } else if (isRevision) {
