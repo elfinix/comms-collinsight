@@ -6,12 +6,17 @@ import {
   EventType,
   ExpenditureCategory,
   Event,
+  EventStatus,
   Transaction,
   AuditEntry,
   OrganizationMember,
   EventSignatory,
   Initiative,
 } from "./dataService";
+
+function isValidUuid(id?: string): boolean {
+  return !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
 
 // ============================================================================
 // DATA MAPPERS (Database snake_case <--> Application camelCase)
@@ -261,22 +266,55 @@ export const supabaseApi = {
   // Events API
   // --------------------------------------------------------------------------
   async createEvent(event: Event) {
+    let dbStatus: EventStatus = event.status || "Created";
+    if (dbStatus === "Approved" || dbStatus === "SDS Authorized" || dbStatus === "CMO Authorized") {
+      dbStatus = "Event Authorized";
+    } else if (dbStatus === "For Review") {
+      dbStatus = "For Review (Adv)";
+    } else if (dbStatus === "For Approval") {
+      dbStatus = "For Review (Dn)";
+    }
+
+    let dbOrgId = event.organizationId || null;
+    if (dbOrgId === "org-1") {
+      dbOrgId = "01000000-0000-0000-0000-000000000001";
+    } else if (dbOrgId === "org-2") {
+      dbOrgId = "01000000-0000-0000-0000-000000000002";
+    } else if (dbOrgId === "org-3") {
+      dbOrgId = "01000000-0000-0000-0000-000000000003";
+    } else if (dbOrgId && !isValidUuid(dbOrgId)) {
+      dbOrgId = null;
+    }
+
+    let dbTypeId = event.typeId || null;
+    if (dbTypeId?.startsWith("et-")) {
+      const num = dbTypeId.replace("et-", "");
+      dbTypeId = `b1000000-0000-0000-0000-00000000000${num}`;
+    } else if (dbTypeId && !isValidUuid(dbTypeId)) {
+      dbTypeId = null;
+    }
+
+    let dbUserId = event.createdBy || null;
+    if (!dbUserId || !isValidUuid(dbUserId)) {
+      dbUserId = "a1000000-0000-0000-0000-000000000001";
+    }
+
     const dbPayload = {
       id: event.id,
-      organization_id: event.organizationId || null,
+      organization_id: dbOrgId,
       name: event.name,
-      type_id: event.typeId || null,
+      type_id: dbTypeId,
       category: event.category || (event.isInstitutional ? "Institutional" : "Organizational"),
       is_institutional: event.isInstitutional ?? (event.category === "Institutional" || !event.organizationId),
       is_all_day: event.isAllDay ?? false,
       setting: event.setting || "On-campus",
       description: event.description,
-      proposed_budget: event.proposedBudget,
-      requisites: event.requisites,
+      proposed_budget: event.proposedBudget || 0,
+      requisites: event.requisites || "",
       date_start: event.dateStart,
       date_end: event.dateEnd,
-      mode: event.mode,
-      location: event.location,
+      mode: event.mode || "FTF",
+      location: event.location || "LCUP Main Campus",
       apf_url: event.apfUrl || null,
       pcf_url: event.pcfUrl || null,
       pcf_name: event.pcfName || null,
@@ -288,22 +326,42 @@ export const supabaseApi = {
       clearance_details: event.clearanceDetails || null,
       clearance_doc_ref: event.clearanceDocRef || null,
       remarks: event.remarks || [],
-      status: event.status,
+      status: dbStatus,
       revenue: event.revenue || 0,
       liquidated_by: event.liquidatedBy || null,
       liquidated_at: event.liquidatedAt || null,
       created_at: event.createdAt,
-      created_by: event.createdBy,
+      created_by: dbUserId,
       deleted: event.deleted || false,
     };
-    return supabase.from("events").upsert(dbPayload).select();
+    const res = await supabase.from("events").upsert(dbPayload).select();
+    if (res.error) {
+      console.warn("Supabase createEvent error:", res.error);
+    }
+    return res;
   },
 
   async updateEvent(id: string, updates: Partial<Event>) {
     const dbPayload: any = {};
     if (updates.name !== undefined) dbPayload.name = updates.name;
-    if (updates.organizationId !== undefined) dbPayload.organization_id = updates.organizationId || null;
-    if (updates.typeId !== undefined) dbPayload.type_id = updates.typeId || null;
+    if (updates.organizationId !== undefined) {
+      let dbOrgId = updates.organizationId || null;
+      if (dbOrgId === "org-1") dbOrgId = "01000000-0000-0000-0000-000000000001";
+      else if (dbOrgId === "org-2") dbOrgId = "01000000-0000-0000-0000-000000000002";
+      else if (dbOrgId === "org-3") dbOrgId = "01000000-0000-0000-0000-000000000003";
+      else if (dbOrgId && !isValidUuid(dbOrgId)) dbOrgId = null;
+      dbPayload.organization_id = dbOrgId;
+    }
+    if (updates.typeId !== undefined) {
+      let dbTypeId = updates.typeId || null;
+      if (dbTypeId?.startsWith("et-")) {
+        const num = dbTypeId.replace("et-", "");
+        dbTypeId = `b1000000-0000-0000-0000-00000000000${num}`;
+      } else if (dbTypeId && !isValidUuid(dbTypeId)) {
+        dbTypeId = null;
+      }
+      dbPayload.type_id = dbTypeId;
+    }
     if (updates.category !== undefined) dbPayload.category = updates.category;
     if (updates.isInstitutional !== undefined) dbPayload.is_institutional = updates.isInstitutional;
     if (updates.category === "Institutional") dbPayload.is_institutional = true;
@@ -327,7 +385,17 @@ export const supabaseApi = {
     if (updates.clearanceDetails !== undefined) dbPayload.clearance_details = updates.clearanceDetails;
     if (updates.clearanceDocRef !== undefined) dbPayload.clearance_doc_ref = updates.clearanceDocRef;
     if (updates.remarks !== undefined) dbPayload.remarks = updates.remarks;
-    if (updates.status !== undefined) dbPayload.status = updates.status;
+    if (updates.status !== undefined) {
+      let dbStatus: EventStatus = updates.status;
+      if (dbStatus === "Approved" || dbStatus === "SDS Authorized" || dbStatus === "CMO Authorized") {
+        dbStatus = "Event Authorized";
+      } else if (dbStatus === "For Review") {
+        dbStatus = "For Review (Adv)";
+      } else if (dbStatus === "For Approval") {
+        dbStatus = "For Review (Dn)";
+      }
+      dbPayload.status = dbStatus;
+    }
     if (updates.revenue !== undefined) dbPayload.revenue = updates.revenue;
     if (updates.liquidatedBy !== undefined) dbPayload.liquidated_by = updates.liquidatedBy;
     if (updates.liquidatedAt !== undefined) dbPayload.liquidated_at = updates.liquidatedAt;
@@ -625,7 +693,6 @@ export const supabaseApi = {
   // --------------------------------------------------------------------------
   async createAuditEntry(entry: AuditEntry) {
     let dbUserId = entry.userId;
-    const isValidUuid = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
     const isMockPlaceholder =
       !dbUserId ||

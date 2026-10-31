@@ -107,7 +107,7 @@ export default function AdminInstitutionalEvents() {
     description: "",
     requisites: "",
     memoUrl: "",
-    status: "Approved" as EventStatus,
+    status: "Event Authorized" as EventStatus,
   });
 
   // Filter only Institutional events (not deleted)
@@ -243,7 +243,7 @@ export default function AdminInstitutionalEvents() {
       description: "",
       requisites: "Open to all CITE students, faculty, and administrative personnel.",
       memoUrl: "",
-      status: "Approved",
+      status: "Event Authorized",
     });
     setIsAllDay(false);
     setShowAddModal(true);
@@ -281,7 +281,7 @@ export default function AdminInstitutionalEvents() {
       description: e.description || "",
       requisites: e.requisites || "",
       memoUrl: e.apfUrl || "",
-      status: e.status || "Approved",
+      status: e.status === "Approved" ? "Event Authorized" : (e.status || "Event Authorized"),
     });
     setIsAllDay(isAllDaySpan);
     setEditingEvent(e);

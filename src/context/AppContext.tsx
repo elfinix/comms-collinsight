@@ -285,15 +285,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       details: isInst
         ? `Created institutional event '${eventWithId.name}'`
         : `Created event proposal for '${eventWithId.name}'`,
-      statusTo: eventWithId.status || (isInst ? "Approved" : "Created"),
+      statusTo: eventWithId.status || (isInst ? "Event Authorized" : "Created"),
       timestamp: new Date().toISOString(),
     };
 
     setAudit((p) => [auditEntry, ...p]);
 
     try {
-      await supabaseApi.createEvent(eventWithId);
-      await supabaseApi.createAuditEntry(auditEntry);
+      const res = await supabaseApi.createEvent(eventWithId);
+      if (res && res.error) {
+        console.warn("Supabase createEvent error:", res.error);
+      } else {
+        await supabaseApi.createAuditEntry(auditEntry);
+      }
     } catch (err) {
       console.warn("Supabase createEvent/createAuditEntry error:", err);
     }

@@ -360,12 +360,14 @@ export const eventTypes: EventType[] = [
   { id: "b1000000-0000-0000-0000-000000000004", name: "Sports & E-Sports Fest" },
   { id: "b1000000-0000-0000-0000-000000000005", name: "Cultural Festival" },
   { id: "b1000000-0000-0000-0000-000000000006", name: "Technical Workshop" },
+  { id: "b1000000-0000-0000-0000-000000000007", name: "Institutional Event" },
   { id: "et-1", name: "Academic Seminar" },
   { id: "et-2", name: "Leadership Training" },
   { id: "et-3", name: "Community Outreach" },
   { id: "et-4", name: "Sports & E-Sports Fest" },
   { id: "et-5", name: "Cultural Festival" },
   { id: "et-6", name: "Technical Workshop" },
+  { id: "et-7", name: "Institutional Event" },
 ];
 
 export const expenditureCategories: ExpenditureCategory[] = [
