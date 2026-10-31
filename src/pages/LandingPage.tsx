@@ -116,7 +116,7 @@ export default function LandingPage() {
                 <div className="animate-float absolute top-0 right-0 w-[340px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-2xl">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-mono text-blue-200 uppercase tracking-wider">Signatory Progress</span>
-                    <span className="text-[10px] font-mono bg-blue-500/30 text-blue-100 px-2 py-0.5 rounded-full border border-blue-400/30 font-bold">For Approval</span>
+                    <span className="text-[10px] font-mono bg-blue-500/30 text-blue-100 px-2 py-0.5 rounded-full border border-blue-400/30 font-bold">For Review (Dn)</span>
                   </div>
                   <p className="font-bold text-white text-sm mb-4">TechFest 2026: IT Innovation Summit</p>
                   <div className="flex items-center gap-0 mb-4">
@@ -302,19 +302,21 @@ export default function LandingPage() {
               <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-4 text-center">Event Status Flow</p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {[
-                  { label: "Created", color: "bg-slate-100 text-slate-700 border-slate-200" },
+                  { label: "Created", color: "bg-slate-100 text-slate-700 border-slate-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "For Review", color: "bg-amber-100 text-amber-700 border-amber-200" },
+                  { label: "For Review (Adv)", color: "bg-amber-100 text-amber-800 border-amber-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "For Approval", color: "bg-blue-100 text-blue-700 border-blue-200" },
+                  { label: "For Review (Dn)", color: "bg-blue-100 text-blue-800 border-blue-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Approved", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+                  { label: "Reviewed", color: "bg-emerald-100 text-emerald-800 border-emerald-300", sub: "Dean Dispatched" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "SDS Authorized", color: "bg-indigo-100 text-indigo-900 border-indigo-300", sub: "Final Clearance" },
+                  { label: "For Review (SDS)", color: "bg-blue-100 text-blue-800 border-blue-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Completed", color: "bg-teal-100 text-teal-800 border-teal-200" },
+                  { label: "Event Authorized", color: "bg-indigo-100 text-indigo-900 border-indigo-300", sub: "Final Clearance" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Closed", color: "bg-gray-100 text-gray-600 border-gray-200" },
+                  { label: "Completed", color: "bg-teal-100 text-teal-800 border-teal-300" },
+                  { label: "→", color: "text-[var(--muted-foreground)]" },
+                  { label: "Closed", color: "bg-gray-100 text-gray-700 border-gray-300" },
                 ].map((item, i) =>
                   item.label === "→" ? (
                     <ChevronRight key={i} size={14} className={item.color} />
