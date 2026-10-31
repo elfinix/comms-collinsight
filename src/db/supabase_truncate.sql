@@ -42,17 +42,16 @@ ALTER TABLE IF EXISTS public.users ADD COLUMN IF NOT EXISTS settings JSONB DEFAU
 ALTER TABLE IF EXISTS public.users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE IF EXISTS public.users ADD CONSTRAINT users_role_check CHECK (role IN ('student', 'adviser', 'dean', 'admin', 'sds', 'cmo'));
 
--- Ensure events_status_check constraint includes 'For Review (SDS)'
+-- Ensure events_status_check constraint includes canonical 10 workflow statuses
 ALTER TABLE IF EXISTS public.events DROP CONSTRAINT IF EXISTS events_status_check;
 ALTER TABLE IF EXISTS public.events ADD CONSTRAINT events_status_check CHECK (
   status IN (
     'Created',
-    'For Review',
-    'For Approval',
-    'Approved',
+    'For Review (Adv)',
+    'For Review (Dn)',
+    'Reviewed',
     'For Review (SDS)',
-    'SDS Authorized',
-    'CMO Authorized',
+    'Event Authorized',
     'Pending Revision',
     'Rejected',
     'Completed',

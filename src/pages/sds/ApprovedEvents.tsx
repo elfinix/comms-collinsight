@@ -53,7 +53,7 @@ import {
 } from "../../services/dataService";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 
-const STATUS_FILTERS = ["All", "SDS Authorized", "Completed", "Closed"] as const;
+const STATUS_FILTERS = ["All", "Event Authorized", "Completed", "Closed"] as const;
 type StatusFilterType = (typeof STATUS_FILTERS)[number];
 
 export default function SDSApprovedEvents() {
@@ -65,7 +65,7 @@ export default function SDSApprovedEvents() {
         !e.isInstitutional &&
         e.category !== "Institutional" &&
         Boolean(e.organizationId) &&
-        ["SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+        ["Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
     );
   }, [events]);
 
@@ -91,7 +91,7 @@ export default function SDSApprovedEvents() {
     if (sdsSig?.createdAt) return new Date(sdsSig.createdAt).getTime();
 
     const auditEntry = (auditTrail || []).find(
-      (a) => a.eventId === eventId && (a.action === "SDS Authorized" || a.statusTo === "SDS Authorized")
+      (a) => a.eventId === eventId && (a.action === "SDS Authorized" || a.action === "Executive Approval" || a.statusTo === "SDS Authorized")
     );
     if (auditEntry?.timestamp) return new Date(auditEntry.timestamp).getTime();
     return new Date(createdAt || 0).getTime();
@@ -101,8 +101,8 @@ export default function SDSApprovedEvents() {
     return baseAuthorized
       .filter((e) => {
         if (statusFilter !== "All") {
-          if (statusFilter === "SDS Authorized") {
-            if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+          if (statusFilter === "Event Authorized") {
+            if (e.status !== "Event Authorized" && e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
           } else if (e.status !== statusFilter) {
             return false;
           }
@@ -360,8 +360,8 @@ export default function SDSApprovedEvents() {
                   const count =
                     s === "All"
                       ? baseAuthorized.length
-                      : s === "SDS Authorized"
-                      ? baseAuthorized.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                      : s === "Event Authorized"
+                      ? baseAuthorized.filter((e) => e.status === "Event Authorized" || e.status === "SDS Authorized" || e.status === "CMO Authorized").length
                       : baseAuthorized.filter((e) => e.status === s).length;
 
                   return (

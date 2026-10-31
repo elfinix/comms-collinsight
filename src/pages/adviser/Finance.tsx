@@ -27,7 +27,7 @@ const COLORS = ["#ea580c", "#3b82f6", "#6366f1", "#f59e0b", "#ef4444", "#10b981"
 
 function isEventFinanceUnlocked(status: string, _setting?: string): boolean {
   if (status === "Completed" || status === "Closed") return true;
-  return status === "SDS Authorized" || status === "CMO Authorized";
+  return status === "Event Authorized" || status === "SDS Authorized" || status === "CMO Authorized";
 }
 
 export default function AdviserFinance() {

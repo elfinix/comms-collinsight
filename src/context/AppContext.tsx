@@ -719,14 +719,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ) => {
     const targetEvt = evts.find((e) => e.id === eventId);
     const cleanId = eventId.replace(/[^a-zA-Z0-9]/g, "").slice(-6).toUpperCase();
-    const generatedDocRef = status === "Approved"
+    const generatedDocRef = (status === "Reviewed" || status === "Approved")
       ? (targetEvt?.clearanceDocRef || `CLR-${cleanId}-${new Date(targetEvt?.dateStart || Date.now()).getFullYear()}`)
       : undefined;
 
-    const isSdsActor = actorUserId === "sds-external-token" || status === "SDS Authorized";
+    const isSdsActor = actorUserId === "sds-external-token" || status === "Event Authorized" || status === "SDS Authorized";
     const isCmoActor = actorUserId === "cmo-external-token" || status === "CMO Authorized";
-    const isFromCmo = (targetEvt?.status === "SDS Authorized" && (status === "Pending Revision" || status === "Rejected")) || actorUserId === "cmo-external-token";
-    const isFromSds = (targetEvt?.status === "Approved" && (status === "Pending Revision" || status === "Rejected")) || actorUserId === "sds-external-token";
+    const isFromCmo = (targetEvt?.status === "CMO Authorized" && (status === "Pending Revision" || status === "Rejected")) || actorUserId === "cmo-external-token";
+    const isFromSds = ((targetEvt?.status === "Reviewed" || targetEvt?.status === "Approved" || targetEvt?.status === "For Review (SDS)") && (status === "Pending Revision" || status === "Rejected")) || actorUserId === "sds-external-token";
 
     setEvts((p) =>
       p.map((e) => {
@@ -736,7 +736,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           status,
           ...(generatedDocRef ? { clearanceDocRef: generatedDocRef } : {}),
           ...(feedback ? (
-            status === "SDS Authorized" || (status === "Pending Revision" && isFromSds) || (status === "Rejected" && isFromSds) ? { sdsFeedback: feedback } :
+            status === "Event Authorized" || status === "SDS Authorized" || (status === "Pending Revision" && isFromSds) || (status === "Rejected" && isFromSds) ? { sdsFeedback: feedback } :
             status === "CMO Authorized" || (status === "Pending Revision" && isFromCmo) || (status === "Rejected" && isFromCmo) ? { cmoFeedback: feedback } :
             {}
           ) : {}),
@@ -750,7 +750,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updatePayload.clearanceDocRef = generatedDocRef;
     }
     if (feedback) {
-      if (status === "SDS Authorized" || (status === "Pending Revision" && isFromSds) || (status === "Rejected" && isFromSds)) {
+      if (status === "Event Authorized" || status === "SDS Authorized" || (status === "Pending Revision" && isFromSds) || (status === "Rejected" && isFromSds)) {
         updatePayload.sdsFeedback = feedback;
       }
       if (status === "CMO Authorized" || (status === "Pending Revision" && isFromCmo) || (status === "Rejected" && isFromCmo)) {
@@ -763,14 +763,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
 
     if (targetEvt) {
-      const isDeanApproval = status === "Approved";
-      const isAdviserApproval = status === "For Approval";
-      const isSdsApproval = status === "SDS Authorized";
+      const isDeanApproval = status === "Reviewed" || status === "Approved";
+      const isAdviserApproval = status === "For Review (Dn)" || status === "For Approval";
+      const isSdsApproval = status === "Event Authorized" || status === "SDS Authorized";
       const isSdsReview = status === "For Review (SDS)";
       const isCmoApproval = status === "CMO Authorized";
       const isRevision = status === "Pending Revision";
       const isRejected = status === "Rejected";
-      const isSubmission = status === "For Review";
+      const isSubmission = status === "For Review (Adv)" || status === "For Review";
       const isCompleted = status === "Completed";
       const isClosed = status === "Closed";
 
@@ -787,7 +787,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       // ── Event Signatory Iteration Record Creation ──
       if (isRevision && feedback) {
-        const isFromDean = targetEvt.status === "For Approval";
+        const isFromDean = targetEvt.status === "For Review (Dn)" || targetEvt.status === "For Approval";
         const sigRole = isFromCmo ? "cmo" : isFromSds ? "sds" : isFromDean ? "dean" : (actingUser?.role as any) || "adviser";
         const sigUserId = sigRole === "cmo"
           ? "cmo-external-token"
@@ -872,11 +872,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       const actionName = isDeanApproval
-        ? "Executive Approval"
+        ? "Approved & Forwarded to SDS"
         : isAdviserApproval
         ? "Approved & Forwarded"
         : isSdsApproval
-        ? "SDS Authorized"
+        ? "Executive Approval"
         : isSdsReview
         ? "For Review (SDS)"
         : isCmoApproval
@@ -906,7 +906,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         : isCompleted || isClosed
         ? "student"
         : isRevision
-        ? (isFromCmo ? "cmo" : isFromSds ? "sds" : targetEvt.status === "For Approval" ? "dean" : "adviser")
+        ? (isFromCmo ? "cmo" : isFromSds ? "sds" : (targetEvt.status === "For Review (Dn)" || targetEvt.status === "For Approval") ? "dean" : "adviser")
         : isRejected
         ? (isFromCmo ? "cmo" : "sds")
         : actingUser?.role || "student";
@@ -927,11 +927,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       let actionDetails = "";
       if (isDeanApproval) {
-        actionDetails = `Granted executive approval for '${targetEvt.name}' and dispatched to SDS`;
+        actionDetails = `Approved proposal '${targetEvt.name}' and forwarded to Student Development & Services (SDS)`;
       } else if (isAdviserApproval) {
         actionDetails = `Endorsed and forwarded proposal '${targetEvt.name}' to Dean for approval`;
       } else if (isSdsApproval) {
-        actionDetails = `Authorized by Student Development & Services (SDS). Finance ledger unlocked for '${targetEvt.name}'`;
+        actionDetails = `Granted final executive clearance and authorization for '${targetEvt.name}'. Finance ledger unlocked`;
       } else if (isSdsReview) {
         actionDetails = `Review initiated by Student Development & Services (SDS) for '${targetEvt.name}'`;
       } else if (isCmoApproval) {

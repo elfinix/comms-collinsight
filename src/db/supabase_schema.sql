@@ -150,12 +150,11 @@ CREATE TABLE public.events (
   status TEXT NOT NULL DEFAULT 'Created' CHECK (
     status IN (
       'Created',
-      'For Review',
-      'For Approval',
-      'Approved',
+      'For Review (Adv)',
+      'For Review (Dn)',
+      'Reviewed',
       'For Review (SDS)',
-      'SDS Authorized',
-      'CMO Authorized',
+      'Event Authorized',
       'Pending Revision',
       'Rejected',
       'Completed',
@@ -654,8 +653,8 @@ INSERT INTO public.events (
     '["Curriculum Matrix & Hands-on Syllabus", "Laboratory Safety Plan", "Guest Speaker Profile"]'::jsonb,
     'Executive Clearance Granted. Authorized for Computer Lab 3 reservation.',
     'APF-ITSG-2026-001',
-    '["Adviser approved", "Dean endorsed", "SDS Authorized"]'::jsonb,
-    'SDS Authorized',
+    '["Adviser endorsed", "Dean endorsed", "Event Authorized"]'::jsonb,
+    'Event Authorized',
     'token_sds_f1000001', NULL,
     0.00, NULL, NULL, '2026-08-15T04:30:00Z', '51000000-0000-0000-0000-000000000001', false
   ),
@@ -671,7 +670,7 @@ INSERT INTO public.events (
     'Clearance granted. Virtual session links generated.',
     'APF-ITSG-2026-002',
     '["Adviser endorsed", "Awaiting Dean approval"]'::jsonb,
-    'For Approval',
+    'For Review (Dn)',
     NULL, NULL,
     0.00, NULL, NULL, '2026-08-20T03:30:00Z', '51000000-0000-0000-0000-000000000002', false
   ),
@@ -685,7 +684,7 @@ INSERT INTO public.events (
     '["Security Speaker Profile", "Interactive CTF Rules"]'::jsonb,
     NULL, NULL,
     '["Submitted for adviser endorsement"]'::jsonb,
-    'For Review',
+    'For Review (Adv)',
     NULL, NULL,
     0.00, NULL, NULL, '2026-08-25T06:00:00Z', '51000000-0000-0000-0000-000000000001', false
   ),
@@ -714,11 +713,11 @@ INSERT INTO public.events (
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_iot_workshop.pdf',
     '/fixtures/TechnoFest_2025_Appendices_Sample.pdf', 'PCF_CES_IoT_OffCampus.pdf',
     '["Component Safety Guidelines", "Hardware Requisition Sheet", "Risk Management Protocol"]'::jsonb,
-    'Clearance granted by SDS and Crisis Management Office.',
+    'Clearance granted by SDS.',
     'APF-CES-2026-005',
-    '["Dean approved", "SDS Authorized", "CMO Authorized"]'::jsonb,
-    'CMO Authorized',
-    'token_sds_f1000005', 'token_cmo_f1000005',
+    '["Dean approved", "Event Authorized"]'::jsonb,
+    'Event Authorized',
+    'token_sds_f1000005', NULL,
     0.00, NULL, NULL, '2026-08-18T05:00:00Z', '51000000-0000-0000-0000-000000000005', false
   ),
   (
@@ -747,8 +746,8 @@ INSERT INTO public.events (
     '["Certified Six Sigma Black Belt Profile", "Evaluation Instrument"]'::jsonb,
     'Clearance granted. Virtual meeting room scheduled.',
     'APF-IEIC-2026-007',
-    '["Dean approved", "SDS Authorized"]'::jsonb,
-    'SDS Authorized',
+    '["Dean approved", "Event Authorized"]'::jsonb,
+    'Event Authorized',
     'token_sds_f1000007', NULL,
     0.00, NULL, NULL, '2026-08-10T04:00:00Z', '51000000-0000-0000-0000-000000000007', false
   ),
@@ -871,10 +870,10 @@ INSERT INTO public.initiatives (
 INSERT INTO public.audit_trail (id, user_id, action, details, timestamp, event_id, organization_id, actor_role, status_from, status_to, remarks) VALUES
   -- Event 1
   ('81000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''Cloud Computing & DevOps Workshop 2026''', '2026-08-15T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cloud Computing & DevOps Workshop 2026'' to Adviser', '2026-08-15T04:30:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', 'Strong technical relevance for 3rd and 4th-year students.'),
-  ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026'' and dispatched to SDS', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', 'Approved. Ensure virtual lab guidelines are maintained.'),
-  ('81000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services (SDS) cleared proposal. Finance ledger unlocked.', '2026-08-17T09:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'sds', 'Approved', 'SDS Authorized', 'Institutional clearance granted via verification token.'),
+  ('81000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cloud Computing & DevOps Workshop 2026'' to Adviser', '2026-08-15T04:30:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review (Adv)', 'For Review (Dn)', 'Strong technical relevance for 3rd and 4th-year students.'),
+  ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved & Forwarded to SDS', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026'' and dispatched to SDS', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Review (Dn)', 'Reviewed', 'Approved. Ensure virtual lab guidelines are maintained.'),
+  ('81000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', 'Executive Approval', 'Student Affairs & Development Services (SDS) cleared proposal. Finance ledger unlocked.', '2026-08-17T09:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'sds', 'Reviewed', 'Event Authorized', 'Institutional clearance granted via verification token.'),
   ('81000000-0000-0000-0000-000000000006', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,500.00 for ''AWS Cloud Lab Credits & Domain Voucher Pack''', '2026-08-18T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
 
   -- Event 4

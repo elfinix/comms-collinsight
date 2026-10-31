@@ -291,9 +291,9 @@ export default function StudentEvents() {
     .filter((e) => {
       if (statusFilter !== "All") {
         if (statusFilter === "Authorized") {
-          if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+          if (e.status !== "Event Authorized" && e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
         } else if (statusFilter === "Approved") {
-          if (e.status !== "Approved" && e.status !== "For Review (SDS)") return false;
+          if (e.status !== "Reviewed" && e.status !== "Approved" && e.status !== "For Review (SDS)") return false;
         } else if (e.status !== statusFilter) {
           return false;
         }
@@ -532,8 +532,8 @@ export default function StudentEvents() {
     if (isRevision) {
       resolvePendingSignatories(evt.id);
     }
-    setEventStatus(evt.id, "For Review", undefined, currentUser?.id);
-    const targetEvent: Event = { ...evt, status: "For Review" };
+    setEventStatus(evt.id, "For Review (Adv)", undefined, currentUser?.id);
+    const targetEvent: Event = { ...evt, status: "For Review (Adv)" };
     toast.success(
       isRevision ? "Proposal Resubmitted & Resolved" : "Submitted for Review",
       isRevision
@@ -708,9 +708,9 @@ export default function StudentEvents() {
                     s === "All"
                       ? orgEvents.length
                       : s === "Authorized"
-                      ? orgEvents.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                      ? orgEvents.filter((e) => e.status === "Event Authorized" || e.status === "SDS Authorized" || e.status === "CMO Authorized").length
                       : s === "Approved"
-                      ? orgEvents.filter((e) => e.status === "Approved" || e.status === "For Review (SDS)").length
+                      ? orgEvents.filter((e) => e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)").length
                       : orgEvents.filter((e) => e.status === s).length;
                   return (
                     <button

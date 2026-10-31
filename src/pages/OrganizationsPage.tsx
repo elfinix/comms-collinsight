@@ -369,7 +369,7 @@ export default function OrganizationsPage() {
   // Public events (includes ongoing proposals, revisions, and approved/closed/rejected events)
   const publicEvents = useMemo(() => {
     return liveEvents.filter((e) =>
-      ["Created", "For Review", "For Approval", "Pending Revision", "Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed", "Rejected"].includes(e.status)
+      ["Created", "For Review (Adv)", "For Review", "For Review (Dn)", "For Approval", "Pending Revision", "Reviewed", "Approved", "For Review (SDS)", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed", "Rejected"].includes(e.status)
     );
   }, [liveEvents]);
 
@@ -405,7 +405,7 @@ export default function OrganizationsPage() {
         if (statusFilter === "Closed") {
           if (e.status !== "Closed" && e.status !== "Completed" && e.status !== "Rejected") return false;
         } else if (statusFilter === "Approved") {
-          if (e.status !== "Approved" && e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+          if (e.status !== "Reviewed" && e.status !== "Approved" && e.status !== "Event Authorized" && e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
         } else if (e.status !== statusFilter) {
           return false;
         }
@@ -444,7 +444,7 @@ export default function OrganizationsPage() {
 
   // Quick statistics
   const totalOfficersCount = users.filter((u) => u.role === "student" && u.organizationId).length;
-  const approvedEventsCount = publicEvents.filter((e) => e.status === "Approved").length;
+  const approvedEventsCount = publicEvents.filter((e) => e.status === "Reviewed" || e.status === "Approved" || e.status === "Event Authorized" || e.status === "SDS Authorized").length;
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col">
@@ -1631,7 +1631,7 @@ export default function OrganizationsPage() {
                 )}
 
                 {/* Official Clearance Banner if Approved */}
-                {["Approved", "Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(selectedEvent.status) && (
+                {["Reviewed", "Approved", "Authorized", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(selectedEvent.status) && (
                   <div className="bg-gradient-to-r from-[#060c1e] via-[#0f1d40] to-[#1e3a8a] text-white rounded-xl p-4 shadow-sm border border-slate-700/50 flex items-center justify-between gap-3 flex-wrap">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center text-sky-300 flex-shrink-0">

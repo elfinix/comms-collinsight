@@ -69,7 +69,7 @@ function StudentPanel() {
 function AdviserPanel() {
   const { events } = useApp();
   const { currentUser } = useAuth();
-  const pending = events.filter((e) => e.organizationId === currentUser?.organizationId && e.status === "For Review").length;
+  const pending = events.filter((e) => e.organizationId === currentUser?.organizationId && (e.status === "For Review (Adv)" || e.status === "For Review")).length;
   return (
     <PanelLayout navItems={adviserNavItems(pending)} panelLabel="Adviser Panel">
       <Outlet />
@@ -79,7 +79,7 @@ function AdviserPanel() {
 
 function DeanPanel() {
   const { events } = useApp();
-  const pending = events.filter((e) => e.status === "For Approval").length;
+  const pending = events.filter((e) => e.status === "For Review (Dn)" || e.status === "For Approval").length;
   return (
     <PanelLayout navItems={deanNavItems(pending)} panelLabel="Dean's Panel">
       <Outlet />
@@ -90,7 +90,7 @@ function DeanPanel() {
 function SdsPanel() {
   const { events } = useApp();
   const pending = events.filter(
-    (e) => !e.isInstitutional && e.category !== "Institutional" && Boolean(e.organizationId) && (e.status === "Approved" || e.status === "For Review (SDS)")
+    (e) => !e.isInstitutional && e.category !== "Institutional" && Boolean(e.organizationId) && (e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)")
   ).length;
   return (
     <PanelLayout navItems={sdsNavItems(pending)} panelLabel="SDS Panel">

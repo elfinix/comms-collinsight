@@ -33,6 +33,7 @@ export default function EventFinanceTab({
   const isUnlocked =
     event.status === "Completed" ||
     event.status === "Closed" ||
+    event.status === "Event Authorized" ||
     event.status === "SDS Authorized" ||
     event.status === "CMO Authorized";
   const isClosed = event.status === "Closed";

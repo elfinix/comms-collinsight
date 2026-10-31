@@ -85,5 +85,5 @@ ALTER TABLE public.events
 -- Backfill existing approved/closed events with their standard clearance reference code
 UPDATE public.events
 SET clearance_doc_ref = 'CLR-' || UPPER(SUBSTRING(REGEXP_REPLACE(id, '[^a-zA-Z0-9]', '', 'g') FROM 1 FOR 6)) || '-' || EXTRACT(YEAR FROM date_start)
-WHERE clearance_doc_ref IS NULL AND status IN ('Approved', 'Completed', 'Closed');
+WHERE clearance_doc_ref IS NULL AND status IN ('Reviewed', 'Approved', 'Event Authorized', 'SDS Authorized', 'CMO Authorized', 'Completed', 'Closed');
 

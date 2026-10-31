@@ -26,7 +26,7 @@ export default function DeanPendingApproval() {
   const { events, organizations, users, eventTypes, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const pending = events.filter((e) => e.status === "For Approval");
+  const pending = events.filter((e) => e.status === "For Review (Dn)" || e.status === "For Approval");
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
 
@@ -54,7 +54,7 @@ export default function DeanPendingApproval() {
     const adviserName = sig.adviserName;
 
     const freshSdsToken = `token_sds_${Date.now()}`;
-    const targetApprovedEvent: Event = { ...viewEvent, status: "Approved", sdsActionToken: freshSdsToken };
+    const targetApprovedEvent: Event = { ...viewEvent, status: "Reviewed", sdsActionToken: freshSdsToken };
 
     // 1. Generate genuine vector Clearance PDF and upload to Supabase Storage (Persistent Archive)
     try {
@@ -82,7 +82,7 @@ export default function DeanPendingApproval() {
     }
 
     // 2. Update Database & Local App State
-    setEventStatus(viewEvent.id, "Approved", trimmed || undefined, currentUser?.id, { sdsActionToken: freshSdsToken });
+    setEventStatus(viewEvent.id, "Reviewed", trimmed || undefined, currentUser?.id, { sdsActionToken: freshSdsToken });
     setIsApproving(false);
     toast.success("Proposal Approved", `'${viewEvent.name}' approved and dispatched to SDS.`, {
       action: {
@@ -503,7 +503,7 @@ export default function DeanPendingApproval() {
                 {(viewTab === "details" || viewTab === "compliance") && (
                   <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>
                 )}
-                {viewTab === "clearance" && viewEvent.status === "For Approval" && (
+                {viewTab === "clearance" && (viewEvent.status === "For Review (Dn)" || viewEvent.status === "For Approval") && (
                   <>
                     <Button variant="danger" onClick={() => setShowRequestChange(true)} disabled={isApproving}>
                       <RotateCcw size={14} /> Request Change

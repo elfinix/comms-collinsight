@@ -149,7 +149,7 @@ INSERT INTO public.events (
     'Executive Clearance Granted. Authorized for Computer Lab 3 reservation.',
     'APF-ITSG-2026-001',
     '[]'::jsonb,
-    'SDS Authorized',
+    'Event Authorized',
     'token_sds_f1000001', NULL,
     0.00, NULL, NULL, '2026-08-15T04:30:00Z', '51000000-0000-0000-0000-000000000001', false
   ),
@@ -165,7 +165,7 @@ INSERT INTO public.events (
     'Clearance granted. Virtual session links generated.',
     'APF-ITSG-2026-002',
     '[]'::jsonb,
-    'For Approval',
+    'For Review (Dn)',
     NULL, NULL,
     0.00, NULL, NULL, '2026-08-20T03:30:00Z', '51000000-0000-0000-0000-000000000002', false
   ),
@@ -179,7 +179,7 @@ INSERT INTO public.events (
     '["Security Speaker Profile", "Interactive CTF Rules"]'::jsonb,
     NULL, NULL,
     '[]'::jsonb,
-    'For Review',
+    'For Review (Adv)',
     NULL, NULL,
     0.00, NULL, NULL, '2026-08-25T06:00:00Z', '51000000-0000-0000-0000-000000000001', false
   ),
@@ -208,11 +208,11 @@ INSERT INTO public.events (
     'https://snsqkogfrrtyloqetowx.supabase.co/storage/v1/object/public/documents/apf_iot_workshop.pdf',
     '/fixtures/TechnoFest_2025_Appendices_Sample.pdf', 'PCF_CES_IoT_OffCampus.pdf',
     '["Component Safety Guidelines", "Hardware Requisition Sheet", "Risk Management Protocol"]'::jsonb,
-    'Clearance granted by SDS and Crisis Management Office.',
+    'Clearance granted by SDS.',
     'APF-CES-2026-005',
     '[]'::jsonb,
-    'CMO Authorized',
-    'token_sds_f1000005', 'token_cmo_f1000005',
+    'Event Authorized',
+    'token_sds_f1000005', NULL,
     0.00, NULL, NULL, '2026-08-18T05:00:00Z', '51000000-0000-0000-0000-000000000005', false
   ),
   (
@@ -242,7 +242,7 @@ INSERT INTO public.events (
     'Clearance granted. Virtual meeting room scheduled.',
     'APF-IEIC-2026-007',
     '[]'::jsonb,
-    'SDS Authorized',
+    'Event Authorized',
     'token_sds_f1000007', NULL,
     0.00, NULL, NULL, '2026-08-10T04:00:00Z', '51000000-0000-0000-0000-000000000007', false
   ),
@@ -367,58 +367,57 @@ INSERT INTO public.initiatives (
 INSERT INTO public.audit_trail (id, user_id, action, details, timestamp, event_id, organization_id, actor_role, status_from, status_to, remarks) VALUES
   -- Event 1: Cloud Computing & DevOps Workshop 2026 (SDS Authorized)
   ('81000000-0000-0000-0000-000000000001', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''Cloud Computing & DevOps Workshop 2026''', '2026-08-15T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cloud Computing & DevOps Workshop 2026'' to Adviser', '2026-08-15T04:30:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', 'Strong technical relevance for 3rd and 4th-year students.'),
-  ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026'' and dispatched to SDS', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', 'Approved. Ensure virtual lab guidelines are maintained.'),
-  ('81000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services (SDS) cleared proposal. Finance ledger unlocked.', '2026-08-17T09:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'sds', 'Approved', 'SDS Authorized', 'Institutional clearance granted via verification token.'),
+  ('81000000-0000-0000-0000-000000000002', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cloud Computing & DevOps Workshop 2026'' to Adviser', '2026-08-15T04:30:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000003', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Cloud Computing & DevOps Workshop 2026'' to College Dean', '2026-08-16T01:15:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review (Adv)', 'For Review (Dn)', 'Strong technical relevance for 3rd and 4th-year students.'),
+  ('81000000-0000-0000-0000-000000000004', 'e1000000-0000-0000-0000-000000000001', 'Approved & Forwarded to SDS', 'Granted Executive Dean Approval for ''Cloud Computing & DevOps Workshop 2026'' and dispatched to SDS', '2026-08-17T06:45:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'dean', 'For Review (Dn)', 'Reviewed', 'Approved. Ensure virtual lab guidelines are maintained.'),
+  ('81000000-0000-0000-0000-000000000005', 'd1000000-0000-0000-0000-000000000001', 'Executive Approval', 'Student Affairs & Development Services (SDS) cleared proposal. Finance ledger unlocked.', '2026-08-17T09:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'sds', 'Reviewed', 'Event Authorized', 'Institutional clearance granted via verification token.'),
   ('81000000-0000-0000-0000-000000000006', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,500.00 for ''AWS Cloud Lab Credits & Domain Voucher Pack''', '2026-08-18T02:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000007', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,000.00 for ''Snacks & Bottled Water for 50 Participants (Day 1)''', '2026-08-19T05:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000008', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,000.00 for ''Snacks & Bottled Water for 50 Participants (Day 2)''', '2026-08-20T05:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000009', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱1,200.00 for ''Certificates, Badges & Event Backdrop Printing''', '2026-08-20T08:00:00Z', 'f1000000-0000-0000-0000-000000000001', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
 
-  -- Event 2: Web Development Bootcamp: React & Next.js (For Approval)
+  -- Event 2: Web Development Bootcamp: React & Next.js (For Review (Dn))
   ('81000000-0000-0000-0000-000000000010', '51000000-0000-0000-0000-000000000002', 'Created Event', 'Created proposal for ''Web Development Bootcamp: React & Next.js''', '2026-08-20T01:00:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000011', '51000000-0000-0000-0000-000000000002', 'Submitted for Review', 'Submitted ''Web Development Bootcamp: React & Next.js'' to Adviser', '2026-08-20T03:30:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000012', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Web Development Bootcamp: React & Next.js'' to College Dean', '2026-08-21T02:00:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', 'Endorsed. Great initiative for cross-year knowledge transfer.'),
+  ('81000000-0000-0000-0000-000000000011', '51000000-0000-0000-0000-000000000002', 'Submitted for Review', 'Submitted ''Web Development Bootcamp: React & Next.js'' to Adviser', '2026-08-20T03:30:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000012', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''Web Development Bootcamp: React & Next.js'' to College Dean', '2026-08-21T02:00:00Z', 'f1000000-0000-0000-0000-000000000002', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review (Adv)', 'For Review (Dn)', 'Endorsed. Great initiative for cross-year knowledge transfer.'),
 
-  -- Event 3: Cybersecurity Awareness & Ethical Hacking 101 (For Review)
+  -- Event 3: Cybersecurity Awareness & Ethical Hacking 101 (For Review (Adv))
   ('81000000-0000-0000-0000-000000000013', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''Cybersecurity Awareness & Ethical Hacking 101''', '2026-08-25T04:00:00Z', 'f1000000-0000-0000-0000-000000000003', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000014', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cybersecurity Awareness & Ethical Hacking 101'' to Adviser', '2026-08-25T06:00:00Z', 'f1000000-0000-0000-0000-000000000003', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
+  ('81000000-0000-0000-0000-000000000014', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''Cybersecurity Awareness & Ethical Hacking 101'' to Adviser', '2026-08-25T06:00:00Z', 'f1000000-0000-0000-0000-000000000003', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review (Adv)', NULL),
 
   -- Event 4: ITSG Midyear General Assembly & Team Building (Closed)
   ('81000000-0000-0000-0000-000000000015', '51000000-0000-0000-0000-000000000001', 'Created Event', 'Created proposal for ''ITSG Midyear General Assembly & Team Building''', '2026-08-01T01:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000016', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''ITSG Midyear General Assembly & Team Building'' to Adviser', '2026-08-01T03:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000017', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''ITSG Midyear General Assembly & Team Building'' to College Dean', '2026-08-02T02:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review', 'For Approval', 'Endorsed for General Assembly scheduling.'),
-  ('81000000-0000-0000-0000-000000000018', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''ITSG Midyear General Assembly & Team Building''', '2026-08-03T05:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'dean', 'For Approval', 'Approved', 'Approved for Student Activity Center venue.'),
-  ('81000000-0000-0000-0000-000000000019', 'd1000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services cleared proposal. Assembly clearance validated.', '2026-08-03T08:30:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'sds', 'Approved', 'SDS Authorized', 'Venue and assembly clearance validated.'),
+  ('81000000-0000-0000-0000-000000000016', '51000000-0000-0000-0000-000000000001', 'Submitted for Review', 'Submitted ''ITSG Midyear General Assembly & Team Building'' to Adviser', '2026-08-01T03:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000017', 'ad100000-0000-0000-0000-000000000001', 'Endorsed Proposal', 'Endorsed ''ITSG Midyear General Assembly & Team Building'' to College Dean', '2026-08-02T02:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'adviser', 'For Review (Adv)', 'For Review (Dn)', 'Endorsed for General Assembly scheduling.'),
+  ('81000000-0000-0000-0000-000000000018', 'e1000000-0000-0000-0000-000000000001', 'Approved & Forwarded to SDS', 'Granted Executive Dean Approval for ''ITSG Midyear General Assembly & Team Building''', '2026-08-03T05:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'dean', 'For Review (Dn)', 'Reviewed', 'Approved for Student Activity Center venue.'),
+  ('81000000-0000-0000-0000-000000000019', 'd1000000-0000-0000-0000-000000000001', 'Executive Approval', 'Student Affairs & Development Services cleared proposal. Assembly clearance validated.', '2026-08-03T08:30:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'sds', 'Reviewed', 'Event Authorized', 'Venue and assembly clearance validated.'),
   ('81000000-0000-0000-0000-000000000020', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱500.00 for ''Printed Handouts & Guild Registration Forms''', '2026-08-22T02:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000021', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱2,800.00 for ''Assembly Catering & Packed Lunches (80 Pax)''', '2026-08-22T04:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000022', '51000000-0000-0000-0000-000000000001', 'Disbursed Expense', 'Disbursed ₱1,000.00 for ''Sound System & Microphone Cable Rental''', '2026-08-22T06:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
-  ('81000000-0000-0000-0000-000000000023', '51000000-0000-0000-0000-000000000001', 'Event Completed', 'Concluded assembly proceedings and initiated post-event financial liquidation', '2026-08-23T09:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'SDS Authorized', 'Completed', NULL),
+  ('81000000-0000-0000-0000-000000000023', '51000000-0000-0000-0000-000000000001', 'Event Completed', 'Concluded assembly proceedings and initiated post-event financial liquidation', '2026-08-23T09:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Event Authorized', 'Completed', NULL),
   ('81000000-0000-0000-0000-000000000024', '51000000-0000-0000-0000-000000000001', 'Event Closed', 'Finalized digital liquidation and closed ''ITSG Midyear General Assembly & Team Building''', '2026-08-25T07:30:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', 'Completed', 'Closed', 'Surplus of ₱1,200.00 returned and recorded to Organizational Initiatives Treasury.'),
   ('81000000-0000-0000-0000-000000000025', '51000000-0000-0000-0000-000000000001', 'Ledger Amendment', 'Logged financial amendment: Supplementary honorarium adjustment for keynote speaker [Adjustment: ₱500.00]', '2026-08-25T08:00:00Z', 'f1000000-0000-0000-0000-000000000004', '01000000-0000-0000-0000-000000000001', 'student', NULL, NULL, NULL),
 
-  -- Event 5: IoT & Embedded Systems Prototyping Workshop (CMO Authorized - Off-campus)
+  -- Event 5: IoT & Embedded Systems Prototyping Workshop (Event Authorized - Off-campus)
   ('81000000-0000-0000-0000-000000000026', '51000000-0000-0000-0000-000000000005', 'Created Event', 'Created proposal for ''IoT & Embedded Systems Prototyping Workshop''', '2026-08-18T01:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000027', '51000000-0000-0000-0000-000000000005', 'Submitted for Review', 'Submitted ''IoT & Embedded Systems Prototyping Workshop'' to Adviser', '2026-08-18T05:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000028', 'ad100000-0000-0000-0000-000000000002', 'Endorsed Proposal', 'Endorsed off-campus IoT summit for provincial makerspace hub to College Dean', '2026-08-19T02:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review', 'For Approval', 'Endorsed off-campus IoT summit for provincial makerspace hub.'),
-  ('81000000-0000-0000-0000-000000000029', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval and dispatched to SDS and Crisis Management Office (CMO)', '2026-08-20T04:30:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'dean', 'For Approval', 'Approved', 'Approved and dispatched to Student Development Services & CMO.'),
-  ('81000000-0000-0000-0000-000000000030', 'd1000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services (SDS) cleared proposal and verified parental consent forms.', '2026-08-20T08:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'sds', 'Approved', 'SDS Authorized', 'SDS clearance and off-campus security protocol verified.'),
-  ('81000000-0000-0000-0000-000000000031', '51000000-0000-0000-0000-000000000005', 'CMO Authorized', 'Crisis Management Office travel clearance and off-campus insurance authorization sealed.', '2026-08-21T03:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'cmo', 'SDS Authorized', 'CMO Authorized', 'Crisis Management Office travel clearance and insurance verified for off-campus hub.'),
+  ('81000000-0000-0000-0000-000000000027', '51000000-0000-0000-0000-000000000005', 'Submitted for Review', 'Submitted ''IoT & Embedded Systems Prototyping Workshop'' to Adviser', '2026-08-18T05:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000028', 'ad100000-0000-0000-0000-000000000002', 'Endorsed Proposal', 'Endorsed off-campus IoT summit for provincial makerspace hub to College Dean', '2026-08-19T02:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review (Adv)', 'For Review (Dn)', 'Endorsed off-campus IoT summit for provincial makerspace hub.'),
+  ('81000000-0000-0000-0000-000000000029', 'e1000000-0000-0000-0000-000000000001', 'Approved & Forwarded to SDS', 'Granted Executive Dean Approval and dispatched to SDS', '2026-08-20T04:30:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'dean', 'For Review (Dn)', 'Reviewed', 'Approved and dispatched to Student Development Services.'),
+  ('81000000-0000-0000-0000-000000000030', 'd1000000-0000-0000-0000-000000000001', 'Executive Approval', 'Student Affairs & Development Services (SDS) cleared proposal and verified parental consent forms.', '2026-08-20T08:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'sds', 'Reviewed', 'Event Authorized', 'SDS clearance and off-campus security protocol verified.'),
   ('81000000-0000-0000-0000-000000000032', '51000000-0000-0000-0000-000000000005', 'Disbursed Expense', 'Disbursed ₱4,500.00 for ''ESP32 Development Boards (15 Units)''', '2026-08-26T03:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000033', '51000000-0000-0000-0000-000000000005', 'Disbursed Expense', 'Disbursed ₱2,500.00 for ''Sensor Kits (Ultrasonic, DHT22, Relays)''', '2026-08-26T05:00:00Z', 'f1000000-0000-0000-0000-000000000005', '01000000-0000-0000-0000-000000000002', 'student', NULL, NULL, NULL),
 
   -- Event 6: Robotics & Automation Invitational 2026 (Pending Revision - Off-campus)
   ('81000000-0000-0000-0000-000000000034', '51000000-0000-0000-0000-000000000006', 'Created Event', 'Created proposal for ''Robotics & Automation Invitational 2026''', '2026-08-22T03:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000035', '51000000-0000-0000-0000-000000000006', 'Submitted for Review', 'Submitted ''Robotics & Automation Invitational 2026'' to Adviser', '2026-08-22T08:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000036', 'ad100000-0000-0000-0000-000000000002', 'Revision Requested', 'Requested changes for ''Robotics & Automation Invitational 2026''', '2026-08-23T03:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review', 'Pending Revision', 'Please adjust the trophy expenditure and clarify external judge compensation.'),
+  ('81000000-0000-0000-0000-000000000035', '51000000-0000-0000-0000-000000000006', 'Submitted for Review', 'Submitted ''Robotics & Automation Invitational 2026'' to Adviser', '2026-08-22T08:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000036', 'ad100000-0000-0000-0000-000000000002', 'Revision Requested', 'Requested changes for ''Robotics & Automation Invitational 2026''', '2026-08-23T03:00:00Z', 'f1000000-0000-0000-0000-000000000006', '01000000-0000-0000-0000-000000000002', 'adviser', 'For Review (Adv)', 'Pending Revision', 'Please adjust the trophy expenditure and clarify external judge compensation.'),
 
-  -- Event 7: Lean Six Sigma & Process Optimization Seminar (SDS Authorized)
+  -- Event 7: Lean Six Sigma & Process Optimization Seminar (Event Authorized)
   ('81000000-0000-0000-0000-000000000037', '51000000-0000-0000-0000-000000000007', 'Created Event', 'Created proposal for ''Lean Six Sigma & Process Optimization Seminar''', '2026-08-10T01:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', NULL, 'Created', NULL),
-  ('81000000-0000-0000-0000-000000000038', '51000000-0000-0000-0000-000000000007', 'Submitted for Review', 'Submitted ''Lean Six Sigma & Process Optimization Seminar'' to Adviser', '2026-08-10T04:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', 'Created', 'For Review', NULL),
-  ('81000000-0000-0000-0000-000000000039', 'ad100000-0000-0000-0000-000000000003', 'Endorsed Proposal', 'Endorsed ''Lean Six Sigma & Process Optimization Seminar'' to College Dean', '2026-08-11T03:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'adviser', 'For Review', 'For Approval', 'Highly recommended for industrial engineering accreditation.'),
-  ('81000000-0000-0000-0000-000000000040', 'e1000000-0000-0000-0000-000000000001', 'Approved Event', 'Granted Executive Dean Approval for ''Lean Six Sigma & Process Optimization Seminar'' and dispatched to SDS', '2026-08-12T05:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'dean', 'For Approval', 'Approved', 'Approved for professional development credit.'),
-  ('81000000-0000-0000-0000-000000000041', 'd1000000-0000-0000-0000-000000000001', 'SDS Authorized', 'Student Affairs & Development Services (SDS) approved and registered in institutional academic calendar.', '2026-08-12T08:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'sds', 'Approved', 'SDS Authorized', 'SDS approved and registered in institutional academic calendar.'),
+  ('81000000-0000-0000-0000-000000000038', '51000000-0000-0000-0000-000000000007', 'Submitted for Review', 'Submitted ''Lean Six Sigma & Process Optimization Seminar'' to Adviser', '2026-08-10T04:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', 'Created', 'For Review (Adv)', NULL),
+  ('81000000-0000-0000-0000-000000000039', 'ad100000-0000-0000-0000-000000000003', 'Endorsed Proposal', 'Endorsed ''Lean Six Sigma & Process Optimization Seminar'' to College Dean', '2026-08-11T03:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'adviser', 'For Review (Adv)', 'For Review (Dn)', 'Highly recommended for industrial engineering accreditation.'),
+  ('81000000-0000-0000-0000-000000000040', 'e1000000-0000-0000-0000-000000000001', 'Approved & Forwarded to SDS', 'Granted Executive Dean Approval for ''Lean Six Sigma & Process Optimization Seminar'' and dispatched to SDS', '2026-08-12T05:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'dean', 'For Review (Dn)', 'Reviewed', 'Approved for professional development credit.'),
+  ('81000000-0000-0000-0000-000000000041', 'd1000000-0000-0000-0000-000000000001', 'Executive Approval', 'Student Affairs & Development Services (SDS) approved and registered in institutional academic calendar.', '2026-08-12T08:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'sds', 'Reviewed', 'Event Authorized', 'SDS approved and registered in institutional academic calendar.'),
   ('81000000-0000-0000-0000-000000000042', '51000000-0000-0000-0000-000000000007', 'Disbursed Expense', 'Disbursed ₱4,000.00 for ''Guest Speaker Honorarium (Six Sigma BB)''', '2026-08-29T02:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', NULL, NULL, NULL),
   ('81000000-0000-0000-0000-000000000043', '51000000-0000-0000-0000-000000000007', 'Disbursed Expense', 'Disbursed ₱1,800.00 for ''Certificates of Participation & Token of Appreciation''', '2026-08-29T06:00:00Z', 'f1000000-0000-0000-0000-000000000007', '01000000-0000-0000-0000-000000000003', 'student', NULL, NULL, NULL),
 

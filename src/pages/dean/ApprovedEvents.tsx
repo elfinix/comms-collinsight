@@ -41,7 +41,7 @@ export default function DeanApprovedEvents() {
     if (deanSig?.createdAt) return new Date(deanSig.createdAt).getTime();
 
     const auditEntry = (auditTrail || []).find(
-      (a) => a.eventId === eventId && (a.action === "Approved Event" || a.action === "Executive Approval" || a.statusTo === "Approved")
+      (a) => a.eventId === eventId && (a.action === "Approved Event" || a.action === "Approved & Forwarded to SDS" || a.action === "Executive Approval" || a.statusTo === "Approved")
     );
     if (auditEntry?.timestamp) return new Date(auditEntry.timestamp).getTime();
 
@@ -49,7 +49,7 @@ export default function DeanApprovedEvents() {
   };
 
   const baseApproved = useMemo(() => {
-    return events.filter((e) => ["Approved", "For Review (SDS)", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
+    return events.filter((e) => ["Reviewed", "Approved", "For Review (SDS)", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
   }, [events]);
 
   const totalSpent = useMemo(() => {
@@ -76,9 +76,9 @@ export default function DeanApprovedEvents() {
         // Status filter
         if (statusFilter !== "All") {
           if (statusFilter === "Authorized") {
-            if (e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
+            if (e.status !== "Event Authorized" && e.status !== "SDS Authorized" && e.status !== "CMO Authorized") return false;
           } else if (statusFilter === "Approved") {
-            if (e.status !== "Approved" && e.status !== "For Review (SDS)") return false;
+            if (e.status !== "Reviewed" && e.status !== "Approved" && e.status !== "For Review (SDS)") return false;
           } else if (e.status !== statusFilter) {
             return false;
           }
@@ -301,9 +301,9 @@ export default function DeanApprovedEvents() {
                 s === "All"
                   ? baseApproved.length
                   : s === "Authorized"
-                  ? baseApproved.filter((e) => e.status === "SDS Authorized" || e.status === "CMO Authorized").length
+                  ? baseApproved.filter((e) => e.status === "Event Authorized" || e.status === "SDS Authorized" || e.status === "CMO Authorized").length
                   : s === "Approved"
-                  ? baseApproved.filter((e) => e.status === "Approved" || e.status === "For Review (SDS)").length
+                  ? baseApproved.filter((e) => e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)").length
                   : baseApproved.filter((e) => e.status === s).length;
 
               return (

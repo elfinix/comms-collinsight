@@ -94,17 +94,18 @@ export default function SignatoryActionPage({ forcedRole }: SignatoryActionPageP
   );
 
   // Check if event is in an active actionable state for this signatory in the CURRENT round
-  const isSdsTurn = !isTokenObsolete && resolvedRole === "sds" && (event?.status === "Approved" || event?.status === "For Approval");
-  const isCmoTurn = !isTokenObsolete && resolvedRole === "cmo" && isOffCampus && event?.status === "SDS Authorized";
+  const isSdsTurn = !isTokenObsolete && resolvedRole === "sds" && (event?.status === "Reviewed" || event?.status === "Approved" || event?.status === "For Review (SDS)" || event?.status === "For Review (Dn)" || event?.status === "For Approval");
+  const isCmoTurn = !isTokenObsolete && resolvedRole === "cmo" && isOffCampus && (event?.status === "Event Authorized" || event?.status === "SDS Authorized");
   const canPerformAction = isSdsTurn || isCmoTurn;
 
   // If not currently actionable, determine why (already approved in current round, requested revision, rejected, or awaiting preceding stages)
   const sdsAlreadyApproved = !canPerformAction && resolvedRole === "sds" && (
+    event?.status === "Event Authorized" ||
     event?.status === "SDS Authorized" ||
     event?.status === "CMO Authorized" ||
     event?.status === "Completed" ||
     event?.status === "Closed" ||
-    (event?.status === "Pending Revision" && isOffCampus && latestRoleAudit?.action === "SDS Authorized")
+    (event?.status === "Pending Revision" && isOffCampus && (latestRoleAudit?.action === "Event Authorized" || latestRoleAudit?.action === "SDS Authorized"))
   );
 
   const cmoAlreadyApproved = !canPerformAction && resolvedRole === "cmo" && (

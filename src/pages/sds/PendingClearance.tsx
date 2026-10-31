@@ -68,7 +68,7 @@ export default function SDSPendingClearance() {
         !e.isInstitutional &&
         e.category !== "Institutional" &&
         Boolean(e.organizationId) &&
-        (e.status === "Approved" || e.status === "For Review (SDS)")
+        (e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)")
     );
   }, [events]);
 
@@ -92,7 +92,7 @@ export default function SDSPendingClearance() {
 
   // Open review modal and mark event as "For Review (SDS)" if first-time open
   const handleOpenReview = (e: Event) => {
-    if (e.status === "Approved") {
+    if (e.status === "Reviewed" || e.status === "Approved") {
       setEventStatus(e.id, "For Review (SDS)", undefined, currentUser?.id);
       setViewEvent({ ...e, status: "For Review (SDS)" });
     } else {
@@ -174,15 +174,15 @@ export default function SDSPendingClearance() {
 
     setEventStatus(
       viewEvent.id,
-      "SDS Authorized",
+      "Event Authorized",
       trimmed || undefined,
       currentUser?.id
     );
 
     setIsAuthorizing(false);
     toast.success(
-      "Clearance Granted",
-      `'${viewEvent.name}' approved by SDS. Finance ledger unlocked.`
+      "Executive Approval Granted",
+      `'${viewEvent.name}' granted executive approval by SDS. Finance ledger unlocked.`
     );
     setViewEvent(null);
     setFeedback("");
@@ -438,7 +438,7 @@ export default function SDSPendingClearance() {
                         <span
                           className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${
                             e.status === "For Review (SDS)"
-                              ? "bg-orange-100 text-orange-900 border-orange-300 dark:bg-orange-950/70 dark:text-orange-200"
+                              ? "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/70 dark:text-blue-200"
                               : "bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300"
                           }`}
                         >
@@ -572,7 +572,7 @@ export default function SDSPendingClearance() {
                             <span
                               className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full font-bold border ${
                                 e.status === "For Review (SDS)"
-                                  ? "bg-orange-100 text-orange-900 border-orange-300"
+                                  ? "bg-blue-100 text-blue-800 border-blue-300"
                                   : "bg-amber-50 text-amber-800 border-amber-300"
                               }`}
                             >
@@ -818,7 +818,7 @@ export default function SDSPendingClearance() {
                     Next →
                   </Button>
                 )}
-                {viewTab === "clearance" && viewEvent.status === "Approved" && (
+                {viewTab === "clearance" && (viewEvent.status === "Reviewed" || viewEvent.status === "Approved" || viewEvent.status === "For Review (SDS)") && (
                   <>
                     <Button
                       variant="outline"

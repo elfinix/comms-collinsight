@@ -137,7 +137,7 @@ export default function StudentDashboard() {
         />
         <StatCard
           label="Pending Review"
-          value={orgEvents.filter((e) => e.status === "For Review" || e.status === "For Approval").length}
+          value={orgEvents.filter((e) => e.status === "For Review (Adv)" || e.status === "For Review" || e.status === "For Review (Dn)" || e.status === "For Approval").length}
           sub="Awaiting endorsement"
           icon={<Clock size={18} />}
           color="bg-amber-500 text-white"

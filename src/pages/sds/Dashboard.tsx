@@ -38,9 +38,9 @@ export default function SDSDashboard() {
     (e) => !e.isInstitutional && e.category !== "Institutional" && Boolean(e.organizationId)
   );
 
-  const pendingClearances = studentEvents.filter((e) => e.status === "Approved" || e.status === "For Review (SDS)");
+  const pendingClearances = studentEvents.filter((e) => e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)");
   const authorizedEvents = studentEvents.filter((e) =>
-    ["SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+    ["Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
   );
   const pendingRevisions = studentEvents.filter((e) => e.status === "Pending Revision");
 
@@ -54,9 +54,9 @@ export default function SDSDashboard() {
   const orgData = organizations.map((org) => {
     const orgEvts = studentEvents.filter((e) => e.organizationId === org.id);
     const cleared = orgEvts.filter((e) =>
-      ["SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+      ["Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
     );
-    const pendingOrg = orgEvts.filter((e) => e.status === "Approved" || e.status === "For Review (SDS)");
+    const pendingOrg = orgEvts.filter((e) => e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)");
     return {
       name: org.code,
       fullName: org.name,

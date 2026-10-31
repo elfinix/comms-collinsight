@@ -11,16 +11,21 @@ export type EventCategory = "Organizational" | "Departmental" | "Institutional";
 export type EventSetting = "On-campus" | "Off-campus";
 export type EventStatus =
   | "Created"
-  | "For Review"
-  | "For Approval"
-  | "Pending Revision"
-  | "Approved"
+  | "For Review (Adv)"
+  | "For Review (Dn)"
+  | "Reviewed"
   | "For Review (SDS)"
-  | "SDS Authorized"
-  | "CMO Authorized"
+  | "Event Authorized"
+  | "Pending Revision"
   | "Rejected"
   | "Completed"
-  | "Closed";
+  | "Closed"
+  // Legacy backward compatibility
+  | "For Review"
+  | "For Approval"
+  | "Approved"
+  | "SDS Authorized"
+  | "CMO Authorized";
 export type TransactionStatus = "Pending" | "Paid" | "Reimbursed";
 
 export interface User {
@@ -1215,11 +1220,15 @@ export function formatEventSchedule(dateStart?: string, dateEnd?: string, isAllD
 
 export const statusColors: Record<EventStatus, string> = {
   Created: "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
+  "For Review (Adv)": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
   "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
+  "For Review (Dn)": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
+  Reviewed: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
   Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
-  "For Review (SDS)": "bg-orange-100 text-orange-900 border border-orange-300 font-medium",
+  "For Review (SDS)": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
+  "Event Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "SDS Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "CMO Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   Rejected: "bg-rose-100 text-rose-800 border border-rose-300 font-medium",
@@ -1228,10 +1237,10 @@ export const statusColors: Record<EventStatus, string> = {
 };
 
 export function getStatusBadgeClass(status: EventStatus, _setting?: EventSetting): string {
-  if (status === "For Review (SDS)") {
-    return "bg-orange-100 text-orange-900 border border-orange-300 dark:bg-orange-950/70 dark:text-orange-200 dark:border-orange-700 font-medium";
+  if (status === "For Review (SDS)" || status === "For Review (Dn)" || status === "For Approval") {
+    return "bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-950/70 dark:text-blue-200 dark:border-blue-700 font-medium";
   }
-  if (status === "SDS Authorized" || status === "CMO Authorized") {
+  if (status === "Event Authorized" || status === "SDS Authorized" || status === "CMO Authorized") {
     return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
   }
 
@@ -1292,8 +1301,14 @@ export function getActionBadgeClass(action: string): string {
   if (act.includes("authoriz")) {
     return "bg-indigo-100 text-indigo-900 border-indigo-300 font-bold";
   }
-  if (act.includes("endorsed") || act.includes("endors")) {
-    return "bg-blue-100 text-blue-800 border-blue-300 font-bold";
+  if (
+    act.includes("approved & forwarded") ||
+    act.includes("endorsed") ||
+    act.includes("endors") ||
+    act.includes("for review (sds)") ||
+    act.includes("for review (dn)")
+  ) {
+    return "bg-blue-100 text-blue-800 border border-blue-300 font-bold";
   }
   if (act.includes("approved") || act.includes("approv")) {
     return "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";

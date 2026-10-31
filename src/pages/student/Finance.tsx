@@ -65,7 +65,7 @@ const INITIATIVE_SOURCES: { value: InitiativeSource; label: string; icon?: React
 
 function isEventFinanceUnlocked(status: string, _setting?: string): boolean {
   if (status === "Completed" || status === "Closed") return true;
-  return status === "SDS Authorized" || status === "CMO Authorized";
+  return status === "Event Authorized" || status === "SDS Authorized" || status === "CMO Authorized";
 }
 
 export default function StudentFinance() {

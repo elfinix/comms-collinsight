@@ -25,7 +25,7 @@ export default function AdviserPendingReview() {
   const { events, eventTypes, organizations, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
   const { toast } = useToast();
   const orgId = currentUser?.organizationId ?? "";
-  const pending = events.filter((e) => e.organizationId === orgId && e.status === "For Review");
+  const pending = events.filter((e) => e.organizationId === orgId && (e.status === "For Review (Adv)" || e.status === "For Review"));
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
 
@@ -41,9 +41,9 @@ export default function AdviserPendingReview() {
 
   function handleApprove() {
     if (!viewEvent) return;
-    const targetEvent = { ...viewEvent, status: "For Approval" as const };
+    const targetEvent = { ...viewEvent, status: "For Review (Dn)" as const };
     const trimmed = feedback.trim();
-    setEventStatus(viewEvent.id, "For Approval", trimmed || undefined, currentUser?.id);
+    setEventStatus(viewEvent.id, "For Review (Dn)", trimmed || undefined, currentUser?.id);
     toast.success("Proposal Endorsed", `'${viewEvent.name}' endorsed and forwarded to the College Dean.`, {
       action: {
         label: "Click here to view event details",
@@ -444,7 +444,7 @@ export default function AdviserPendingReview() {
                 {(viewTab === "details" || viewTab === "compliance") && (
                   <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>
                 )}
-                {viewTab === "clearance" && viewEvent.status === "For Review" && (
+                {viewTab === "clearance" && (viewEvent.status === "For Review (Adv)" || viewEvent.status === "For Review") && (
                   <>
                     <Button variant="danger" onClick={() => setShowRequestChange(true)}>
                       <RotateCcw size={14} /> Request Change

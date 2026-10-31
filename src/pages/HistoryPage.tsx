@@ -58,14 +58,14 @@ export default function HistoryPage() {
     if (role === "dean") {
       return [
         { id: "ALL" as ActionFilterType, label: "All" },
-        { id: "APPROVE" as ActionFilterType, label: "Executive Approvals" },
+        { id: "APPROVE" as ActionFilterType, label: "Dean Approvals" },
         { id: "REVISION" as ActionFilterType, label: "Revision Requests" },
       ];
     }
     if (role === "sds") {
       return [
         { id: "ALL" as ActionFilterType, label: "All" },
-        { id: "APPROVE" as ActionFilterType, label: "Authorizations" },
+        { id: "APPROVE" as ActionFilterType, label: "Executive Approvals" },
         { id: "REVISION" as ActionFilterType, label: "Revision Requests" },
       ];
     }
@@ -77,12 +77,22 @@ export default function HistoryPage() {
     return auditTrail.filter((entry) => {
       // For Dean: Strictly Dean's own executive actions (Executive Approvals, Dean Revision Requests, Dean Rejections)
       if (role === "dean") {
+        const isDeanApprovalTransition =
+          entry.action === "Approved & Forwarded to SDS" ||
+          ((entry.statusTo === "Reviewed" || entry.statusTo === "Approved") &&
+            (entry.statusFrom === "For Review (Dn)" || entry.statusFrom === "For Approval" || entry.details?.toLowerCase().includes("dispatched to sds") || entry.details?.toLowerCase().includes("forwarded to sds") || entry.details?.toLowerCase().includes("executive approval") || entry.details?.toLowerCase().includes("executive dean approval"))) ||
+          entry.details?.toLowerCase().includes("dispatched to sds") ||
+          entry.details?.toLowerCase().includes("forwarded to sds") ||
+          entry.details?.toLowerCase().includes("executive dean approval");
+
+        if (isDeanApprovalTransition) return true;
+
         const isSdsOrCmo =
           entry.actorRole === "sds" ||
           entry.actorRole === "cmo" ||
           entry.userId === "sds-external-token" ||
           entry.userId === "cmo-external-token" ||
-          entry.action.toLowerCase().includes("sds") ||
+          (entry.action.toLowerCase().includes("sds") && entry.action !== "Approved & Forwarded to SDS") ||
           entry.action.toLowerCase().includes("cmo") ||
           entry.details?.toLowerCase().includes("student development") ||
           entry.details?.toLowerCase().includes("crisis management") ||
@@ -97,6 +107,7 @@ export default function HistoryPage() {
           entry.action.toLowerCase().includes("creat") ||
           entry.action.toLowerCase().includes("delete") ||
           entry.action.toLowerCase().includes("endors") ||
+          (entry.action.toLowerCase().includes("approved & forwarded") && !entry.action.toLowerCase().includes("to sds")) ||
           entry.details?.toLowerCase().includes("faculty adviser") ||
           entry.details?.toLowerCase().includes("to adviser");
 
@@ -104,7 +115,8 @@ export default function HistoryPage() {
 
         const isDeanRole = entry.actorRole === "dean";
         const isDeanExecutiveAction =
-          entry.action.toLowerCase().includes("executive") ||
+          entry.action === "Approved & Forwarded to SDS" ||
+          (entry.action.toLowerCase().includes("executive") && entry.actorRole !== "sds") ||
           entry.action.toLowerCase().includes("dean") ||
           entry.details?.toLowerCase().includes("college dean");
 
@@ -113,12 +125,23 @@ export default function HistoryPage() {
 
       // For SDS: Clearance authorizations and revision requests dispatched by SDS
       if (role === "sds") {
+        const isDeanApprovalTransition =
+          entry.action === "Approved & Forwarded to SDS" ||
+          ((entry.statusTo === "Reviewed" || entry.statusTo === "Approved") &&
+            (entry.statusFrom === "For Review (Dn)" || entry.statusFrom === "For Approval" || entry.details?.toLowerCase().includes("dispatched to sds") || entry.details?.toLowerCase().includes("forwarded to sds") || entry.details?.toLowerCase().includes("executive approval") || entry.details?.toLowerCase().includes("executive dean approval"))) ||
+          entry.details?.toLowerCase().includes("dispatched to sds") ||
+          entry.details?.toLowerCase().includes("forwarded to sds") ||
+          entry.details?.toLowerCase().includes("executive dean approval");
+
+        if (isDeanApprovalTransition) return false;
+
         return (
           entry.actorRole === "sds" ||
           entry.userId === currentUser?.id ||
           entry.userId === "d1000000-0000-0000-0000-000000000001" ||
           entry.userId === "sds-external-token" ||
-          entry.action.toLowerCase().includes("sds") ||
+          ((entry.action === "Executive Approval" || entry.action === "Event Authorized" || entry.action === "SDS Authorized") && (entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized" || entry.details?.toLowerCase().includes("clearance") || entry.details?.toLowerCase().includes("authorized") || entry.details?.toLowerCase().includes("finance ledger"))) ||
+          (entry.action.toLowerCase().includes("sds") && entry.action !== "Approved & Forwarded to SDS") ||
           entry.details?.toLowerCase().includes("student development") ||
           entry.details?.toLowerCase().includes("by sds")
         );
@@ -445,39 +468,60 @@ export default function HistoryPage() {
             <div className="relative pl-7 space-y-6 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-[2px] before:bg-[var(--border)]">
               {visibleEntries.map((entry) => {
                 const evt = getAssociatedEvent(entry);
+
+                const isDeanApprovalTransition =
+                  entry.action === "Approved & Forwarded to SDS" ||
+                  ((entry.statusTo === "Reviewed" || entry.statusTo === "Approved") &&
+                    (entry.statusFrom === "For Review (Dn)" || entry.statusFrom === "For Approval" || entry.details?.toLowerCase().includes("dispatched to sds") || entry.details?.toLowerCase().includes("forwarded to sds") || entry.details?.toLowerCase().includes("executive approval") || entry.details?.toLowerCase().includes("executive dean approval"))) ||
+                  entry.details?.toLowerCase().includes("dispatched to sds") ||
+                  entry.details?.toLowerCase().includes("forwarded to sds") ||
+                  entry.details?.toLowerCase().includes("executive dean approval");
+
                 const isStudentAction =
-                  entry.actorRole === "student" ||
+                  !isDeanApprovalTransition &&
+                  (entry.actorRole === "student" ||
                   entry.action.toLowerCase().includes("submit") ||
                   entry.action.toLowerCase().includes("modified") ||
                   entry.action.toLowerCase().includes("creat") ||
-                  entry.action.toLowerCase().includes("delete");
-
-                const isDeanAction =
-                  entry.actorRole === "dean" ||
-                  entry.action.toLowerCase().includes("executive") ||
-                  entry.details?.toLowerCase().includes("by college dean");
-
-                const isAdviserAction =
-                  entry.actorRole === "adviser" ||
-                  entry.action.toLowerCase().includes("endors") ||
-                  entry.action.toLowerCase().includes("approved & forwarded") ||
-                  entry.details?.toLowerCase().includes("by faculty adviser");
+                  entry.action.toLowerCase().includes("delete"));
 
                 const isSds =
-                  entry.actorRole === "sds" ||
+                  !isDeanApprovalTransition &&
+                  (entry.actorRole === "sds" ||
                   entry.userId === "sds-external-token" ||
+                  entry.userId === "d1000000-0000-0000-0000-000000000001" ||
+                  ((entry.action === "Executive Approval" || entry.action === "Event Authorized" || entry.action === "SDS Authorized") && (entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized" || entry.details?.toLowerCase().includes("clearance") || entry.details?.toLowerCase().includes("authorized") || entry.details?.toLowerCase().includes("finance ledger"))) ||
+                  entry.action === "Event Authorized" ||
                   entry.action === "SDS Authorized" ||
                   entry.action === "For Review (SDS)" ||
                   entry.statusTo === "For Review (SDS)" ||
                   (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
-                  (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
+                  (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))));
+
+                const isDeanAction =
+                  isDeanApprovalTransition ||
+                  (!isSds &&
+                  (entry.actorRole === "dean" ||
+                    entry.action.toLowerCase().includes("executive") ||
+                    entry.details?.toLowerCase().includes("by college dean") ||
+                    entry.statusFrom === "For Review (Dn)" ||
+                    entry.statusFrom === "For Approval"));
+
+                const isAdviserAction =
+                  !isDeanApprovalTransition &&
+                  !isSds &&
+                  (entry.actorRole === "adviser" ||
+                  entry.action.toLowerCase().includes("endors") ||
+                  (entry.action.toLowerCase().includes("approved & forwarded") && !entry.action.toLowerCase().includes("to sds")) ||
+                  entry.details?.toLowerCase().includes("by faculty adviser"));
 
                 const isCmo =
-                  entry.actorRole === "cmo" ||
+                  !isDeanApprovalTransition &&
+                  (entry.actorRole === "cmo" ||
                   entry.userId === "cmo-external-token" ||
                   entry.action === "CMO Authorized" ||
                   (entry.action === "Requested Revision" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))) ||
-                  (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO")));
+                  (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))));
 
                 let user = (isSds || isCmo) ? undefined : (users.find((u) => u.id === entry.userId) || users.find((u) => u.email === entry.userId));
 
@@ -501,25 +545,38 @@ export default function HistoryPage() {
                     : users.find((u) => u.role === "student")
                 ));
 
-                const userRole = isSds ? "sds" : isCmo ? "cmo" : isStudentAction ? "student" : isDeanAction ? "dean" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
+                const userRole = isSds ? "sds" : isCmo ? "cmo" : isDeanAction ? "dean" : isStudentAction ? "student" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
 
                 const userName = isSds
                   ? "Student Development & Services"
                   : isCmo
                   ? "Crisis Management Office"
+                  : isDeanAction
+                  ? (resolvedUser ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim() : "Marilou C. Villanueva, Ph.D. (Dean)")
                   : resolvedUser
                   ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim()
                   : entry.userId && !entry.userId.includes("-0000-") && !entry.userId.startsWith("id-") && !entry.userId.includes("external-token")
                   ? entry.userId
                   : formatUserRole(userRole);
 
-                const isApprove = entry.action.toLowerCase().includes("approve") || entry.action.toLowerCase().includes("endors");
-                const isRevision = entry.action.toLowerCase().includes("revision") || entry.action.toLowerCase().includes("change");
-                const isSubmit = entry.action.toLowerCase().includes("submit") || entry.action.toLowerCase().includes("for review");
-                const isModified = entry.action.toLowerCase().includes("modified") || entry.action.toLowerCase().includes("edit");
-                const isDelete = entry.action.toLowerCase().includes("delete") || entry.action.toLowerCase().includes("removed");
-                const isClosure = entry.action.toLowerCase().includes("completed") || entry.action.toLowerCase().includes("closed") || entry.action.toLowerCase().includes("closure");
-                const isFinance = entry.action.toLowerCase().includes("disburs") || entry.action.toLowerCase().includes("expense") || entry.action.toLowerCase().includes("transaction");
+                const displayAction = isDeanApprovalTransition
+                  ? "Approved & Forwarded to SDS"
+                  : (isSds && (entry.action === "SDS Authorized" || entry.action === "Event Authorized" || entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized"))
+                  ? "Executive Approval"
+                  : entry.action;
+
+                let displayDetails = entry.details;
+                if (isDeanApprovalTransition && (entry.details?.toLowerCase().includes("granted executive") || entry.details?.toLowerCase().includes("executive approval"))) {
+                  displayDetails = `Approved proposal '${evt?.name || "Event"}' and forwarded to Student Development & Services (SDS)`;
+                }
+
+                const isApprove = displayAction.toLowerCase().includes("approve") || displayAction.toLowerCase().includes("endors");
+                const isRevision = displayAction.toLowerCase().includes("revision") || displayAction.toLowerCase().includes("change");
+                const isSubmit = displayAction.toLowerCase().includes("submit") || displayAction.toLowerCase().includes("for review");
+                const isModified = displayAction.toLowerCase().includes("modified") || displayAction.toLowerCase().includes("edit");
+                const isDelete = displayAction.toLowerCase().includes("delete") || displayAction.toLowerCase().includes("removed");
+                const isClosure = displayAction.toLowerCase().includes("completed") || displayAction.toLowerCase().includes("closed") || displayAction.toLowerCase().includes("closure");
+                const isFinance = displayAction.toLowerCase().includes("disburs") || displayAction.toLowerCase().includes("expense") || displayAction.toLowerCase().includes("transaction");
 
                 return (
                   <div key={entry.id} className="relative group">
@@ -560,9 +617,9 @@ export default function HistoryPage() {
                             <span className="font-bold text-base text-[var(--foreground)]">System Activity</span>
                           )}
                           <span
-                            className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${getActionBadgeClass(entry.action)}`}
+                            className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${getActionBadgeClass(displayAction)}`}
                           >
-                            {entry.action}
+                            {displayAction}
                           </span>
                         </div>
                         <span className="text-xs font-mono text-[var(--muted-foreground)] flex items-center gap-1">
@@ -570,7 +627,7 @@ export default function HistoryPage() {
                         </span>
                       </div>
 
-                      <p className="text-xs text-[var(--foreground)] leading-relaxed">{entry.details}</p>
+                      <p className="text-xs text-[var(--foreground)] leading-relaxed">{displayDetails}</p>
 
                       {/* Status Transition Pill */}
                       {(entry.statusFrom || entry.statusTo) && (
@@ -670,39 +727,60 @@ export default function HistoryPage() {
                 ) : (
                   visibleEntries.map((entry) => {
                     const evt = getAssociatedEvent(entry);
+
+                    const isDeanApprovalTransition =
+                      entry.action === "Approved & Forwarded to SDS" ||
+                      ((entry.statusTo === "Reviewed" || entry.statusTo === "Approved") &&
+                        (entry.statusFrom === "For Review (Dn)" || entry.statusFrom === "For Approval" || entry.details?.toLowerCase().includes("dispatched to sds") || entry.details?.toLowerCase().includes("forwarded to sds") || entry.details?.toLowerCase().includes("executive approval") || entry.details?.toLowerCase().includes("executive dean approval"))) ||
+                      entry.details?.toLowerCase().includes("dispatched to sds") ||
+                      entry.details?.toLowerCase().includes("forwarded to sds") ||
+                      entry.details?.toLowerCase().includes("executive dean approval");
+
                     const isStudentAction =
-                      entry.actorRole === "student" ||
+                      !isDeanApprovalTransition &&
+                      (entry.actorRole === "student" ||
                       entry.action.toLowerCase().includes("submit") ||
                       entry.action.toLowerCase().includes("modified") ||
                       entry.action.toLowerCase().includes("creat") ||
-                      entry.action.toLowerCase().includes("delete");
-
-                    const isDeanAction =
-                      entry.actorRole === "dean" ||
-                      entry.action.toLowerCase().includes("executive") ||
-                      entry.details?.toLowerCase().includes("by college dean");
-
-                    const isAdviserAction =
-                      entry.actorRole === "adviser" ||
-                      entry.action.toLowerCase().includes("endors") ||
-                      entry.action.toLowerCase().includes("approved & forwarded") ||
-                      entry.details?.toLowerCase().includes("by faculty adviser");
+                      entry.action.toLowerCase().includes("delete"));
 
                     const isSds =
-                      entry.actorRole === "sds" ||
+                      !isDeanApprovalTransition &&
+                      (entry.actorRole === "sds" ||
                       entry.userId === "sds-external-token" ||
+                      entry.userId === "d1000000-0000-0000-0000-000000000001" ||
+                      ((entry.action === "Executive Approval" || entry.action === "Event Authorized" || entry.action === "SDS Authorized") && (entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized" || entry.details?.toLowerCase().includes("clearance") || entry.details?.toLowerCase().includes("authorized") || entry.details?.toLowerCase().includes("finance ledger"))) ||
+                      entry.action === "Event Authorized" ||
                       entry.action === "SDS Authorized" ||
                       entry.action === "For Review (SDS)" ||
                       entry.statusTo === "For Review (SDS)" ||
                       (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
-                      (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
+                      (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))));
+
+                    const isDeanAction =
+                      isDeanApprovalTransition ||
+                      (!isSds &&
+                      (entry.actorRole === "dean" ||
+                        entry.action.toLowerCase().includes("executive") ||
+                        entry.details?.toLowerCase().includes("by college dean") ||
+                        entry.statusFrom === "For Review (Dn)" ||
+                        entry.statusFrom === "For Approval"));
+
+                    const isAdviserAction =
+                      !isDeanApprovalTransition &&
+                      !isSds &&
+                      (entry.actorRole === "adviser" ||
+                      entry.action.toLowerCase().includes("endors") ||
+                      (entry.action.toLowerCase().includes("approved & forwarded") && !entry.action.toLowerCase().includes("to sds")) ||
+                      entry.details?.toLowerCase().includes("by faculty adviser"));
 
                     const isCmo =
-                      entry.actorRole === "cmo" ||
+                      !isDeanApprovalTransition &&
+                      (entry.actorRole === "cmo" ||
                       entry.userId === "cmo-external-token" ||
                       entry.action === "CMO Authorized" ||
                       (entry.action === "Requested Revision" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))) ||
-                      (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO")));
+                      (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))));
 
                     let user = (isSds || isCmo) ? undefined : (users.find((u) => u.id === entry.userId) || users.find((u) => u.email === entry.userId));
 
@@ -726,17 +804,30 @@ export default function HistoryPage() {
                         : users.find((u) => u.role === "student")
                     ));
 
-                    const userRole = isSds ? "sds" : isCmo ? "cmo" : isStudentAction ? "student" : isDeanAction ? "dean" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
+                    const userRole = isSds ? "sds" : isCmo ? "cmo" : isDeanAction ? "dean" : isStudentAction ? "student" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
 
                     const userName = isSds
                       ? "Student Development & Services"
                       : isCmo
                       ? "Crisis Management Office"
+                      : isDeanAction
+                      ? (resolvedUser ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim() : "Marilou C. Villanueva, Ph.D. (Dean)")
                       : resolvedUser
                       ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim()
                       : entry.userId && !entry.userId.includes("-0000-") && !entry.userId.startsWith("id-") && !entry.userId.includes("external-token")
                       ? entry.userId
                       : formatUserRole(userRole);
+
+                    const displayAction = isDeanApprovalTransition
+                      ? "Approved & Forwarded to SDS"
+                      : (isSds && (entry.action === "SDS Authorized" || entry.action === "Event Authorized" || entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized"))
+                      ? "Executive Approval"
+                      : entry.action;
+
+                    let displayDetails = entry.details;
+                    if (isDeanApprovalTransition && (entry.details?.toLowerCase().includes("granted executive") || entry.details?.toLowerCase().includes("executive approval"))) {
+                      displayDetails = `Approved proposal '${evt?.name || "Event"}' and forwarded to Student Development & Services (SDS)`;
+                    }
 
                     return (
                       <tr key={entry.id} className="hover:bg-[var(--muted)]/40 transition-colors">
@@ -769,9 +860,9 @@ export default function HistoryPage() {
                         {/* Action Badge */}
                         <td className="px-4 py-3.5 align-top whitespace-nowrap">
                           <span
-                            className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 border shadow-2xs ${getActionBadgeClass(entry.action)}`}
+                            className={`text-xs font-mono font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1.5 border shadow-2xs ${getActionBadgeClass(displayAction)}`}
                           >
-                            {entry.action}
+                            {displayAction}
                           </span>
                         </td>
 
@@ -783,7 +874,7 @@ export default function HistoryPage() {
 
                         {/* Details */}
                         <td className="px-4 py-3.5 align-top text-xs space-y-1.5">
-                          <p className="text-[var(--foreground)] leading-relaxed">{entry.details}</p>
+                          <p className="text-[var(--foreground)] leading-relaxed">{displayDetails}</p>
                           {entry.remarks && (
                             <div
                               className={`border-l-2 p-2 rounded text-[11px] leading-relaxed ${

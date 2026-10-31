@@ -415,7 +415,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     generatedDate,
   });
 
-  const isApproved = ["Approved", "Authorized", "For Review (SDS)", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Reviewed", "Approved", "Authorized", "For Review (SDS)", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const viewerRole = options?.viewerRole;
 
   let showAdviserSign = false;
@@ -424,7 +424,7 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
   if (isApproved || viewerRole === "dean") {
     showAdviserSign = true;
     showDeanSign = true;
-  } else if (event.status === "For Approval" || viewerRole === "adviser") {
+  } else if (event.status === "For Review (Dn)" || event.status === "For Approval" || viewerRole === "adviser") {
     showAdviserSign = true;
     showDeanSign = false;
   } else {

@@ -87,39 +87,59 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
       {/* Vertical Timeline */}
       <div className="relative pl-7 space-y-6 before:absolute before:left-[11px] before:top-3 before:bottom-3 before:w-[2px] before:bg-[var(--border)]">
         {eventEntries.map((entry, idx) => {
+          const isDeanApprovalTransition =
+            entry.action === "Approved & Forwarded to SDS" ||
+            ((entry.statusTo === "Reviewed" || entry.statusTo === "Approved") &&
+              (entry.statusFrom === "For Review (Dn)" || entry.statusFrom === "For Approval" || entry.details?.toLowerCase().includes("dispatched to sds") || entry.details?.toLowerCase().includes("forwarded to sds") || entry.details?.toLowerCase().includes("executive approval") || entry.details?.toLowerCase().includes("executive dean approval"))) ||
+            entry.details?.toLowerCase().includes("dispatched to sds") ||
+            entry.details?.toLowerCase().includes("forwarded to sds") ||
+            entry.details?.toLowerCase().includes("executive dean approval");
+
           const isStudentAction =
-            entry.actorRole === "student" ||
+            !isDeanApprovalTransition &&
+            (entry.actorRole === "student" ||
             entry.action.toLowerCase().includes("submit") ||
             entry.action.toLowerCase().includes("modified") ||
             entry.action.toLowerCase().includes("creat") ||
-            entry.action.toLowerCase().includes("delete");
-
-          const isDeanAction =
-            entry.actorRole === "dean" ||
-            entry.action.toLowerCase().includes("executive") ||
-            entry.details?.toLowerCase().includes("by college dean");
-
-          const isAdviserAction =
-            entry.actorRole === "adviser" ||
-            entry.action.toLowerCase().includes("endors") ||
-            entry.action.toLowerCase().includes("approved & forwarded") ||
-            entry.details?.toLowerCase().includes("by faculty adviser");
+            entry.action.toLowerCase().includes("delete"));
 
           const isSds =
-            entry.actorRole === "sds" ||
+            !isDeanApprovalTransition &&
+            (entry.actorRole === "sds" ||
             entry.userId === "sds-external-token" ||
+            entry.userId === "d1000000-0000-0000-0000-000000000001" ||
+            ((entry.action === "Executive Approval" || entry.action === "Event Authorized" || entry.action === "SDS Authorized") && (entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized" || entry.details?.toLowerCase().includes("clearance") || entry.details?.toLowerCase().includes("authorized") || entry.details?.toLowerCase().includes("finance ledger"))) ||
+            entry.action === "Event Authorized" ||
             entry.action === "SDS Authorized" ||
             entry.action === "For Review (SDS)" ||
             entry.statusTo === "For Review (SDS)" ||
             (entry.action === "Requested Revision" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))) ||
-            (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS")));
+            (entry.action === "Proposal Rejected" && (entry.details?.includes("by Student Development") || entry.details?.includes("by SDS"))));
+
+          const isDeanAction =
+            isDeanApprovalTransition ||
+            (!isSds &&
+            (entry.actorRole === "dean" ||
+              entry.action.toLowerCase().includes("executive") ||
+              entry.details?.toLowerCase().includes("by college dean") ||
+              entry.statusFrom === "For Review (Dn)" ||
+              entry.statusFrom === "For Approval"));
+
+          const isAdviserAction =
+            !isDeanApprovalTransition &&
+            !isSds &&
+            (entry.actorRole === "adviser" ||
+            entry.action.toLowerCase().includes("endors") ||
+            (entry.action.toLowerCase().includes("approved & forwarded") && !entry.action.toLowerCase().includes("to sds")) ||
+            entry.details?.toLowerCase().includes("by faculty adviser"));
 
           const isCmo =
-            entry.actorRole === "cmo" ||
+            !isDeanApprovalTransition &&
+            (entry.actorRole === "cmo" ||
             entry.userId === "cmo-external-token" ||
             entry.action === "CMO Authorized" ||
             (entry.action === "Requested Revision" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))) ||
-            (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO")));
+            (entry.action === "Proposal Rejected" && (entry.details?.includes("by Crisis Management") || entry.details?.includes("by CMO"))));
 
           let user = (isSds || isCmo) ? undefined : (users.find((u) => u.id === entry.userId) || users.find((u) => u.email === entry.userId));
 
@@ -143,37 +163,50 @@ export default function EventHistoryTimeline({ eventId, event: passedEvent }: Ev
               : users.find((u) => u.role === "student")
           ));
 
-          const userRole = isSds ? "sds" : isCmo ? "cmo" : isStudentAction ? "student" : isDeanAction ? "dean" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
+          const userRole = isSds ? "sds" : isCmo ? "cmo" : isDeanAction ? "dean" : isStudentAction ? "student" : isAdviserAction ? "adviser" : resolvedUser?.role || entry.actorRole || "student";
 
           const userName = isSds
             ? "Student Development & Services"
             : isCmo
             ? "Crisis Management Office"
+            : isDeanAction
+            ? (resolvedUser ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim() : "Marilou C. Villanueva, Ph.D. (Dean)")
             : resolvedUser
             ? `${resolvedUser.firstName} ${resolvedUser.middleName ? resolvedUser.middleName.charAt(0) + '. ' : ''}${resolvedUser.lastName}${resolvedUser.suffix ? ', ' + resolvedUser.suffix : ''}`.trim()
             : entry.userId && !entry.userId.includes("-0000-") && !entry.userId.startsWith("id-") && !entry.userId.includes("external-token")
             ? entry.userId
             : formatUserRole(userRole);
 
+          const displayAction = isDeanApprovalTransition
+            ? "Approved & Forwarded to SDS"
+            : (isSds && (entry.action === "SDS Authorized" || entry.action === "Event Authorized" || entry.statusTo === "Event Authorized" || entry.statusTo === "SDS Authorized"))
+            ? "Executive Approval"
+            : entry.action;
+
+          let displayDetails = entry.details;
+          if (isDeanApprovalTransition && (entry.details?.toLowerCase().includes("granted executive") || entry.details?.toLowerCase().includes("executive approval"))) {
+            displayDetails = `Approved proposal '${activeEvent?.name || "Event"}' and forwarded to Student Development & Services (SDS)`;
+          }
+
           return (
             <div key={entry.id || idx} className="relative group">
               {/* Timeline Node Icon */}
               <div className="absolute -left-7 top-1.5 w-6 h-6 rounded-full bg-white border-2 border-[var(--border)] shadow-2xs flex items-center justify-center group-hover:border-[var(--primary)] transition-colors">
-                {getActionIcon(entry.action)}
+                {getActionIcon(displayAction)}
               </div>
 
               {/* Entry Card */}
               <div className="bg-white border border-[var(--border)] rounded-xl p-4 shadow-2xs hover:shadow-xs transition-shadow space-y-2">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${getActionBadgeClass(entry.action)}`}>
-                    {entry.action}
+                  <span className={`text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full border shadow-2xs ${getActionBadgeClass(displayAction)}`}>
+                    {displayAction}
                   </span>
                   <span className="text-[11px] font-mono text-[var(--muted-foreground)] flex items-center gap-1">
                     <Clock size={12} /> {formatDateTime(entry.timestamp)}
                   </span>
                 </div>
 
-                <p className="text-xs text-[var(--foreground)] leading-relaxed">{entry.details}</p>
+                <p className="text-xs text-[var(--foreground)] leading-relaxed">{displayDetails}</p>
 
                 {/* Status Transition Pill if recorded */}
                 {(entry.statusFrom || entry.statusTo) && (

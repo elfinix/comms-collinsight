@@ -23,7 +23,7 @@ export default function EventClearanceTab({
   const { organizations, eventTypes, users, eventSignatories, auditTrail } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const isApproved = ["Approved", "Authorized", "For Review (SDS)", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
+  const isApproved = ["Reviewed", "Approved", "Authorized", "For Review (SDS)", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(event.status);
   const isDeanViewing = currentUser?.role === "dean" || currentUser?.role === "admin";
   const clearanceFileName = `Event_Clearance_${event.name.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
 
@@ -356,13 +356,13 @@ export default function EventClearanceTab({
         <div className="grid sm:grid-cols-2 gap-3">
           {/* 1. Faculty Adviser Verification (First / Left) */}
           <div className={`p-3.5 rounded-xl border ${
-            isApproved || event.status === "For Approval"
+            isApproved || event.status === "For Review (Dn)" || event.status === "For Approval"
               ? "bg-blue-50/80 border-blue-200 text-blue-950"
               : "bg-[var(--muted)]/40 border-[var(--border)] text-[var(--muted-foreground)]"
           }`}>
             <div className="flex items-center justify-between gap-2 mb-1">
               <span className="font-bold text-xs font-sans text-[var(--foreground)]">Faculty Adviser Signatory</span>
-              {isApproved || event.status === "For Approval" ? (
+              {isApproved || event.status === "For Review (Dn)" || event.status === "For Approval" ? (
                 <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md border border-blue-300">
                   <CheckCircle size={10} /> Endorsed
                 </span>
@@ -374,7 +374,7 @@ export default function EventClearanceTab({
             </div>
             <p className="text-xs font-semibold text-[var(--foreground)]">{resolvedSig.adviserName}</p>
             <p className="text-[11px] text-[var(--muted-foreground)]">Designated Faculty Adviser, {resolvedOrgCode}</p>
-            {(isApproved || event.status === "For Approval") && (
+            {(isApproved || event.status === "For Review (Dn)" || event.status === "For Approval") && (
               <p className="text-[10px] font-mono text-blue-800 dark:text-blue-400 mt-2 pt-2 border-t border-blue-200/80">
                 ✓ APF & Appendices Endorsed to Dean
               </p>
