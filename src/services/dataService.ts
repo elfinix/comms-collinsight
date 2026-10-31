@@ -902,6 +902,9 @@ export function getActionBadgeClass(action: string): string {
   if (act.includes("submit") || act.includes("for review")) {
     return "bg-amber-100 text-amber-800 border border-amber-300 font-bold";
   }
+  if (act.includes("initiative") || act.includes("revenue")) {
+    return "bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold";
+  }
   if (act.includes("disburs") || act.includes("expense") || act.includes("transaction")) {
     return "bg-purple-100 text-purple-800 border border-purple-300 font-bold";
   }

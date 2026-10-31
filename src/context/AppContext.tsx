@@ -645,8 +645,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addAuditEntry({
       id: generateId(),
       organizationId: init.organizationId,
-      userId: init.createdBy || "51000000-0000-0000-0000-000000000001",
-      actorRole: "student",
+      userId: init.createdBy || currentUser?.id || "51000000-0000-0000-0000-000000000001",
+      actorRole: (currentUser?.role as any) || "student",
       action: "Recorded Initiative",
       details: `Recorded initiative revenue of ₱${effectiveAmount.toLocaleString()} for '${effectiveName}' (${init.source})`,
       timestamp: new Date().toISOString(),
@@ -678,6 +678,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateOrganization(targetOrg.id, { organizationalBudget: newOrgBudget });
       }
     }
+
+    if (prevInit) {
+      const prev = prevInit as Initiative;
+      const effectiveName = u.name || u.title || prev.name || prev.title || "Initiative";
+      const effectiveAmount = u.amount ?? u.netProfit ?? prev.amount ?? prev.netProfit ?? 0;
+      addAuditEntry({
+        id: generateId(),
+        organizationId: prev.organizationId,
+        userId: currentUser?.id || prev.createdBy || "51000000-0000-0000-0000-000000000001",
+        actorRole: (currentUser?.role as any) || "student",
+        action: "Modified Initiative",
+        details: `Updated initiative details for '${effectiveName}' (₱${effectiveAmount.toLocaleString()})`,
+        timestamp: new Date().toISOString(),
+      });
+    }
   };
 
   const deleteInitiative = (id: string) => {
@@ -694,6 +709,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const newOrgBudget = Math.max(0, (targetOrg.organizationalBudget || 0) - initAmt);
         updateOrganization(targetOrg.id, { organizationalBudget: newOrgBudget });
       }
+
+      const effectiveName = targetInit.name || targetInit.title || "Initiative";
+      const effectiveAmount = targetInit.amount ?? targetInit.netProfit ?? 0;
+      addAuditEntry({
+        id: generateId(),
+        organizationId: targetInit.organizationId,
+        userId: currentUser?.id || targetInit.createdBy || "51000000-0000-0000-0000-000000000001",
+        actorRole: (currentUser?.role as any) || "student",
+        action: "Deleted Initiative",
+        details: `Removed initiative '${effectiveName}' (₱${effectiveAmount.toLocaleString()}) from organizational ledger`,
+        timestamp: new Date().toISOString(),
+      });
     }
   };
 

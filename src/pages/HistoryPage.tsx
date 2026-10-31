@@ -187,7 +187,17 @@ export default function HistoryPage() {
     if (entry.eventId) {
       return events.find((e) => e.id === entry.eventId);
     }
-    return events.find((e) => entry.details.toLowerCase().includes(e.name.toLowerCase()));
+    // If the action is specifically about an initiative, it's not tied to an event unless explicitly linked
+    if (entry.action.toLowerCase().includes("initiative")) {
+      return undefined;
+    }
+    const matchQuote = entry.details.match(/'([^']+)'/);
+    if (matchQuote && matchQuote[1]) {
+      const quoted = matchQuote[1].toLowerCase();
+      const byQuote = events.find((e) => e.name.toLowerCase() === quoted);
+      if (byQuote) return byQuote;
+    }
+    return events.find((e) => e.name.length >= 4 && entry.details.toLowerCase().includes(e.name.toLowerCase()));
   }
 
   // Date range matcher
@@ -253,7 +263,13 @@ export default function HistoryPage() {
       } else if (actionFilter === "MODIFIED") {
         matchesAction = act.includes("modified") || act.includes("edit") || act.includes("delete") || act.includes("removed");
       } else if (actionFilter === "FINANCE") {
-        matchesAction = act.includes("disburs") || act.includes("expense") || act.includes("transaction");
+        matchesAction =
+          act.includes("disburs") ||
+          act.includes("expense") ||
+          act.includes("transaction") ||
+          act.includes("initiative") ||
+          act.includes("revenue") ||
+          act.includes("fund");
       } else if (actionFilter === "CLOSURE") {
         matchesAction = Boolean(
           act.includes("completed") ||
@@ -595,7 +611,8 @@ export default function HistoryPage() {
                 const isModified = displayAction.toLowerCase().includes("modified") || displayAction.toLowerCase().includes("edit");
                 const isDelete = displayAction.toLowerCase().includes("delete") || displayAction.toLowerCase().includes("removed");
                 const isClosure = displayAction.toLowerCase().includes("completed") || displayAction.toLowerCase().includes("closed") || displayAction.toLowerCase().includes("closure");
-                const isFinance = displayAction.toLowerCase().includes("disburs") || displayAction.toLowerCase().includes("expense") || displayAction.toLowerCase().includes("transaction");
+                const isInitiative = displayAction.toLowerCase().includes("initiative");
+                const isFinance = displayAction.toLowerCase().includes("disburs") || displayAction.toLowerCase().includes("expense") || displayAction.toLowerCase().includes("transaction") || isInitiative || displayAction.toLowerCase().includes("revenue");
 
                 return (
                   <div key={entry.id} className="relative group">
@@ -632,6 +649,8 @@ export default function HistoryPage() {
                             >
                               {evt.name}
                             </button>
+                          ) : isInitiative ? (
+                            <span className="font-bold text-base text-[var(--foreground)]">Organizational Initiative</span>
                           ) : (
                             <span className="font-bold text-base text-[var(--foreground)]">System Activity</span>
                           )}
@@ -866,6 +885,8 @@ export default function HistoryPage() {
                             >
                               <span className="leading-snug">{evt.name}</span>
                             </button>
+                          ) : displayAction.toLowerCase().includes("initiative") ? (
+                            <span className="text-xs font-semibold text-[var(--foreground)] font-mono">Organizational Initiative</span>
                           ) : (
                             <span className="text-xs text-[var(--muted-foreground)] font-mono">System Record</span>
                           )}
