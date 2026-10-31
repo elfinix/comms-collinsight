@@ -135,7 +135,7 @@ export default function StudentReports() {
 
   const approvedEvents = useMemo(() => {
     return orgEvents.filter((e) =>
-      ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+      ["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized", "Completed", "Closed"].includes(e.status)
     );
   }, [orgEvents]);
 

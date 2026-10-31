@@ -111,7 +111,7 @@ export default function DeanReports() {
   }, [events, dateRange, syStartYear, syEndYear]);
 
   const approved = useMemo(() => {
-    return allEvents.filter((e) => ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
+    return allEvents.filter((e) => ["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized", "Completed", "Closed"].includes(e.status));
   }, [allEvents]);
 
   const pendingEvents = useMemo(() => {

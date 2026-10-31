@@ -289,10 +289,23 @@ export default function HistoryPage() {
     });
 
     // Chronological Sort
-    return [...filtered].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       const timeA = new Date(a.timestamp).getTime();
       const timeB = new Date(b.timestamp).getTime();
       return sortDir === "desc" ? timeB - timeA : timeA - timeB;
+    });
+
+    // Deduplicate any rapid twin audit entries (e.g. legacy dual event closure logs within 5 seconds)
+    return sorted.filter((entry, idx, arr) => {
+      if (idx === 0) return true;
+      const prev = arr[idx - 1];
+      const isSameEvent = entry.eventId && prev.eventId === entry.eventId;
+      const isSameAction = entry.action === prev.action;
+      const diffMs = Math.abs(new Date(entry.timestamp).getTime() - new Date(prev.timestamp).getTime());
+      if (isSameEvent && isSameAction && diffMs < 5000) {
+        return false;
+      }
+      return true;
     });
   }, [scopedEntries, search, actionFilter, dateRange, sortDir, events, users]);
 

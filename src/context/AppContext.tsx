@@ -380,7 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             timestamp: new Date().toISOString(),
           });
         }
-      } else if (u.status === "Closed") {
+      } else if (u.status === "Closed" && targetEvt?.status !== "Closed") {
         const rev = u.revenue !== undefined ? u.revenue : targetEvt?.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
         addAuditEntry({
@@ -1003,7 +1003,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } else if (isCompleted) {
         actionDetails = `Completed event execution for '${targetEvt.name}'`;
       } else if (isClosed) {
-        const rev = targetEvt.revenue;
+        const rev = extraFields?.revenue !== undefined ? extraFields.revenue : targetEvt.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
         actionDetails = `Finalized liquidation and closed event '${targetEvt.name}'${revStr}`;
 

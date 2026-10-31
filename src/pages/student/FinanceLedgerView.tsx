@@ -344,8 +344,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       console.warn("Liquidation cloud archive notice:", e);
     }
 
-    setEventStatus(activeEvent!.id, "Closed", undefined, currentUser?.id);
-    updateEvent(activeEvent!.id, {
+    setEventStatus(activeEvent!.id, "Closed", undefined, currentUser?.id, {
       status: "Closed",
       remarks: remarksArr,
       revenue: finalRevenue,
@@ -492,7 +491,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
       {/* Action Bar */}
       {!readOnly && (
         <div className="flex items-center justify-end gap-3 flex-wrap mb-6">
-          {["Approved", "SDS Authorized", "CMO Authorized"].includes(activeEvent.status) && (
+          {["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized"].includes(activeEvent.status) && (
             <Button
               variant="ghost"
               onClick={() => setShowCompleteEventConfirm(true)}
@@ -506,7 +505,7 @@ export default function FinanceLedgerView({ selectedEventId, onBack, readOnly = 
               <CheckCircle size={14} /> Complete Liquidation
             </Button>
           )}
-          {["Approved", "SDS Authorized", "CMO Authorized", "Completed"].includes(activeEvent.status) && (
+          {["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized", "Completed"].includes(activeEvent.status) && (
             <Button onClick={handleOpenAddRecord}>
               <Plus size={16} /> Add Record
             </Button>

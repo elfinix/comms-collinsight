@@ -27,7 +27,7 @@ export default function StudentDashboard() {
   const org = orgId ? organizations.find((o) => o.id === orgId) : null;
   const orgEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
   const approvedEvents = orgEvents.filter((e) =>
-    ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+    ["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized", "Completed", "Closed"].includes(e.status)
   );
   const totalSpent = transactions
     .filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted)
