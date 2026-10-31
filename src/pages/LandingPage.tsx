@@ -422,7 +422,7 @@ export default function LandingPage() {
               {
                 initials: "SR",
                 name: "Sophia Ryzelle Beloro",
-                role: "Project Manager",
+                role: "Developer",
                 focus: "Component Systems & Documentation",
                 email: "sophiaryzelle.beloro@email.lcup.edu.ph",
                 github: "https://github.com/tabbyorangw3s",
@@ -433,7 +433,7 @@ export default function LandingPage() {
               {
                 initials: "JC",
                 name: "John Mark Noel Cabugawan",
-                role: "Lead Developer",
+                role: "Developer",
                 focus: "System Architecture & Integration",
                 email: "johnmarknoel.cabugawan@email.lcup.edu.ph",
                 github: "https://github.com/Bugords",
@@ -444,7 +444,7 @@ export default function LandingPage() {
               {
                 initials: "RR",
                 name: "Rom Jerico Reyes",
-                role: "Quality Assurance",
+                role: "Developer",
                 focus: "Testing & Verification",
                 email: "romjerico.reyes@email.lcup.edu.ph",
                 github: "https://github.com/romjericoreyes",
