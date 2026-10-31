@@ -97,6 +97,7 @@ export default function PanelLayout({ children, navItems, panelLabel, orgName }:
                   gender={currentUser.gender}
                   firstName={currentUser.firstName}
                   lastName={currentUser.lastName}
+                  role={currentUser.role}
                   name={fullName}
                   avatar={currentUser.avatar}
                   size="sm"

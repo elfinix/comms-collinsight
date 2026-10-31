@@ -395,7 +395,7 @@ export const users: User[] = [
     email: "sds@cite.edu.ph",
     password: "collinsight_sds",
     role: "sds",
-    position: "Director of Student Development & Services",
+    position: "Director of SDS",
     gender: "non-binary",
     yearLevel: "Faculty/Staff",
     memberSince: "2022-01-01",

@@ -504,7 +504,16 @@ export default function StudentEvents() {
         pcfName: finalPcfName,
         appendices: finalAppendices,
       };
-      updateEvent(editEvent.id, targetEvent);
+      updateEvent(editEvent.id, targetEvent, true);
+      addAuditEntry({
+        eventId: editEvent.id,
+        organizationId: editEvent.organizationId || org?.id,
+        userId: currentUser?.id || editEvent.createdBy || "51000000-0000-0000-0000-000000000001",
+        actorRole: "student",
+        action: "Modified Proposal",
+        details: `Updated proposal details for '${editEvent.name}'`,
+        timestamp: new Date().toISOString(),
+      });
       toast.success("Event Proposal Updated", `Changes to '${editEvent.name}' were successfully saved.`, {
         action: {
           label: "Click here to view event details",
@@ -2105,8 +2114,28 @@ export default function StudentEvents() {
                   Cancel
                 </Button>
                 
+                {editTab !== "clearance" && (
+                  <Button
+                    variant="primary"
+                    onClick={handleSaveEdit}
+                    disabled={!isEditDetailsValid || !editEvent.name || isUploading}
+                    className="shadow-2xs"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={15} className="animate-spin" /> Saving...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={15} /> Save Changes
+                      </>
+                    )}
+                  </Button>
+                )}
+
                 {editTab === "details" && (
                   <Button
+                    variant="outline"
                     onClick={() => setEditTab("compliance")}
                     disabled={!isEditDetailsValid || isUploading}
                     title={!isEditDetailsValid ? "Fill out all mandatory fields to proceed" : undefined}
@@ -2117,6 +2146,7 @@ export default function StudentEvents() {
 
                 {editTab === "compliance" && (
                   <Button
+                    variant="outline"
                     onClick={() => setEditTab("clearance")}
                     disabled={!isEditComplianceValid || isUploading}
                     title={!editEvent.apfUrl ? "Upload the Activity Proposal Form (APF) to proceed" : undefined}

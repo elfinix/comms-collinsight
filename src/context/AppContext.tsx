@@ -60,7 +60,7 @@ interface AppContextType {
   setEventStatus: (eventId: string, status: EventStatus, feedback?: string, actorUserId?: string, extraFields?: Partial<Event>) => void;
   addEventSignatory: (sig: EventSignatory) => void;
   resolvePendingSignatories: (eventId: string) => void;
-  addAuditEntry: (entry: AuditEntry) => void;
+  addAuditEntry: (entry: Partial<AuditEntry>) => void;
   addExportedReport: (report: ExportedReport) => void;
   theme: "light" | "dark";
   setTheme: (t: "light" | "dark") => void;
@@ -239,10 +239,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addAuditEntry = (entry: Partial<AuditEntry>) => {
     const isInst = entry.actorRole === "admin" || (entry.action && entry.action.toLowerCase().includes("institutional"));
     const defaultUserId = isInst ? "a1000000-0000-0000-0000-000000000001" : "51000000-0000-0000-0000-000000000001";
+    const rawOrgId = entry.organizationId;
+    const cleanOrgId =
+      rawOrgId === "org-1" ? "01000000-0000-0000-0000-000000000001" :
+      rawOrgId === "org-2" ? "01000000-0000-0000-0000-000000000002" :
+      rawOrgId === "org-3" ? "01000000-0000-0000-0000-000000000003" :
+      rawOrgId;
     const entryWithId: AuditEntry = {
       id: entry.id || generateId(),
       eventId: entry.eventId,
-      organizationId: entry.organizationId,
+      organizationId: cleanOrgId,
       userId: entry.userId || currentUser?.id || defaultUserId,
       actorRole: entry.actorRole || (currentUser?.role as any) || (isInst ? "admin" : "student"),
       action: entry.action || "Activity Logged",
@@ -323,62 +329,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
       console.warn("Supabase updateEvent error:", err)
     );
 
-    if (targetEvt && !skipAudit) {
+    if (!skipAudit) {
       const isInst =
-        targetEvt.isInstitutional ||
-        targetEvt.category === "Institutional" ||
+        targetEvt?.isInstitutional ||
+        targetEvt?.category === "Institutional" ||
         u.isInstitutional ||
         u.category === "Institutional";
+      const rawOrgId = targetEvt?.organizationId || u.organizationId || currentUser?.organizationId;
+      const targetOrgId =
+        rawOrgId === "org-1" ? "01000000-0000-0000-0000-000000000001" :
+        rawOrgId === "org-2" ? "01000000-0000-0000-0000-000000000002" :
+        rawOrgId === "org-3" ? "01000000-0000-0000-0000-000000000003" :
+        rawOrgId;
+      const targetName = u.name || targetEvt?.name || "Proposal";
       const auditUserId =
         currentUser?.id ||
-        targetEvt.createdBy ||
+        targetEvt?.createdBy ||
         (isInst ? "a1000000-0000-0000-0000-000000000001" : "51000000-0000-0000-0000-000000000001");
       const auditRole = isInst ? "admin" : (currentUser?.role || "student");
 
       if (u.deleted !== undefined) {
-        if (u.deleted && !targetEvt.deleted) {
+        if (u.deleted && (!targetEvt || !targetEvt.deleted)) {
           addAuditEntry({
             id: generateId(),
             eventId: id,
-            organizationId: targetEvt.organizationId,
+            organizationId: targetOrgId,
             userId: auditUserId,
             actorRole: auditRole,
             action: isInst ? "Archived Institutional Event" : "Deleted Proposal",
             details: isInst
-              ? `Archived institutional event '${targetEvt.name}'`
-              : `Deleted event proposal '${targetEvt.name}'`,
+              ? `Archived institutional event '${targetName}'`
+              : `Deleted event proposal '${targetName}'`,
             timestamp: new Date().toISOString(),
           });
-        } else if (!u.deleted && targetEvt.deleted) {
+        } else if (!u.deleted && targetEvt?.deleted) {
           addAuditEntry({
             id: generateId(),
             eventId: id,
-            organizationId: targetEvt.organizationId,
+            organizationId: targetOrgId,
             userId: auditUserId,
             actorRole: auditRole,
             action: isInst ? "Restored Institutional Event" : "Restored Proposal",
             details: isInst
-              ? `Restored institutional event '${targetEvt.name}'`
-              : `Restored event proposal '${targetEvt.name}'`,
+              ? `Restored institutional event '${targetName}'`
+              : `Restored event proposal '${targetName}'`,
             timestamp: new Date().toISOString(),
           });
         }
       } else if (u.status === "Closed") {
-        const rev = u.revenue !== undefined ? u.revenue : targetEvt.revenue;
+        const rev = u.revenue !== undefined ? u.revenue : targetEvt?.revenue;
         const revStr = rev !== undefined && rev > 0 ? ` (Revenue: ₱${rev.toLocaleString()})` : "";
         addAuditEntry({
           id: generateId(),
           eventId: id,
-          organizationId: targetEvt.organizationId,
+          organizationId: targetOrgId,
           userId: auditUserId,
           actorRole: auditRole,
           action: "Event Closed",
-          details: `Finalized liquidation and closed event '${targetEvt.name}'${revStr}`,
-          statusFrom: targetEvt.status,
+          details: `Finalized liquidation and closed event '${targetName}'${revStr}`,
+          statusFrom: targetEvt?.status,
           statusTo: "Closed",
           timestamp: new Date().toISOString(),
         });
-      } else if (!u.status || u.status === targetEvt.status) {
+      } else {
         const hasContentChanges = Object.keys(u).some((k) =>
           PROPOSAL_CONTENT_KEYS.includes(k as keyof Event)
         );
@@ -386,13 +399,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
           addAuditEntry({
             id: generateId(),
             eventId: id,
-            organizationId: targetEvt.organizationId,
+            organizationId: targetOrgId,
             userId: auditUserId,
             actorRole: auditRole,
             action: isInst ? "Modified Institutional Event" : "Modified Proposal",
             details: isInst
-              ? `Updated institutional event details for '${u.name || targetEvt.name}'`
-              : `Updated proposal details for '${u.name || targetEvt.name}'`,
+              ? `Updated institutional event details for '${targetName}'`
+              : `Updated proposal details for '${targetName}'`,
             timestamp: new Date().toISOString(),
           });
         }

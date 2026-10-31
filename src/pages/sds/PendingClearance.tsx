@@ -42,6 +42,7 @@ import {
 import {
   getEventTypeById,
   formatDate,
+  formatDateTime,
   formatEventSchedule,
   formatCurrency,
   getStatusBadgeClass,
@@ -58,9 +59,41 @@ import EventClearanceTab from "../../components/events/EventClearanceTab";
 
 export default function SDSPendingClearance() {
   const [searchParams] = useSearchParams();
-  const { events, organizations, users, eventTypes, setEventStatus, defaultView, isLoading } = useApp();
+  const { events, organizations, users, eventTypes, setEventStatus, defaultView, isLoading, auditTrail, eventSignatories } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
+
+  function getDeanDispatchedAt(eventId: string): string | undefined {
+    // 1. Event signatory signed by Dean
+    const deanSig = eventSignatories.find(
+      (s) => s.eventId === eventId && s.role === "dean" && (s.status === "Approved" || s.status === "Endorsed")
+    );
+    if (deanSig?.signedAt || deanSig?.createdAt) {
+      return deanSig.signedAt || deanSig.createdAt;
+    }
+
+    // 2. Audit trail record for Dean forward transition to SDS
+    const deanAudit = auditTrail.find((a) => {
+      if (a.eventId !== eventId) return false;
+      const act = (a.action || "").toLowerCase();
+      const det = (a.details || "").toLowerCase();
+      const to = (a.statusTo || "").toLowerCase();
+      const from = (a.statusFrom || "").toLowerCase();
+      return (
+        act.includes("approved & forwarded to sds") ||
+        det.includes("forwarded to sds") ||
+        det.includes("dispatched to sds") ||
+        det.includes("forwarded to student development & services") ||
+        (a.actorRole === "dean" && (to === "reviewed" || to === "approved")) ||
+        (from === "for review (dn)" && (to === "reviewed" || to === "approved"))
+      );
+    });
+    if (deanAudit?.timestamp) {
+      return deanAudit.timestamp;
+    }
+
+    return undefined;
+  }
 
   const pending = useMemo(() => {
     return events.filter(
@@ -76,7 +109,7 @@ export default function SDSPendingClearance() {
   const [search, setSearch] = useState("");
   const [orgFilter, setOrgFilter] = useState("all");
   const [settingFilter, setSettingFilter] = useState<"all" | "On-campus" | "Off-campus">("all");
-  const [sortKey, setSortKey] = useState<"createdAt" | "name" | "proposedBudget" | "dateStart">("createdAt");
+  const [sortKey, setSortKey] = useState<"dispatchedAt" | "createdAt" | "name" | "proposedBudget" | "dateStart">("dispatchedAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
@@ -139,6 +172,11 @@ export default function SDSPendingClearance() {
         if (sortKey === "createdAt") {
           valA = new Date(a.createdAt).getTime();
           valB = new Date(b.createdAt).getTime();
+        } else if (sortKey === "dispatchedAt") {
+          const dispA = getDeanDispatchedAt(a.id);
+          const dispB = getDeanDispatchedAt(b.id);
+          valA = dispA ? new Date(dispA).getTime() : new Date(a.createdAt).getTime();
+          valB = dispB ? new Date(dispB).getTime() : new Date(b.createdAt).getTime();
         } else if (sortKey === "name") {
           valA = a.name.toLowerCase();
           valB = b.name.toLowerCase();
@@ -154,7 +192,7 @@ export default function SDSPendingClearance() {
         if (valA > valB) return sortDir === "asc" ? 1 : -1;
         return 0;
       });
-  }, [pending, search, orgFilter, settingFilter, sortKey, sortDir, organizations, eventTypes]);
+  }, [pending, search, orgFilter, settingFilter, sortKey, sortDir, organizations, eventTypes, auditTrail, eventSignatories]);
 
   const isFiltered = search.trim() !== "" || orgFilter !== "all" || settingFilter !== "all";
 
@@ -162,7 +200,7 @@ export default function SDSPendingClearance() {
     setSearch("");
     setOrgFilter("all");
     setSettingFilter("all");
-    setSortKey("createdAt");
+    setSortKey("dispatchedAt");
     setSortDir("desc");
   }
 
@@ -295,6 +333,7 @@ export default function SDSPendingClearance() {
                     onChange={(e) => setSortKey(e.target.value as any)}
                     className="pl-8 pr-7 py-2 text-xs font-medium border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer appearance-none shadow-2xs hover:border-[var(--primary)]/40 transition"
                   >
+                    <option value="dispatchedAt">Date Dispatched</option>
                     <option value="createdAt">Date Created</option>
                     <option value="dateStart">Event Schedule</option>
                     <option value="name">Name (A-Z)</option>
@@ -488,6 +527,20 @@ export default function SDSPendingClearance() {
                             {e.setting || "On-campus"}
                           </span>
                         </div>
+
+                        {/* Dispatched Date & Time */}
+                        {(() => {
+                          const dispatchedAt = getDeanDispatchedAt(e.id);
+                          if (!dispatchedAt) return null;
+                          return (
+                            <p className="text-[11px] font-mono text-[var(--muted-foreground)] pt-1.5 flex items-center gap-1">
+                              <span>Dispatched:</span>
+                              <strong className="text-[var(--foreground)] font-semibold">
+                                {formatDateTime(dispatchedAt)}
+                              </strong>
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -548,6 +601,16 @@ export default function SDSPendingClearance() {
                               </span>
                               <span className="text-xs text-[var(--muted-foreground)] font-mono ml-1">{e.mode}</span>
                             </div>
+                            {(() => {
+                              const dispatchedAt = getDeanDispatchedAt(e.id);
+                              if (!dispatchedAt) return null;
+                              return (
+                                <div className="text-[11px] font-mono text-[var(--muted-foreground)] mt-1">
+                                  <span>Dispatched: </span>
+                                  <strong className="text-[var(--foreground)] font-semibold">{formatDateTime(dispatchedAt)}</strong>
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3.5 text-xs font-mono">
                             <span
@@ -651,6 +714,16 @@ export default function SDSPendingClearance() {
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Event Setting</p>
                     <p className="font-semibold text-blue-700">{viewEvent.setting || "On-campus"}</p>
                   </div>
+                  {(() => {
+                    const dispatchedAt = getDeanDispatchedAt(viewEvent.id);
+                    if (!dispatchedAt) return null;
+                    return (
+                      <div>
+                        <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Dispatched to SDS</p>
+                        <p className="font-mono font-semibold text-[var(--foreground)]">{formatDateTime(dispatchedAt)}</p>
+                      </div>
+                    );
+                  })()}
                   <div className="sm:col-span-2">
                     <p className="text-xs font-mono text-[var(--muted-foreground)] mb-1">Description</p>
                     <p className="text-xs leading-relaxed text-[var(--foreground)] whitespace-pre-wrap">{viewEvent.description || "—"}</p>

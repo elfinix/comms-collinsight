@@ -1258,6 +1258,7 @@ export function UserAvatar({
   name,
   firstName,
   lastName,
+  role,
   avatar,
   className = "",
 }: {
@@ -1266,6 +1267,7 @@ export function UserAvatar({
   name?: string;
   firstName?: string;
   lastName?: string;
+  role?: string;
   avatar?: string;
   className?: string;
 }) {
@@ -1282,7 +1284,14 @@ export function UserAvatar({
   };
 
   let initials = "?";
-  if (firstName && lastName) {
+  if (
+    role === "sds" ||
+    (lastName && lastName.toUpperCase().includes("SDS")) ||
+    (firstName && firstName.toLowerCase().includes("student development")) ||
+    (name && name.toUpperCase().includes("SDS"))
+  ) {
+    initials = "SDS";
+  } else if (firstName && lastName) {
     initials = `${firstName[0] || ""}${lastName[0] || ""}`.toUpperCase();
   } else if (name && name.trim()) {
     const cleanName = name.replace(/,\s*(jr|sr|ii|iii|iv|m\.?sc|ph\.?d|m\.?eng).*$/i, "").trim();
@@ -1296,6 +1305,8 @@ export function UserAvatar({
     }
   }
 
+  const textSize = initials.length >= 3 && size === "sm" ? "!text-[9.5px] font-bold tracking-tight" : "";
+
   if (avatar) {
     return (
       <div className={`rounded-full overflow-hidden flex-shrink-0 border border-[var(--border)] shadow-2xs ${sizes[size]} ${className}`}>
@@ -1305,7 +1316,7 @@ export function UserAvatar({
   }
 
   return (
-    <div className={`rounded-full flex items-center justify-center flex-shrink-0 border shadow-2xs ${colors[gender] || colors.male} ${sizes[size]} ${className}`}>
+    <div className={`rounded-full flex items-center justify-center flex-shrink-0 border shadow-2xs ${colors[gender] || colors.male} ${sizes[size]} ${textSize} ${className}`}>
       {initials}
     </div>
   );

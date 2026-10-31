@@ -149,12 +149,31 @@ export default function HistoryPage() {
 
       // For Student and Adviser: Organization's events history
       if (role === "student" || role === "adviser") {
-        if (entry.organizationId && userOrgId && entry.organizationId === userOrgId) {
+        if (entry.userId === currentUser?.id) return true;
+        if (entry.organizationId && userOrgId && (
+          entry.organizationId === userOrgId ||
+          (userOrgId === "org-1" && entry.organizationId === "01000000-0000-0000-0000-000000000001") ||
+          (userOrgId === "01000000-0000-0000-0000-000000000001" && entry.organizationId === "org-1")
+        )) {
           return true;
         }
         if (entry.eventId) {
           const evt = events.find((e) => e.id === entry.eventId);
-          if (evt && evt.organizationId === userOrgId) return true;
+          if (evt && (
+            evt.organizationId === userOrgId ||
+            (userOrgId === "org-1" && evt.organizationId === "01000000-0000-0000-0000-000000000001") ||
+            (userOrgId === "01000000-0000-0000-0000-000000000001" && evt.organizationId === "org-1") ||
+            evt.createdBy === currentUser?.id
+          )) return true;
+        }
+        const associatedEvt = events.find((e) => entry.details.toLowerCase().includes(e.name.toLowerCase()));
+        if (associatedEvt && (
+          associatedEvt.organizationId === userOrgId ||
+          (userOrgId === "org-1" && associatedEvt.organizationId === "01000000-0000-0000-0000-000000000001") ||
+          (userOrgId === "01000000-0000-0000-0000-000000000001" && associatedEvt.organizationId === "org-1") ||
+          associatedEvt.createdBy === currentUser?.id
+        )) {
+          return true;
         }
         return false;
       }

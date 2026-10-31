@@ -625,29 +625,66 @@ export const supabaseApi = {
   // --------------------------------------------------------------------------
   async createAuditEntry(entry: AuditEntry) {
     let dbUserId = entry.userId;
-    if (!dbUserId || dbUserId === "admin" || dbUserId === "user-admin-1") {
-      dbUserId = "a1000000-0000-0000-0000-000000000001";
-    } else if (!dbUserId.includes("-0000-") && entry.actorRole === "admin") {
-      dbUserId = "a1000000-0000-0000-0000-000000000001";
-    } else if (entry.actorRole === "sds" || dbUserId === "sds-external-token") {
-      dbUserId = "d1000000-0000-0000-0000-000000000001";
-    } else if (!dbUserId.includes("-0000-")) {
-      dbUserId = "e1000000-0000-0000-0000-000000000001";
+    const isValidUuid = (id?: string) => !!id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    const isMockPlaceholder =
+      !dbUserId ||
+      !isValidUuid(dbUserId) ||
+      dbUserId.startsWith("user-") ||
+      dbUserId === "admin" ||
+      dbUserId.includes("external-token") ||
+      dbUserId.startsWith("id-");
+    
+    if (isMockPlaceholder) {
+      if (entry.actorRole === "admin") {
+        dbUserId = "a1000000-0000-0000-0000-000000000001";
+      } else if (entry.actorRole === "sds") {
+        dbUserId = "d1000000-0000-0000-0000-000000000001";
+      } else if (entry.actorRole === "cmo") {
+        dbUserId = "d1000000-0000-0000-0000-000000000001";
+      } else if (entry.actorRole === "dean") {
+        dbUserId = "e1000000-0000-0000-0000-000000000001";
+      } else if (entry.actorRole === "adviser") {
+        dbUserId = "ad100000-0000-0000-0000-000000000001";
+      } else {
+        dbUserId = "51000000-0000-0000-0000-000000000001";
+      }
     }
+
+    let dbOrgId = entry.organizationId;
+    if (dbOrgId === "org-1") {
+      dbOrgId = "01000000-0000-0000-0000-000000000001";
+    } else if (dbOrgId === "org-2") {
+      dbOrgId = "01000000-0000-0000-0000-000000000002";
+    } else if (dbOrgId === "org-3") {
+      dbOrgId = "01000000-0000-0000-0000-000000000003";
+    } else if (dbOrgId && !isValidUuid(dbOrgId)) {
+      dbOrgId = undefined;
+    }
+
+    let dbEventId = entry.eventId;
+    if (dbEventId && !isValidUuid(dbEventId)) {
+      dbEventId = undefined;
+    }
+
     const dbPayload = {
       id: entry.id,
       user_id: dbUserId,
       action: entry.action,
       details: entry.details,
       timestamp: entry.timestamp,
-      event_id: entry.eventId || null,
-      organization_id: entry.organizationId || null,
+      event_id: dbEventId || null,
+      organization_id: dbOrgId || null,
       actor_role: entry.actorRole || null,
       status_from: entry.statusFrom || null,
       status_to: entry.statusTo || null,
       remarks: entry.remarks || null,
     };
-    return supabase.from("audit_trail").insert(dbPayload);
+    const res = await supabase.from("audit_trail").insert(dbPayload);
+    if (res.error) {
+      console.warn("Supabase createAuditEntry error:", res.error);
+    }
+    return res;
   },
 
   // --------------------------------------------------------------------------

@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import {
   formatDate,
+  formatDateTime,
   formatEventSchedule,
   formatCurrency,
   getStatusBadgeClass,
@@ -59,6 +60,36 @@ type StatusFilterType = (typeof STATUS_FILTERS)[number];
 export default function SDSApprovedEvents() {
   const { events, eventTypes, organizations, defaultView, auditTrail, eventSignatories, isLoading } = useApp();
 
+  function getDeanDispatchedAt(eventId: string): string | undefined {
+    const deanSig = eventSignatories.find(
+      (s) => s.eventId === eventId && s.role === "dean" && (s.status === "Approved" || s.status === "Endorsed")
+    );
+    if (deanSig?.signedAt || deanSig?.createdAt) {
+      return deanSig.signedAt || deanSig.createdAt;
+    }
+
+    const deanAudit = auditTrail.find((a) => {
+      if (a.eventId !== eventId) return false;
+      const act = (a.action || "").toLowerCase();
+      const det = (a.details || "").toLowerCase();
+      const to = (a.statusTo || "").toLowerCase();
+      const from = (a.statusFrom || "").toLowerCase();
+      return (
+        act.includes("approved & forwarded to sds") ||
+        det.includes("forwarded to sds") ||
+        det.includes("dispatched to sds") ||
+        det.includes("forwarded to student development & services") ||
+        (a.actorRole === "dean" && (to === "reviewed" || to === "approved")) ||
+        (from === "for review (dn)" && (to === "reviewed" || to === "approved"))
+      );
+    });
+    if (deanAudit?.timestamp) {
+      return deanAudit.timestamp;
+    }
+
+    return undefined;
+  }
+
   const baseAuthorized = useMemo(() => {
     return events.filter(
       (e) =>
@@ -72,7 +103,7 @@ export default function SDSApprovedEvents() {
   const [search, setSearch] = useState("");
   const [orgFilter, setOrgFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>("All");
-  const [sortKey, setSortKey] = useState<"dateApproved" | "createdAt" | "name" | "proposedBudget" | "dateStart">("dateApproved");
+  const [sortKey, setSortKey] = useState<"dateApproved" | "dispatchedAt" | "createdAt" | "name" | "proposedBudget" | "dateStart">("dateApproved");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
 
@@ -130,6 +161,11 @@ export default function SDSApprovedEvents() {
         if (sortKey === "dateApproved") {
           valA = getClearanceTimestamp(a.id, a.createdAt);
           valB = getClearanceTimestamp(b.id, b.createdAt);
+        } else if (sortKey === "dispatchedAt") {
+          const dispA = getDeanDispatchedAt(a.id);
+          const dispB = getDeanDispatchedAt(b.id);
+          valA = dispA ? new Date(dispA).getTime() : new Date(a.createdAt).getTime();
+          valB = dispB ? new Date(dispB).getTime() : new Date(b.createdAt).getTime();
         } else if (sortKey === "createdAt") {
           valA = new Date(a.createdAt).getTime();
           valB = new Date(b.createdAt).getTime();
@@ -295,6 +331,7 @@ export default function SDSApprovedEvents() {
                     className="pl-8 pr-7 py-2 text-xs font-medium border border-[var(--border)] rounded-xl bg-[var(--card)] text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--ring)] cursor-pointer appearance-none shadow-2xs hover:border-[var(--primary)]/40 transition"
                   >
                     <option value="dateApproved">Date Cleared</option>
+                    <option value="dispatchedAt">Date Dispatched</option>
                     <option value="createdAt">Date Created</option>
                     <option value="dateStart">Event Schedule</option>
                     <option value="name">Name (A-Z)</option>
@@ -484,6 +521,20 @@ export default function SDSApprovedEvents() {
                             {e.setting || "On-campus"}
                           </span>
                         </div>
+
+                        {/* Dispatched Date & Time */}
+                        {(() => {
+                          const dispatchedAt = getDeanDispatchedAt(e.id);
+                          if (!dispatchedAt) return null;
+                          return (
+                            <p className="text-[11px] font-mono text-[var(--muted-foreground)] pt-1.5 flex items-center gap-1">
+                              <span>Dispatched:</span>
+                              <strong className="text-[var(--foreground)] font-semibold">
+                                {formatDateTime(dispatchedAt)}
+                              </strong>
+                            </p>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -500,7 +551,7 @@ export default function SDSApprovedEvents() {
                         }}
                         className="font-mono text-xs gap-1.5 shadow-2xs h-8"
                       >
-                        <Eye size={13} /> View Clearance
+                        <Eye size={13} /> View Event
                       </Button>
                     </div>
                   </div>
@@ -535,6 +586,15 @@ export default function SDSApprovedEvents() {
                         }`}>
                           {evt.setting || "On-campus"}
                         </span>
+                        {(() => {
+                          const dispatchedAt = getDeanDispatchedAt(evt.id);
+                          if (!dispatchedAt) return null;
+                          return (
+                            <span className="text-[11px] font-mono text-[var(--muted-foreground)] ml-2">
+                              Dispatched: <strong className="text-[var(--foreground)]">{formatDateTime(dispatchedAt)}</strong>
+                            </span>
+                          );
+                        })()}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)] font-mono flex-wrap">
                         <span>{org?.name || "Student Organization"}</span>
