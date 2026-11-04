@@ -6,10 +6,11 @@ This document serves as an immediate reference for seed user accounts configured
 
 ## 1. System Administration & College Leadership
 
-| Role              | Name                             | Email               | Password             | Position / Department          |
-| ----------------- | -------------------------------- | ------------------- | -------------------- | ------------------------------ |
-| **Administrator** | Team COLLinSight CITE            | `admin@cite.edu.ph` | `collinsight_admins` | System Administrator           |
-| **College Dean**  | Marilou Castro Villanueva, Ph.D. | `dean@cite.edu.ph`  | `villanueva_441209`  | College Dean / CITE Leadership |
+| Role              | Name                             | Email               | Password             | Position / Department                      |
+| ----------------- | -------------------------------- | ------------------- | -------------------- | ------------------------------------------ |
+| **Administrator** | Team COLLinSight CITE            | `admin@cite.edu.ph` | `collinsight_admins` | System Administrator                       |
+| **College Dean**  | Marilou Castro Villanueva, Ph.D. | `dean@cite.edu.ph`  | `villanueva_441209`  | College Dean / CITE Leadership             |
+| **SDS**           | Student Development & Services   | `sds@cite.edu.ph`   | `collinsight_sds`    | Director of Student Development & Services |
 
 ---
 
@@ -58,6 +59,9 @@ admin@cite.edu.ph / collinsight_admins
 
 DEAN:
 dean@cite.edu.ph / villanueva_441209
+
+SDS:
+sds@cite.edu.ph / collinsight_sds
 
 ADVISERS:
 ereyes@cite.edu.ph / reyes_773012       (ITSG Adviser)

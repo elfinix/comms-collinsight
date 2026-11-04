@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom
 import { AuthProvider, useAuth, getDefaultDashboardPath } from "./context/AuthContext";
 import { AppProvider } from "./context/AppContext";
 import { ToastProvider } from "./context/ToastContext";
-import PanelLayout, { studentNavItems, adviserNavItems, deanNavItems, adminNavItems } from "./components/layout/PanelLayout";
+import PanelLayout, { studentNavItems, adviserNavItems, deanNavItems, sdsNavItems, adminNavItems } from "./components/layout/PanelLayout";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
@@ -29,9 +29,14 @@ import DeanApprovedEvents from "./pages/dean/ApprovedEvents";
 import DeanReports from "./pages/dean/Reports";
 import DeanProfile from "./pages/dean/Profile";
 
+import SDSDashboard from "./pages/sds/Dashboard";
+import SDSPendingClearance from "./pages/sds/PendingClearance";
+import SDSApprovedEvents from "./pages/sds/ApprovedEvents";
+
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminDepartments from "./pages/admin/Departments";
 import AdminOrganizations from "./pages/admin/Organizations";
+import AdminInstitutionalEvents from "./pages/admin/InstitutionalEvents";
 import AdminUsers from "./pages/admin/Users";
 import AdminConfigurations from "./pages/admin/Configurations";
 import AdminAuditTrail from "./pages/admin/AuditTrail";
@@ -64,7 +69,7 @@ function StudentPanel() {
 function AdviserPanel() {
   const { events } = useApp();
   const { currentUser } = useAuth();
-  const pending = events.filter((e) => e.organizationId === currentUser?.organizationId && e.status === "For Review").length;
+  const pending = events.filter((e) => e.organizationId === currentUser?.organizationId && (e.status === "For Review (Adv)" || e.status === "For Review")).length;
   return (
     <PanelLayout navItems={adviserNavItems(pending)} panelLabel="Adviser Panel">
       <Outlet />
@@ -74,9 +79,21 @@ function AdviserPanel() {
 
 function DeanPanel() {
   const { events } = useApp();
-  const pending = events.filter((e) => e.status === "For Approval").length;
+  const pending = events.filter((e) => e.status === "For Review (Dn)" || e.status === "For Approval").length;
   return (
     <PanelLayout navItems={deanNavItems(pending)} panelLabel="Dean's Panel">
+      <Outlet />
+    </PanelLayout>
+  );
+}
+
+function SdsPanel() {
+  const { events } = useApp();
+  const pending = events.filter(
+    (e) => !e.isInstitutional && e.category !== "Institutional" && Boolean(e.organizationId) && (e.status === "Reviewed" || e.status === "Approved" || e.status === "For Review (SDS)")
+  ).length;
+  return (
+    <PanelLayout navItems={sdsNavItems(pending)} panelLabel="SDS Panel">
       <Outlet />
     </PanelLayout>
   );
@@ -142,12 +159,25 @@ export default function App() {
               </Route>
             </Route>
 
+            {/* SDS Routes */}
+            <Route element={<ProtectedRoute role="sds" />}>
+              <Route element={<SdsPanel />}>
+                <Route path="/sds/dashboard" element={<SDSDashboard />} />
+                <Route path="/sds/pending" element={<SDSPendingClearance />} />
+                <Route path="/sds/approved" element={<SDSApprovedEvents />} />
+                <Route path="/sds/cleared" element={<Navigate to="/sds/approved" replace />} />
+                <Route path="/sds/history" element={<HistoryPage />} />
+              </Route>
+            </Route>
+
             {/* Admin Routes */}
             <Route element={<ProtectedRoute role="admin" />}>
               <Route element={<AdminPanel />}>
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/departments" element={<AdminDepartments />} />
                 <Route path="/admin/organizations" element={<AdminOrganizations />} />
+                <Route path="/admin/institutional-events" element={<AdminInstitutionalEvents />} />
+                <Route path="/admin/events" element={<Navigate to="/admin/institutional-events" replace />} />
                 <Route path="/admin/users" element={<AdminUsers />} />
                 <Route path="/admin/configurations" element={<AdminConfigurations />} />
                 <Route path="/admin/audit" element={<AdminAuditTrail />} />

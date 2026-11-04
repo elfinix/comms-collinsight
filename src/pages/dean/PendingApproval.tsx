@@ -14,11 +14,10 @@ import {
   SkeletonEventCard,
   SkeletonTable,
 } from "../../components/ui";
-import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, FileSpreadsheet, LayoutGrid, List } from "lucide-react";
-import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories, isExcelFile } from "../../services/dataService";
+import { CheckCircle, MessageSquare, RotateCcw, Eye, Calendar, MapPin, Video, ExternalLink, FileText, FileSpreadsheet, LayoutGrid, List, Link2 } from "lucide-react";
+import { getEventTypeById, formatDate, formatDateTime, formatEventSchedule, formatCurrency, statusColors, getStatusBadgeClass, Event, isWebUrl, toWebUrl, resolvePdfUrl, resolveEventSignatories, isExcelFile, isGoogleDocsUrl, formatComplianceDocLabel } from "../../services/dataService";
 import { uploadEventAttachment } from "../../services/storageService";
 import { generateClearancePdfBlob } from "../../services/pdfDocuments";
-import { dispatchClearanceEmail } from "../../services/mailerService";
 import EventHistoryTimeline from "../../components/events/EventHistoryTimeline";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 import EventFinanceTab from "../../components/events/EventFinanceTab";
@@ -27,7 +26,7 @@ export default function DeanPendingApproval() {
   const { events, organizations, users, eventTypes, setEventStatus, updateEvent, defaultView, isLoading } = useApp();
   const { currentUser } = useAuth();
   const { toast } = useToast();
-  const pending = events.filter((e) => e.status === "For Approval");
+  const pending = events.filter((e) => e.status === "For Review (Dn)" || e.status === "For Approval");
 
   const [view, setView] = useState<"grid" | "list">(defaultView || "grid");
 
@@ -55,7 +54,7 @@ export default function DeanPendingApproval() {
     const adviserName = sig.adviserName;
 
     const freshSdsToken = `token_sds_${Date.now()}`;
-    const targetApprovedEvent: Event = { ...viewEvent, status: "Approved", sdsActionToken: freshSdsToken };
+    const targetApprovedEvent: Event = { ...viewEvent, status: "Reviewed", sdsActionToken: freshSdsToken };
 
     // 1. Generate genuine vector Clearance PDF and upload to Supabase Storage (Persistent Archive)
     try {
@@ -82,34 +81,10 @@ export default function DeanPendingApproval() {
       console.warn("[DeanApproval] Storage upload notice:", e);
     }
 
-    // 2. Concurrently Dispatch Official Email with Clearance, APF & Appendices
-    let emailStatusMessage = "";
-    try {
-      const emailResult = await dispatchClearanceEmail({
-        event: targetApprovedEvent,
-        organizationName: orgName,
-        eventTypeName: typeName,
-        officerName,
-        adviserName,
-        deanName,
-        feedback: trimmed || undefined,
-        actionToken: freshSdsToken,
-      });
-
-      if (emailResult.success) {
-        emailStatusMessage = ` Official notification email & clearance certificate dispatched to SDS (${emailResult.to || "sds@unlv.edu.ph"}).`;
-      } else {
-        emailStatusMessage = ` Notification notice: ${emailResult.error || "Email dispatch simulated in dev mode."}`;
-      }
-    } catch (err: any) {
-      console.warn("[DeanApproval] Clearance email dispatch warning:", err);
-      emailStatusMessage = " Notification notice: Dispatch completed in local offline mode.";
-    }
-
-    // 3. Update Database & Local App State
-    setEventStatus(viewEvent.id, "Approved", trimmed || undefined, currentUser?.id, { sdsActionToken: freshSdsToken });
+    // 2. Update Database & Local App State
+    setEventStatus(viewEvent.id, "Reviewed", trimmed || undefined, currentUser?.id, { sdsActionToken: freshSdsToken });
     setIsApproving(false);
-    toast.success("Proposal Approved", `'${viewEvent.name}' approved.${emailStatusMessage}`, {
+    toast.success("Proposal Approved", `'${viewEvent.name}' approved and dispatched to SDS.`, {
       action: {
         label: "Click here to view event details",
         onClick: () => {
@@ -419,10 +394,19 @@ export default function DeanPendingApproval() {
               {viewTab === "compliance" && (
                 <div className="flex flex-col gap-4">
                   <div className="bg-[var(--muted)] rounded-xl p-4">
-                    <p className="text-xs font-mono text-[var(--muted-foreground)] mb-2">APF (Activity Proposal Form)</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-mono text-[var(--muted-foreground)]">APF (Activity Proposal Form)</p>
+                      {isGoogleDocsUrl(viewEvent.apfUrl) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-medium">
+                          <Link2 size={12} /> Google Doc
+                        </span>
+                      )}
+                    </div>
                     {viewEvent.apfUrl ? (
                       <div className="flex items-center gap-2">
-                        {isExcelFile(viewEvent.apfUrl) ? (
+                        {isGoogleDocsUrl(viewEvent.apfUrl) ? (
+                          <Link2 size={16} className="text-blue-600 flex-shrink-0" />
+                        ) : isExcelFile(viewEvent.apfUrl) ? (
                           <FileSpreadsheet size={16} className="text-emerald-600 flex-shrink-0" />
                         ) : (
                           <FileText size={16} className="text-[var(--primary)] flex-shrink-0" />
@@ -433,7 +417,7 @@ export default function DeanPendingApproval() {
                           rel="noopener noreferrer"
                           className="text-sm font-medium text-[var(--primary)] hover:underline inline-flex items-center gap-1.5 break-all"
                         >
-                          <span>{viewEvent.apfUrl.replace(/^.*[\\/]/, '')}</span>
+                          <span>{formatComplianceDocLabel(viewEvent.apfUrl, "Activity Proposal Form (APF)")}</span>
                           <ExternalLink size={13} className="flex-shrink-0 text-[var(--primary)]" />
                         </a>
                       </div>
@@ -519,7 +503,7 @@ export default function DeanPendingApproval() {
                 {(viewTab === "details" || viewTab === "compliance") && (
                   <Button variant="outline" onClick={() => setViewTab(viewTab === "details" ? "compliance" : "clearance")}>Next →</Button>
                 )}
-                {viewTab === "clearance" && viewEvent.status === "For Approval" && (
+                {viewTab === "clearance" && (viewEvent.status === "For Review (Dn)" || viewEvent.status === "For Approval") && (
                   <>
                     <Button variant="danger" onClick={() => setShowRequestChange(true)} disabled={isApproving}>
                       <RotateCcw size={14} /> Request Change
@@ -540,7 +524,7 @@ export default function DeanPendingApproval() {
 
       <Dialog open={showApproveRemarks} onClose={() => setShowApproveRemarks(false)} title="Approve with Remarks" size="sm" zIndex="z-[60]">
         <div className="p-6 flex flex-col gap-4">
-          <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance. APF, Clearance, and Appendices will be emailed to SDS.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Add remarks to be appended to the clearance document dispatched to SDS.</p>
           <Textarea label="Remarks" rows={3} value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder="Optional notes..." />
           <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
             <Button variant="outline" onClick={() => setShowApproveRemarks(false)} disabled={isApproving}>Cancel</Button>

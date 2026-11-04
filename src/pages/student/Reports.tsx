@@ -135,7 +135,7 @@ export default function StudentReports() {
 
   const approvedEvents = useMemo(() => {
     return orgEvents.filter((e) =>
-      ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+      ["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized", "Completed", "Closed"].includes(e.status)
     );
   }, [orgEvents]);
 
@@ -214,7 +214,8 @@ export default function StudentReports() {
     ? `${currentUser.firstName} ${currentUser.middleName ? currentUser.middleName + " " : ""}${currentUser.lastName}${currentUser.suffix ? ", " + currentUser.suffix : ""}`
     : "Student Finance Officer";
 
-  const resolveTypeName = (typeId: string) => {
+  const resolveTypeName = (typeId?: string) => {
+    if (!typeId) return "General Event";
     return eventTypes.find((t) => t.id === typeId)?.name || getEventTypeById(typeId)?.name || "General Event";
   };
 

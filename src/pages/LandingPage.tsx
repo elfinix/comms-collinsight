@@ -116,11 +116,11 @@ export default function LandingPage() {
                 <div className="animate-float absolute top-0 right-0 w-[340px] bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-5 shadow-2xl">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-mono text-blue-200 uppercase tracking-wider">Signatory Progress</span>
-                    <span className="text-[10px] font-mono bg-blue-500/30 text-blue-100 px-2 py-0.5 rounded-full border border-blue-400/30 font-bold">For Approval</span>
+                    <span className="text-[10px] font-mono bg-blue-500/30 text-blue-100 px-2 py-0.5 rounded-full border border-blue-400/30 font-bold">For Review (Dn)</span>
                   </div>
                   <p className="font-bold text-white text-sm mb-4">TechFest 2026: IT Innovation Summit</p>
                   <div className="flex items-center gap-0 mb-4">
-                    {["Student", "Adviser", "Dean", "SDS / CMO"].map((step, i) => (
+                    {["Student", "Adviser", "Dean", "SDS"].map((step, i) => (
                       <div key={step} className="flex items-center">
                         <div className="flex flex-col items-center gap-1">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i < 2 ? "bg-orange-500 text-white shadow-sm" : i === 2 ? "bg-blue-500 text-white ring-2 ring-offset-1 ring-orange-300 ring-offset-transparent shadow-sm" : "bg-white/20 text-slate-300"}`}>
@@ -249,7 +249,7 @@ export default function LandingPage() {
                   { label: "Draft", desc: "Officers create event details, choose Category & Setting, and upload APF/PCF compliance documents." },
                   { label: "Adviser Review", desc: "Faculty adviser reviews the proposal and provides feedback or approval." },
                   { label: "Dean Approval", desc: "College Dean gives final collegiate endorsement and generates official clearance." },
-                  { label: "SDS & CMO Authorization", desc: "External review by SDS (and CMO for off-campus events) grants final clearance and unlocks the finance ledger." },
+                  { label: "SDS Clearance", desc: "Student Development & Services (SDS) grants final clearance and unlocks the finance ledger." },
                 ],
               },
               {
@@ -257,7 +257,7 @@ export default function LandingPage() {
                 icon: <BarChart2 size={20} className="text-white" />,
                 headerBg: "bg-[#1e3a8a]",
                 steps: [
-                  { label: "Ledger Unlocked", desc: "SDS/CMO Authorization unlocks the event's financial ledger for disbursement entry." },
+                  { label: "Ledger Unlocked", desc: "SDS Clearance unlocks the event's financial ledger for disbursement entry." },
                   { label: "Log Expenses", desc: "Officers record expenditures by category with digital receipt uploads." },
                   { label: "Track Budget", desc: "System tracks departmental and self-generated organizational funds in real-time." },
                   { label: "Liquidation & Surplus", desc: "Event closure auto-deposits remaining surplus revenues into the organization's treasury." },
@@ -302,21 +302,21 @@ export default function LandingPage() {
               <p className="text-[10px] font-mono text-[var(--muted-foreground)] uppercase tracking-wider mb-4 text-center">Event Status Flow</p>
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {[
-                  { label: "Created", color: "bg-slate-100 text-slate-700 border-slate-200" },
+                  { label: "Created", color: "bg-slate-100 text-slate-700 border-slate-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "For Review", color: "bg-amber-100 text-amber-700 border-amber-200" },
+                  { label: "For Review (Adv)", color: "bg-amber-100 text-amber-800 border-amber-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "For Approval", color: "bg-blue-100 text-blue-700 border-blue-200" },
+                  { label: "For Review (Dn)", color: "bg-blue-100 text-blue-800 border-blue-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Approved", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+                  { label: "Reviewed", color: "bg-emerald-100 text-emerald-800 border-emerald-300", sub: "Dean Dispatched" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "SDS Authorized", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+                  { label: "For Review (SDS)", color: "bg-blue-100 text-blue-800 border-blue-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "CMO Authorized", sub: "Off-campus", color: "bg-indigo-100 text-indigo-900 border-indigo-300" },
+                  { label: "Event Authorized", color: "bg-indigo-100 text-indigo-900 border-indigo-300", sub: "Final Clearance" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Completed", color: "bg-teal-100 text-teal-800 border-teal-200" },
+                  { label: "Completed", color: "bg-teal-100 text-teal-800 border-teal-300" },
                   { label: "→", color: "text-[var(--muted-foreground)]" },
-                  { label: "Closed", color: "bg-gray-100 text-gray-600 border-gray-200" },
+                  { label: "Closed", color: "bg-gray-100 text-gray-700 border-gray-300" },
                 ].map((item, i) =>
                   item.label === "→" ? (
                     <ChevronRight key={i} size={14} className={item.color} />
@@ -424,7 +424,7 @@ export default function LandingPage() {
               {
                 initials: "SR",
                 name: "Sophia Ryzelle Beloro",
-                role: "Project Manager",
+                role: "Developer",
                 focus: "Component Systems & Documentation",
                 email: "sophiaryzelle.beloro@email.lcup.edu.ph",
                 github: "https://github.com/tabbyorangw3s",
@@ -435,7 +435,7 @@ export default function LandingPage() {
               {
                 initials: "JC",
                 name: "John Mark Noel Cabugawan",
-                role: "Lead Developer",
+                role: "Developer",
                 focus: "System Architecture & Integration",
                 email: "johnmarknoel.cabugawan@email.lcup.edu.ph",
                 github: "https://github.com/Bugords",
@@ -446,7 +446,7 @@ export default function LandingPage() {
               {
                 initials: "RR",
                 name: "Rom Jerico Reyes",
-                role: "Quality Assurance",
+                role: "Developer",
                 focus: "Testing & Verification",
                 email: "romjerico.reyes@email.lcup.edu.ph",
                 github: "https://github.com/romjericoreyes",

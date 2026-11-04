@@ -21,9 +21,9 @@ export default function AdviserDashboard() {
   const orgId = currentUser?.organizationId ?? "";
   const org = organizations.find((o) => o.id === orgId);
   const orgEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
-  const pending = orgEvents.filter((e) => e.status === "For Review");
+  const pending = orgEvents.filter((e) => e.status === "For Review (Adv)" || e.status === "For Review");
   const approved = orgEvents.filter((e) =>
-    ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+    ["Reviewed", "Approved", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
   );
   const totalSpent = transactions
     .filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted)

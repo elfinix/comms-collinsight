@@ -6,7 +6,7 @@ import { UserAvatar } from "../ui";
 import {
   LayoutDashboard, Calendar, Wallet, BarChart2, Settings, LogOut, Menu, X,
   FileText, Users, Building2, Sliders, ClipboardList, ChevronRight,
-  BookOpen, Shield, History, ScrollText,
+  BookOpen, Shield, History, ScrollText, CalendarCheck,
 } from "lucide-react";
 
 interface NavItem {
@@ -97,6 +97,7 @@ export default function PanelLayout({ children, navItems, panelLabel, orgName }:
                   gender={currentUser.gender}
                   firstName={currentUser.firstName}
                   lastName={currentUser.lastName}
+                  role={currentUser.role}
                   name={fullName}
                   avatar={currentUser.avatar}
                   size="sm"
@@ -222,11 +223,21 @@ export function deanNavItems(pendingCount = 0): NavItem[] {
   ];
 }
 
+export function sdsNavItems(pendingCount = 0): NavItem[] {
+  return [
+    { to: "/sds/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
+    { to: "/sds/pending", label: "Pending Clearance", icon: <ClipboardList size={16} />, badge: pendingCount },
+    { to: "/sds/approved", label: "Authorized Events", icon: <CalendarCheck size={16} /> },
+    { to: "/sds/history", label: "History", icon: <History size={16} /> },
+  ];
+}
+
 export function adminNavItems(): NavItem[] {
   return [
     { to: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard size={16} /> },
     { to: "/admin/departments", label: "Departments", icon: <BookOpen size={16} /> },
     { to: "/admin/organizations", label: "Organizations", icon: <Building2 size={16} /> },
+    { to: "/admin/institutional-events", label: "Institutional Events", icon: <CalendarCheck size={16} /> },
     { to: "/admin/users", label: "Users", icon: <Users size={16} /> },
     { to: "/admin/configurations", label: "Configurations", icon: <Sliders size={16} /> },
     { to: "/admin/audit", label: "Audit Trail", icon: <ScrollText size={16} /> },

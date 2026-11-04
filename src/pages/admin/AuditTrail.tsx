@@ -22,7 +22,7 @@ type ActionFilterType = "ALL" | "CREATE" | "SUBMIT" | "APPROVE" | "REVISION" | "
 
 const ACTION_FILTERS: { id: ActionFilterType; label: string }[] = [
   { id: "ALL", label: "All Actions" },
-  { id: "CREATE", label: "Created Proposals" },
+  { id: "CREATE", label: "Created Events & Proposals" },
   { id: "SUBMIT", label: "For Review" },
   { id: "APPROVE", label: "Approvals & Endorsements" },
   { id: "REVISION", label: "Revision Requests" },
@@ -73,7 +73,7 @@ export default function AdminAuditTrail() {
           if (actionFilter === "SUBMIT" && !actionLower.includes("submit") && !actionLower.includes("review")) return false;
           if (actionFilter === "APPROVE" && !actionLower.includes("approv") && !actionLower.includes("endors") && !actionLower.includes("clearance")) return false;
           if (actionFilter === "REVISION" && !actionLower.includes("revis") && !actionLower.includes("change")) return false;
-          if (actionFilter === "MODIFIED" && !actionLower.includes("edit") && !actionLower.includes("delet") && !actionLower.includes("remov")) return false;
+          if (actionFilter === "MODIFIED" && !actionLower.includes("edit") && !actionLower.includes("delet") && !actionLower.includes("remov") && !actionLower.includes("modif") && !actionLower.includes("archiv")) return false;
           if (actionFilter === "FINANCE" && !actionLower.includes("financ") && !actionLower.includes("disburs") && !actionLower.includes("expens") && !actionLower.includes("ledger") && !actionLower.includes("liquidat")) return false;
           if (actionFilter === "CLOSURE" && !actionLower.includes("clos") && !actionLower.includes("conclud")) return false;
         }
@@ -265,7 +265,7 @@ export default function AdminAuditTrail() {
         return {
           idx: idx + 1,
           timestamp: formatDateTime(entry.timestamp),
-          eventName: evt ? evt.name : "Platform System Log",
+          eventName: evt ? evt.name : (entry.details.match(/'([^']+)'/)?.[1] || "Platform System Log"),
           eventStatus: evt ? evt.status : "",
           action: entry.action,
           userName,
@@ -577,11 +577,21 @@ export default function AdminAuditTrail() {
                           <p className="text-xs font-medium text-[var(--foreground)] leading-snug">
                             {evt.name}
                           </p>
-                        ) : (
-                          <span className="text-xs text-[var(--muted-foreground)] font-mono">
-                            Platform System Log
-                          </span>
-                        )}
+                        ) : (() => {
+                          const quotedMatch = entry.details.match(/'([^']+)'/);
+                          if (quotedMatch) {
+                            return (
+                              <p className="text-xs font-medium text-[var(--foreground)] leading-snug">
+                                {quotedMatch[1]}
+                              </p>
+                            );
+                          }
+                          return (
+                            <span className="text-xs text-[var(--muted-foreground)] font-mono">
+                              Platform System Log
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Action Pill Badge */}

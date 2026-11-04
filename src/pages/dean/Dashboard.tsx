@@ -17,8 +17,8 @@ export default function DeanDashboard() {
   const { events, transactions, organizations, isLoading } = useApp();
 
   const allEvents = events;
-  const pending = allEvents.filter((e) => e.status === "For Approval");
-  const approved = allEvents.filter((e) => ["Approved", "Completed", "Closed"].includes(e.status));
+  const pending = allEvents.filter((e) => e.status === "For Review (Dn)" || e.status === "For Approval");
+  const approved = allEvents.filter((e) => ["Reviewed", "Approved", "For Review (SDS)", "Event Authorized", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status));
   const totalSpent = transactions.filter((t) => approved.some((e) => e.id === t.eventId) && !t.deleted).reduce((s, t) => s + t.amount, 0);
 
   const orgData = organizations.map((org) => {

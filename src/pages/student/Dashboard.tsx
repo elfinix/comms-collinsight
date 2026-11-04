@@ -27,7 +27,7 @@ export default function StudentDashboard() {
   const org = orgId ? organizations.find((o) => o.id === orgId) : null;
   const orgEvents = events.filter((e) => e.organizationId === orgId && !e.deleted);
   const approvedEvents = orgEvents.filter((e) =>
-    ["Approved", "SDS Authorized", "CMO Authorized", "Completed", "Closed"].includes(e.status)
+    ["Event Authorized", "SDS Authorized", "Approved", "CMO Authorized", "Completed", "Closed"].includes(e.status)
   );
   const totalSpent = transactions
     .filter((t) => approvedEvents.some((e) => e.id === t.eventId) && !t.deleted)
@@ -137,7 +137,7 @@ export default function StudentDashboard() {
         />
         <StatCard
           label="Pending Review"
-          value={orgEvents.filter((e) => e.status === "For Review" || e.status === "For Approval").length}
+          value={orgEvents.filter((e) => e.status === "For Review (Adv)" || e.status === "For Review" || e.status === "For Review (Dn)" || e.status === "For Approval").length}
           sub="Awaiting endorsement"
           icon={<Clock size={18} />}
           color="bg-amber-500 text-white"

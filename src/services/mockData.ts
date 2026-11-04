@@ -7,19 +7,25 @@
 export type UserRole = "student" | "adviser" | "dean" | "admin";
 export type Gender = "male" | "female" | "non-binary";
 export type EventMode = "FTF" | "Online/Virtual";
-export type EventCategory = "Organizational" | "Departmental";
+export type EventCategory = "Organizational" | "Departmental" | "Institutional";
 export type EventSetting = "On-campus" | "Off-campus";
 export type EventStatus =
   | "Created"
-  | "For Review"
-  | "For Approval"
+  | "For Review (Adv)"
+  | "For Review (Dn)"
+  | "Reviewed"
+  | "For Review (SDS)"
+  | "Event Authorized"
   | "Pending Revision"
-  | "Approved"
-  | "SDS Authorized"
-  | "CMO Authorized"
   | "Rejected"
   | "Completed"
-  | "Closed";
+  | "Closed"
+  // Legacy backward compatibility
+  | "For Review"
+  | "For Approval"
+  | "Approved"
+  | "SDS Authorized"
+  | "CMO Authorized";
 export type TransactionStatus = "Pending" | "Paid" | "Reimbursed";
 
 export interface User {
@@ -107,9 +113,13 @@ export interface EventSignatory {
 
 export interface Event {
   id: string;
-  organizationId: string;
+  organizationId?: string;
   name: string;
-  typeId: string;
+  typeId?: string;
+  category?: EventCategory;
+  isInstitutional?: boolean;
+  isAllDay?: boolean;
+  setting?: EventSetting;
   description: string;
   proposedBudget: number;
   requisites: string;
@@ -1118,7 +1128,8 @@ export function getDeptById(id: string): Department | undefined {
   return departments.find((d) => d.id === id);
 }
 
-export function getEventTypeById(id: string): EventType | undefined {
+export function getEventTypeById(id?: string): EventType | undefined {
+  if (!id) return undefined;
   return eventTypes.find((e) => e.id === id);
 }
 
@@ -1150,13 +1161,25 @@ export function formatDateTime(dateStr: string): string {
   return new Date(dateStr).toLocaleString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-export function formatEventSchedule(dateStart?: string, dateEnd?: string): string {
+export function formatEventSchedule(dateStart?: string, dateEnd?: string, isAllDay?: boolean): string {
   if (!dateStart) return "—";
   try {
     const s = new Date(dateStart);
     if (isNaN(s.getTime())) return dateStart;
 
+    // Only treat as all-day if isAllDay is explicitly true, or pure YYYY-MM-DD date strings with no time
+    const isWholeDay = Boolean(isAllDay) || (!dateStart.includes("T") && !dateStart.includes(":") && (!dateEnd || (!dateEnd.includes("T") && !dateEnd.includes(":"))));
+
     const startDateStr = s.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+
+    if (isWholeDay) {
+      if (!dateEnd || dateEnd === dateStart) return `${startDateStr} (All Day)`;
+      const e = new Date(dateEnd);
+      const endDateStr = e.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+      if (startDateStr === endDateStr) return `${startDateStr} (All Day)`;
+      return `${startDateStr} – ${endDateStr} (All Day)`;
+    }
+
     const hasTime = dateStart.includes("T") || dateStart.includes(":");
     const startTimeStr = hasTime ? s.toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true }) : "";
 
@@ -1197,10 +1220,15 @@ export function formatEventSchedule(dateStart?: string, dateEnd?: string): strin
 
 export const statusColors: Record<EventStatus, string> = {
   Created: "bg-slate-100 text-slate-700 border border-slate-300 font-medium",
+  "For Review (Adv)": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
   "For Review": "bg-amber-100 text-amber-800 border border-amber-300 font-medium",
+  "For Review (Dn)": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   "For Approval": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
   "Pending Revision": "bg-orange-100 text-orange-800 border border-orange-300 font-medium",
+  Reviewed: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
   Approved: "bg-emerald-100 text-emerald-800 border border-emerald-300 font-medium",
+  "For Review (SDS)": "bg-blue-100 text-blue-800 border border-blue-300 font-medium",
+  "Event Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "SDS Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   "CMO Authorized": "bg-indigo-100 text-indigo-900 border border-indigo-300 font-medium",
   Rejected: "bg-rose-100 text-rose-800 border border-rose-300 font-medium",
@@ -1208,15 +1236,11 @@ export const statusColors: Record<EventStatus, string> = {
   Closed: "bg-gray-100 text-gray-700 border border-gray-300 font-medium",
 };
 
-export function getStatusBadgeClass(status: EventStatus, setting?: EventSetting): string {
-  if (status === "SDS Authorized") {
-    if (setting === "Off-campus") {
-      return "bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/60 font-medium";
-    }
-    return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
+export function getStatusBadgeClass(status: EventStatus, _setting?: EventSetting): string {
+  if (status === "For Review (SDS)" || status === "For Review (Dn)" || status === "For Approval") {
+    return "bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-950/70 dark:text-blue-200 dark:border-blue-700 font-medium";
   }
-
-  if (status === "CMO Authorized") {
+  if (status === "Event Authorized" || status === "SDS Authorized" || status === "CMO Authorized") {
     return "bg-indigo-100 text-indigo-900 border border-indigo-300 dark:bg-indigo-950/70 dark:text-indigo-200 dark:border-indigo-700 font-medium";
   }
 
@@ -1245,6 +1269,7 @@ export const SAMPLE_FIXTURES = {
 
 export function resolvePdfUrl(url?: string, fallbackType: "apf" | "clearance" | "appendix" | "venue" | "receipt" = "apf"): string {
   if (!url) return SAMPLE_FIXTURES[fallbackType];
+  if (url.includes("docs.google.com") || url.includes("drive.google.com")) return url;
   if (url.startsWith("/fixtures")) return url;
   if (url.startsWith("blob:") || url.startsWith("data:")) return url;
 
@@ -1276,8 +1301,14 @@ export function getActionBadgeClass(action: string): string {
   if (act.includes("authoriz")) {
     return "bg-indigo-100 text-indigo-900 border-indigo-300 font-bold";
   }
-  if (act.includes("endorsed") || act.includes("endors")) {
-    return "bg-blue-100 text-blue-800 border-blue-300 font-bold";
+  if (
+    act.includes("approved & forwarded") ||
+    act.includes("endorsed") ||
+    act.includes("endors") ||
+    act.includes("for review (sds)") ||
+    act.includes("for review (dn)")
+  ) {
+    return "bg-blue-100 text-blue-800 border border-blue-300 font-bold";
   }
   if (act.includes("approved") || act.includes("approv")) {
     return "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
