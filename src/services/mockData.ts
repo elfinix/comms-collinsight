@@ -133,6 +133,12 @@ export interface Event {
   clearanceDocRef?: string;
   remarks?: string[];
   status: EventStatus;
+  sdsActionToken?: string;
+  cmoActionToken?: string;
+  sdsFeedback?: string;
+  cmoFeedback?: string;
+  pcfUrl?: string;
+  pcfName?: string;
   revenue?: number;
   liquidatedBy?: string;
   liquidatedAt?: string;
@@ -466,7 +472,8 @@ export const events: Event[] = [
     appendices: ["Program_Matrix_TechFest2026.pdf", "Speaker_Profiles_and_Budgets.pdf", "Venue_Layout_CITE_Auditorium.png"],
     clearanceDetails: "TechFest 2026 organized by IT Student Guild with full backing of the Department of IT.",
     remarks: [],
-    status: "Approved",
+    status: "Event Authorized",
+    sdsActionToken: "token_sds_evt1",
     createdAt: "2026-08-01T09:00:00",
     createdBy: "user-stu-1",
   },
@@ -524,6 +531,7 @@ export const events: Event[] = [
     appendices: ["Speaker_Handouts_CloudAWS.pdf", "Participant_Attendance_Log.pdf", "Webinar_Evaluation_Summary.pdf"],
     clearanceDetails: "Completed 3-part online lecture on modern cloud architecture and cloud security.",
     status: "Completed",
+    sdsActionToken: "token_sds_evt4",
     createdAt: "2026-07-15T08:00:00",
     createdBy: "user-stu-1",
   },
@@ -625,6 +633,29 @@ export const events: Event[] = [
     status: "Completed",
     createdAt: "2026-07-28T16:00:00",
     createdBy: "user-adv-3",
+  },
+  {
+    id: "evt-10",
+    organizationId: "org-1",
+    name: "ITSG Midyear General Assembly & Team Building",
+    typeId: "et-2",
+    description: "Annual midyear gathering of all IT Student Guild members featuring leadership talks and officer election briefings.",
+    proposedBudget: 4500,
+    requisites: "Open to all enrolled BSIT students and guild members.",
+    dateStart: "2026-08-22T09:00",
+    dateEnd: "2026-08-22T17:00",
+    mode: "FTF",
+    location: "CITE Student Activity Center",
+    apfUrl: "APF_Assembly_2026.pdf",
+    appendices: ["Activity Mechanics.pdf", "Food & Beverage Distribution Matrix.pdf", "Post-Event Liquidation Template.pdf"],
+    clearanceDetails: "Event successfully concluded and liquidated. Full financial report reconciled.",
+    remarks: [],
+    status: "Closed",
+    sdsActionToken: "token_sds_evt10",
+    liquidatedAt: "2026-08-25T07:30:00Z",
+    liquidatedBy: "Maria D. Lopez",
+    createdAt: "2026-08-01T09:00:00",
+    createdBy: "user-stu-1",
   },
 ];
 

@@ -777,6 +777,98 @@ export function getStatusBadgeClass(status: EventStatus, _setting?: EventSetting
   return statusColors[status] || "bg-slate-100 text-slate-700 border border-slate-300 font-medium";
 }
 
+/**
+ * Determines whether an event has been forwarded/dispatched to Student Development Services (SDS).
+ */
+export function isEventSentToSds(event: Event): boolean {
+  if (event.deleted) return false;
+  return (
+    Boolean(event.sdsActionToken) ||
+    [
+      "Reviewed",
+      "For Review (SDS)",
+      "Event Authorized",
+      "SDS Authorized",
+      "CMO Authorized",
+      "Completed",
+      "Closed",
+      "Approved",
+    ].includes(event.status)
+  );
+}
+
+/**
+ * Determines whether an event has completed financial liquidation.
+ */
+export function isEventLiquidated(event: Event): boolean {
+  if (event.deleted) return false;
+  return event.status === "Closed" || Boolean(event.liquidatedAt);
+}
+
+/**
+ * Determines whether an event is authorized/completed but pending final financial liquidation.
+ */
+export function isEventPendingLiquidation(event: Event): boolean {
+  if (event.deleted) return false;
+  return (
+    !isEventLiquidated(event) &&
+    [
+      "Event Authorized",
+      "SDS Authorized",
+      "CMO Authorized",
+      "Completed",
+      "Approved",
+    ].includes(event.status)
+  );
+}
+
+/**
+ * Determines whether an event has been dispatched to SDS and is awaiting evaluation/clearance.
+ */
+export function isEventPendingSdsClearance(event: Event): boolean {
+  if (event.deleted) return false;
+  return event.status === "Reviewed" || event.status === "For Review (SDS)";
+}
+
+/**
+ * Resolves the date and time an event was approved by the College Dean and dispatched to SDS.
+ */
+export function getDeanDispatchedAt(
+  eventId: string,
+  eventSignatories: EventSignatory[] = [],
+  auditTrail: AuditEntry[] = []
+): string | undefined {
+  // 1. Check dean signatory record
+  const deanSig = eventSignatories.find(
+    (s) => s.eventId === eventId && s.role === "dean" && (s.status === "Approved" || s.signedAt)
+  );
+  if (deanSig?.signedAt || deanSig?.createdAt) {
+    return deanSig.signedAt || deanSig.createdAt;
+  }
+
+  // 2. Audit trail record for Dean forward transition to SDS
+  const deanAudit = auditTrail.find((a) => {
+    if (a.eventId !== eventId) return false;
+    const act = (a.action || "").toLowerCase();
+    const det = (a.details || "").toLowerCase();
+    const to = (a.statusTo || "").toLowerCase();
+    const from = (a.statusFrom || "").toLowerCase();
+    return (
+      act.includes("approved & forwarded to sds") ||
+      det.includes("forwarded to sds") ||
+      det.includes("dispatched to sds") ||
+      det.includes("forwarded to student development & services") ||
+      (a.actorRole === "dean" && (to === "reviewed" || to === "approved")) ||
+      (from === "for review (dn)" && (to === "reviewed" || to === "approved"))
+    );
+  });
+  if (deanAudit?.timestamp) {
+    return deanAudit.timestamp;
+  }
+
+  return undefined;
+}
+
 export function isWebUrl(str?: string): boolean {
   if (!str) return false;
   const t = str.trim();

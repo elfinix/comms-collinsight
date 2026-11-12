@@ -54,6 +54,7 @@ import {
   isExcelFile,
   isGoogleDocsUrl,
   formatComplianceDocLabel,
+  getDeanDispatchedAt as resolveDeanDispatchedAt,
 } from "../../services/dataService";
 import EventClearanceTab from "../../components/events/EventClearanceTab";
 
@@ -64,35 +65,7 @@ export default function SDSPendingClearance() {
   const { toast } = useToast();
 
   function getDeanDispatchedAt(eventId: string): string | undefined {
-    // 1. Event signatory signed by Dean
-    const deanSig = eventSignatories.find(
-      (s) => s.eventId === eventId && s.role === "dean" && (s.status === "Approved" || s.status === "Endorsed")
-    );
-    if (deanSig?.signedAt || deanSig?.createdAt) {
-      return deanSig.signedAt || deanSig.createdAt;
-    }
-
-    // 2. Audit trail record for Dean forward transition to SDS
-    const deanAudit = auditTrail.find((a) => {
-      if (a.eventId !== eventId) return false;
-      const act = (a.action || "").toLowerCase();
-      const det = (a.details || "").toLowerCase();
-      const to = (a.statusTo || "").toLowerCase();
-      const from = (a.statusFrom || "").toLowerCase();
-      return (
-        act.includes("approved & forwarded to sds") ||
-        det.includes("forwarded to sds") ||
-        det.includes("dispatched to sds") ||
-        det.includes("forwarded to student development & services") ||
-        (a.actorRole === "dean" && (to === "reviewed" || to === "approved")) ||
-        (from === "for review (dn)" && (to === "reviewed" || to === "approved"))
-      );
-    });
-    if (deanAudit?.timestamp) {
-      return deanAudit.timestamp;
-    }
-
-    return undefined;
+    return resolveDeanDispatchedAt(eventId, eventSignatories, auditTrail);
   }
 
   const pending = useMemo(() => {
