@@ -7,7 +7,8 @@ import PublicFooter from "../components/layout/PublicFooter";
 import {
   Users, ArrowRight, Mail, BarChart2, FileText,
   CheckCircle, ChevronRight, ArrowUpRight, BookOpen, Star,
-  Landmark, ClipboardList, Calendar, Plus, LayoutDashboard
+  Landmark, ClipboardList, Calendar, Plus, LayoutDashboard,
+  ShieldCheck, Settings
 } from "lucide-react";
 
 function FadeSection({ children, className = "", delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
@@ -105,7 +106,7 @@ export default function LandingPage() {
                 <StatPill value={String(organizations.length)} label="Organizations" />
                 <StatPill value={String(events.length)} label="Events Created" />
                 <StatPill value="100%" label="Automated Compliance" />
-                <StatPill value="4" label="User Roles" />
+                <StatPill value="5" label="User Roles" />
               </div>
             </div>
 
@@ -353,35 +354,41 @@ export default function LandingPage() {
               <h2 className="text-3xl font-bold mt-2">Built for every stakeholder</h2>
             </div>
             <p className="text-[var(--muted-foreground)] max-w-sm leading-relaxed text-sm lg:text-right">
-              Four distinct roles, each with a tailored view and permissions appropriate to their responsibilities.
+              Five distinct roles, each with a tailored view and permissions appropriate to their responsibilities.
             </p>
           </div>
         </FadeSection>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[
             {
               icon: <Users size={20} />, role: "Student Officers",
-              desc: "Draft events, upload APF, log financial records, and track clearance progress.",
+              desc: "Draft events, upload APF & PCF, log financial records, and track clearance progress.",
               color: "border-t-orange-500", iconColor: "text-orange-600", iconBg: "bg-orange-50",
-              tags: ["Draft Events", "Submit APF", "Log Expenses", "Track Status"],
+              tags: ["Draft Events", "Submit APF/PCF", "Log Expenses", "Track Status"],
             },
             {
               icon: <BookOpen size={20} />, role: "Faculty Advisers",
-              desc: "Review proposals, provide feedback, and forward approved events to the Dean.",
+              desc: "Review proposals, provide feedback, and forward endorsed events to the Dean.",
               color: "border-t-blue-500", iconColor: "text-blue-600", iconBg: "bg-blue-50",
-              tags: ["Review Proposals", "Approve Events", "Give Feedback", "Monitor Finance"],
+              tags: ["Review Proposals", "Endorse Events", "Give Feedback", "Monitor Finance"],
             },
             {
               icon: <Star size={20} />, role: "College Dean",
-              desc: "Give final approval, generate signed clearances, and access cross-org reports.",
+              desc: "Provide collegiate approval, generate signed clearances, and dispatch to SDS.",
               color: "border-t-indigo-500", iconColor: "text-indigo-600", iconBg: "bg-indigo-50",
-              tags: ["Final Approval", "Cross-Org Reports", "Sign Clearances", "Oversight"],
+              tags: ["Dean Approval", "Cross-Org Reports", "Sign Clearances", "Dispatch to SDS"],
             },
             {
-              icon: <Users size={20} />, role: "Student Body",
-              desc: "Browse public events, follow org activities, and stay informed on CITE happenings.",
-              color: "border-t-amber-500", iconColor: "text-amber-600", iconBg: "bg-amber-50",
-              tags: ["View Calendar", "Browse Events", "Follow Orgs", "Public Feed"],
+              icon: <ShieldCheck size={20} />, role: "Student Development & Services",
+              desc: "Executive university clearance authority, final authorization, and finance ledger unlocking.",
+              color: "border-t-emerald-500", iconColor: "text-emerald-600", iconBg: "bg-emerald-50",
+              tags: ["Executive Approval", "Final Clearance", "Unlock Finance", "Clearance Registry"],
+            },
+            {
+              icon: <Settings size={20} />, role: "System Administrator",
+              desc: "Publish institutional university-wide events, maintain system data, and oversee platform operations.",
+              color: "border-t-purple-500", iconColor: "text-purple-600", iconBg: "bg-purple-50",
+              tags: ["Institutional Events", "Campus Calendar", "User Oversight", "System Config"],
             },
           ].map((r, i) => (
             <FadeSection key={r.role} delay={i * 70}>
