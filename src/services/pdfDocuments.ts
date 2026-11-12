@@ -295,7 +295,9 @@ export function drawPdfHeader(config: PdfHeaderConfig): number {
   doc.setTextColor(234, 88, 12); // #ea580c Primary Orange
   doc.setFontSize(7.5);
   doc.setFont("helvetica", "bold");
-  doc.text(subtitle, margin, 38);
+  const maxSubtitleWidth = pageWidth - margin * 2 - 55;
+  const subtitleLines = doc.splitTextToSize(subtitle, maxSubtitleWidth);
+  doc.text(subtitleLines[0] + (subtitleLines.length > 1 ? "..." : ""), margin, 38);
 
   // 3. Right Header Info (Badge, Ref, Generated Date)
   doc.setFont("helvetica", "bold");
@@ -482,48 +484,71 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     doc.text("Activity Proposal Form (APF) Prepared for Faculty Adviser Review", margin + 4, bannerY + 11);
   }
 
-  // ── 3. EVENT IDENTIFICATION GRID (BALANCED PADDING) ────────────
+  // ── 3. EVENT IDENTIFICATION GRID (BALANCED PADDING & AUTO-WRAPPING) ─
   const gridY = 65;
-  const gridH = 54;
+  const gridH = 56;
   doc.setFillColor(248, 250, 252);
   doc.setDrawColor(226, 232, 240);
   doc.setLineWidth(0.3);
   doc.roundedRect(margin, gridY, contentWidth, gridH, 1.5, 1.5, "FD");
 
   const midX = margin + contentWidth / 2;
+  const colWidth = contentWidth / 2 - 8; // 83mm column width leaving safe gutters
 
-  // Left Column - Row 1: Event Name
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("EVENT PROPOSAL NAME", margin + 4, gridY + 5.5);
-  doc.setFontSize(9);
-  doc.setTextColor(15, 23, 42);
-  doc.text(event.name, margin + 4, gridY + 10.5);
+  // Helper to safely render column cells with multi-line wrapping and no column overflow
+  const renderGridCell = (
+    label: string,
+    value: string,
+    x: number,
+    baseY: number,
+    maxWidth: number,
+    options?: {
+      fontSize?: number;
+      fontColor?: [number, number, number];
+      isBold?: boolean;
+      maxLines?: number;
+    }
+  ) => {
+    const fontSize = options?.fontSize ?? 8.5;
+    const fontColor = options?.fontColor ?? [15, 23, 42];
+    const isBold = options?.isBold ?? true;
+    const maxLines = options?.maxLines ?? 2;
 
-  // Left Column - Row 2: Organizing Body
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("ORGANIZING BODY", margin + 4, gridY + 18);
-  doc.setFontSize(9);
-  doc.setTextColor(30, 64, 175); // Blue 800
-  doc.text(orgName, margin + 4, gridY + 23);
+    // Label
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(label, x, baseY);
 
-  // Left Column - Row 3: Event Category
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("EVENT CATEGORY", margin + 4, gridY + 30.5);
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(event.category || "Organizational", margin + 4, gridY + 35.5);
+    // Value
+    doc.setFont("helvetica", isBold ? "bold" : "normal");
+    doc.setFontSize(fontSize);
+    doc.setTextColor(fontColor[0], fontColor[1], fontColor[2]);
 
-  // Left Column - Row 4: Event Type & Scope
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("EVENT TYPE & SCOPE", margin + 4, gridY + 43);
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(typeName, margin + 4, gridY + 48);
+    let lines: string[] = doc.splitTextToSize(value, maxWidth);
+
+    // If text wraps to more than maxLines, auto-scale down font size
+    if (lines.length > maxLines && fontSize > 7) {
+      doc.setFontSize(7.5);
+      lines = doc.splitTextToSize(value, maxWidth);
+    }
+
+    // If still exceeds maxLines, clamp and append ellipsis
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      if (!lines[maxLines - 1].endsWith("...")) {
+        lines[maxLines - 1] = lines[maxLines - 1].replace(/(\s+\S*|\S{3})$/, "") + "...";
+      }
+    }
+
+    const effectiveFontSize = doc.getFontSize();
+    const lineHeight = effectiveFontSize * 0.42; // ~3.57mm for 8.5pt, ~3.15mm for 7.5pt
+    const startY = baseY + 4.2;
+
+    lines.forEach((line: string, i: number) => {
+      doc.text(line, x, startY + i * lineHeight);
+    });
+  };
 
   // Right Column: Date & Time Calculation
   let dateFormatted = "—";
@@ -560,38 +585,53 @@ export function generateClearancePdfBlob(event: Event, options?: ClearancePdfOpt
     }
   }
 
-  // Right Column - Row 1: Event Schedule
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("EVENT SCHEDULE", midX + 4, gridY + 5.5);
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(dateFormatted, midX + 4, gridY + 10.5);
+  // Row 1: Event Name (Left) & Event Schedule (Right)
+  renderGridCell("EVENT PROPOSAL NAME", event.name, margin + 4, gridY + 5.5, colWidth, {
+    fontSize: 8.5,
+    fontColor: [15, 23, 42],
+    isBold: true,
+  });
+  renderGridCell("EVENT SCHEDULE", dateFormatted, midX + 4, gridY + 5.5, colWidth, {
+    fontSize: 8.5,
+    fontColor: [15, 23, 42],
+    isBold: true,
+  });
 
-  // Right Column - Row 2: Venue / Location
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("VENUE / PLATFORM LOCATION", midX + 4, gridY + 18);
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(event.location || "LCUP Main Campus / Designated Venue", midX + 4, gridY + 23);
+  // Row 2: Organizing Body (Left) & Venue / Platform Location (Right)
+  renderGridCell("ORGANIZING BODY", orgName, margin + 4, gridY + 18.5, colWidth, {
+    fontSize: 8.5,
+    fontColor: [30, 64, 175], // Blue 800
+    isBold: true,
+  });
+  renderGridCell("VENUE / PLATFORM LOCATION", event.location || "LCUP Main Campus / Designated Venue", midX + 4, gridY + 18.5, colWidth, {
+    fontSize: 8.5,
+    fontColor: [15, 23, 42],
+    isBold: true,
+  });
 
-  // Right Column - Row 3: Setting
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("SETTING", midX + 4, gridY + 30.5);
-  doc.setFontSize(8.5);
-  doc.setTextColor(15, 23, 42);
-  doc.text(event.setting || "On-campus", midX + 4, gridY + 35.5);
+  // Row 3: Event Category (Left) & Setting (Right)
+  renderGridCell("EVENT CATEGORY", event.category || "Organizational", margin + 4, gridY + 31.5, colWidth, {
+    fontSize: 8.5,
+    fontColor: [15, 23, 42],
+    isBold: true,
+  });
+  renderGridCell("SETTING", event.setting || "On-campus", midX + 4, gridY + 31.5, colWidth, {
+    fontSize: 8.5,
+    fontColor: [15, 23, 42],
+    isBold: true,
+  });
 
-  // Right Column - Row 4: Proposed Allocated Budget
-  doc.setFontSize(6.5);
-  doc.setTextColor(100, 116, 139);
-  doc.text("PROPOSED ALLOCATED BUDGET", midX + 4, gridY + 43);
-  doc.setFontSize(9);
-  doc.setTextColor(234, 88, 12); // Orange
-  doc.text(formatPdfCurrency(event.proposedBudget), midX + 4, gridY + 48);
+  // Row 4: Event Type & Scope (Left) & Proposed Allocated Budget (Right)
+  renderGridCell("EVENT TYPE & SCOPE", typeName, margin + 4, gridY + 44.0, colWidth, {
+    fontSize: 8.5,
+    fontColor: [15, 23, 42],
+    isBold: true,
+  });
+  renderGridCell("PROPOSED ALLOCATED BUDGET", formatPdfCurrency(event.proposedBudget), midX + 4, gridY + 44.0, colWidth, {
+    fontSize: 9,
+    fontColor: [234, 88, 12], // Orange
+    isBold: true,
+  });
 
   // ── 4. SCOPE & OBJECTIVES SUMMARY (GENEROUS SPACING & LINE HEIGHT) ─
   const descHeaderY = gridY + gridH + 8;
@@ -822,9 +862,9 @@ export function generateLiquidationPdfBlob(
   doc.setFontSize(6);
   doc.setTextColor(100, 116, 139);
   doc.text("EVENT NAME & PROPOSAL TITLE", margin + 3.5, kpiY + 4.5);
-  doc.setFontSize(8.5);
+  doc.setFontSize(event.name.length > 70 ? 7.5 : 8.5);
   doc.setTextColor(15, 23, 42);
-  doc.text(event.name, margin + 3.5, kpiY + 9.5);
+  doc.text(event.name, margin + 3.5, kpiY + 9.5, { maxWidth: contentWidth - 7 });
 
   // Divider inside card
   doc.setDrawColor(226, 232, 240);
